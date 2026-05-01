@@ -3,6 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="author" content="Jace Hunter" />
+  <meta name="keywords" content="Timpanogos Baseball, Timpanogos High School Baseball, T-Wolves Baseball, Jace Hunter" />
   <title>Timpanogos Baseball Hub</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,18 +17,20 @@
     <div class="header-inner">
       <img src="images/logo-twolves-wolf.png" alt="Timpanogos Wolves Logo" class="logo" />
       <h1>Timpanogos Baseball</h1>
-      <div class="header-weather" id="headerWeather"></div>
     </div>
     <nav class="main-nav" id="mainNav">
-      <a href="#home">Home</a>
-      <a href="#schedule">Schedule</a>
-      <a href="#results">Results</a>
-      <a href="#roster">Roster</a>
-      <a href="#admin" class="admin-link">Admin</a>
+      <div class="nav-links">
+        <a href="#home">Home</a>
+        <a href="#schedule">Schedule</a>
+        <a href="#results">Results</a>
+        <a href="#roster">Roster</a>
+        <a href="#admin" class="admin-link">Admin</a>
+      </div>
+      <div class="header-weather" id="headerWeather"></div>
     </nav>
   </header>
 
-  <div class="carousel">
+  <div class="carousel" style="display:none">
     <div class="carousel-track"></div>
     <button class="carousel-btn carousel-prev">&#10094;</button>
     <button class="carousel-btn carousel-next">&#10095;</button>
@@ -72,6 +76,8 @@
 
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="js/firebase-config.js"></script>
   <script src="js/carousel.js"></script>
   <script src="js/flip.min.js"></script>

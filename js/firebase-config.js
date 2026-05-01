@@ -11,6 +11,24 @@ var firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 var db = firebase.database();
+var storage = firebase.storage();
+var auth = firebase.auth();
+var currentAdminUser = null;
+var authReady = false;
+
+auth.onAuthStateChanged(function(user) {
+  currentAdminUser = user;
+  authReady = true;
+  document.dispatchEvent(new CustomEvent('adminauthchange'));
+});
+
+function fbSignIn(email, password) {
+  return auth.signInWithEmailAndPassword(email, password);
+}
+
+function fbSignOut() {
+  return auth.signOut();
+}
 
 /* Read once from a path, returns a promise */
 function fbGet(path) {
@@ -34,14 +52,48 @@ function fbRemove(path) {
   return db.ref(path).remove();
 }
 
+function fbUploadFile(path, file, metadata, onProgress) {
+  return new Promise(function(resolve, reject) {
+    var ref = storage.ref(path);
+    var task = ref.put(file, metadata || {});
+    var timeout = setTimeout(function() {
+      reject(new Error('Upload timed out. Check Firebase Storage rules and network access.'));
+      task.cancel();
+    }, 60000);
+
+    task.on('state_changed', function(snapshot) {
+      if (onProgress && snapshot.totalBytes) {
+        onProgress(Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100));
+      }
+    }, function(error) {
+      clearTimeout(timeout);
+      reject(error);
+    }, function() {
+      clearTimeout(timeout);
+      task.snapshot.ref.getDownloadURL().then(function(url) {
+        resolve({ url: url, storagePath: path });
+      }).catch(reject);
+    });
+  });
+}
+
+function fbDeleteFile(path) {
+  if (!path) return Promise.resolve();
+  return storage.ref(path).delete();
+}
+
 /* Convert Firebase object to array */
 function fbToArray(obj) {
   if (!obj) return [];
-  return Object.keys(obj).map(function(key) {
+  return Object.keys(obj).sort(function(a, b) {
+    var numA = Number(a), numB = Number(b);
+    if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+    return a.localeCompare(b);
+  }).map(function(key) {
     var item = obj[key];
-    item._key = key;
+    if (item && typeof item === 'object') item._key = key;
     return item;
-  });
+  }).filter(Boolean);
 }
 
 /* Seed database if empty */

@@ -1,15 +1,104 @@
 /* ── Shared Utilities ── */
 var cachedGames = null;
 var cachedResults = null;
+var cachedCarouselPhotos = null;
 
 function fbSave(key, data) {
-  fbSet(key, data);
-  if (key === 'games') cachedGames = data;
-  if (key === 'results') cachedResults = data;
+  if (Array.isArray(data)) {
+    data = data.filter(Boolean).map(cleanFirebaseRecord);
+  }
+
+  return fbSet(key, data).then(function() {
+    if (key === 'games') cachedGames = data;
+    if (key === 'results') cachedResults = data;
+    if (key === 'carouselPhotos') cachedCarouselPhotos = data;
+    return data;
+  });
+}
+
+function cleanFirebaseRecord(item) {
+  if (!item || typeof item !== 'object') return item;
+  var cleaned = Object.assign({}, item);
+  delete cleaned._key;
+  return cleaned;
+}
+
+function firebaseChildKey(item, index) {
+  return item && item._key != null ? item._key : String(index);
+}
+
+function fbSaveChild(collection, childKey, data) {
+  var cleaned = cleanFirebaseRecord(data);
+  return fbSet(collection + '/' + childKey, cleaned).then(function() {
+    return Object.assign({ _key: childKey }, cleaned);
+  });
+}
+
+function fbAddChild(collection, data) {
+  var cleaned = cleanFirebaseRecord(data);
+  return fbPush(collection, cleaned).then(function(ref) {
+    return Object.assign({ _key: ref.key }, cleaned);
+  });
+}
+
+function fbDeleteChild(collection, childKey) {
+  return fbRemove(collection + '/' + childKey);
 }
 
 function getGames() { return cachedGames || []; }
 function getResults() { return cachedResults || []; }
+function normalizeCarouselPhoto(photo, index) {
+  if (typeof photo === 'string') return { src: photo, alt: 'Team photo', _key: String(index) };
+  return {
+    src: photo && photo.src ? photo.src : '',
+    alt: photo && photo.alt ? photo.alt : 'Team photo',
+    storagePath: photo && photo.storagePath ? photo.storagePath : '',
+    width: photo && photo.width ? photo.width : null,
+    height: photo && photo.height ? photo.height : null,
+    updatedAt: photo && photo.updatedAt ? photo.updatedAt : null,
+    sortOrder: photo && photo.sortOrder != null ? photo.sortOrder : index,
+    _key: photo && photo._key != null ? photo._key : String(index)
+  };
+}
+function getCarouselPhotos() {
+  const fallback = window.defaultCarouselPhotos || [];
+  const photos = cachedCarouselPhotos && cachedCarouselPhotos.length ? cachedCarouselPhotos : fallback;
+  return photos.map(normalizeCarouselPhoto)
+    .filter(photo => photo.src)
+    .sort((a, b) => (+a.sortOrder || 0) - (+b.sortOrder || 0));
+}
+function refreshCarouselPhotos(photos) {
+  cachedCarouselPhotos = photos.slice();
+  if (window.timpanogosCarousel) window.timpanogosCarousel.setPhotos(cachedCarouselPhotos, true);
+}
+function fbSaveCarouselPhotos(photos) {
+  const cleaned = photos.map(cleanFirebaseRecord).filter(photo => photo && photo.src);
+  const data = cleaned.length ? cleaned : { __empty: true };
+  return fbSet('carouselPhotos', data).then(function() {
+    return cleaned;
+  });
+}
+function fbSaveCarouselPhotoChild(childKey, photo) {
+  var cleaned = cleanFirebaseRecord(photo);
+  return fbSet('carouselPhotos/' + childKey, cleaned).then(function() {
+    return Object.assign({ _key: childKey }, cleaned);
+  });
+}
+function fbAddCarouselPhoto(photo) {
+  var cleaned = cleanFirebaseRecord(photo);
+  return fbPush('carouselPhotos', cleaned).then(function(ref) {
+    return Object.assign({ _key: ref.key }, cleaned);
+  });
+}
+function carouselUploadPath(file) {
+  const safeName = file.name.replace(/\.[^.]+$/, '').replace(/[^a-z0-9._-]/gi, '-').toLowerCase();
+  return 'photos/optimized/' + Date.now() + '-' + safeName + '.jpg';
+}
+
+const carouselOutputWidth = 800;
+const carouselOutputHeight = 533;
+const carouselOutputQuality = 0.82;
+const carouselSharpenAmount = 0.18;
 
 function formatDate(iso, opts) {
   const [y, m, d] = iso.split('-');
@@ -157,18 +246,33 @@ function buildResultsByMonth(results, container) {
   const groups = {};
   results.forEach(r => {
     const [y, m, d] = r.date.split('-');
-    const key = new Date(y, m - 1, d).toLocaleDateString(undefined, { month:'long' });
-    (groups[key] = groups[key] || []).push(r);
+    const date = new Date(y, m - 1, d);
+    const key = `${y}-${m}`;
+    if (!groups[key]) {
+      groups[key] = {
+        month: date.toLocaleDateString(undefined, { month:'long' }),
+        year: date.toLocaleDateString(undefined, { year:'numeric' }),
+        results: []
+      };
+    }
+    groups[key].results.push(r);
   });
-  Object.keys(groups).forEach(month => {
+  Object.keys(groups).forEach(key => {
+    const group = groups[key];
     const h3 = document.createElement('h3');
-    h3.textContent = month;
+    const month = document.createElement('span');
+    month.textContent = group.month;
+    const year = document.createElement('span');
+    year.textContent = group.year;
+    year.className = 'result-year';
+    h3.appendChild(month);
+    h3.appendChild(year);
     container.appendChild(h3);
     const table = document.createElement('table');
     table.className = 'results-table';
     const tbody = document.createElement('tbody');
     table.appendChild(tbody);
-    groups[month].forEach(r => {
+    group.results.forEach(r => {
       const our = +r.ourScore, their = +r.theirScore;
       const win = our > their, loss = our < their;
       const cls = win ? 'win' : (loss ? 'loss' : 'tie');
@@ -210,6 +314,32 @@ function buildGameCard(g, result) {
         <span class="time">${g.time}</span>
       </div>
     </div>` + overlay;
+  if (result) {
+    card.tabIndex = 0;
+    card.setAttribute('role', 'button');
+    card.setAttribute('aria-label', `Show score for Timpanogos vs ${g.opponent}`);
+    card.addEventListener('click', () => {
+      if (window.matchMedia('(max-width: 768px)').matches) {
+        const isOpen = card.classList.contains('show-overlay');
+        document.querySelectorAll('.game-card.show-overlay').forEach(openCard => {
+          if (openCard !== card) openCard.classList.remove('show-overlay');
+        });
+        card.classList.toggle('show-overlay', !isOpen);
+      }
+    });
+    card.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        if (window.matchMedia('(max-width: 768px)').matches) {
+          const isOpen = card.classList.contains('show-overlay');
+          document.querySelectorAll('.game-card.show-overlay').forEach(openCard => {
+            if (openCard !== card) openCard.classList.remove('show-overlay');
+          });
+          card.classList.toggle('show-overlay', !isOpen);
+        }
+      }
+    });
+  }
   return card;
 }
 
@@ -458,80 +588,215 @@ function renderResults(app) {
   const headerH = document.querySelector('.site-header').offsetHeight;
   document.documentElement.style.setProperty('--header-height', headerH + 'px');
 
-  // Toggle .stuck class only when heading is pinned at the top
-  document.querySelectorAll('#spring2026Results h3,#fallResults h3,#summerResults h3,#springResults h3').forEach(h3 => {
-    const observer = new IntersectionObserver(([e]) => {
-      const rect = h3.getBoundingClientRect();
-      const isAtTop = Math.abs(rect.top - headerH) < 2;
-      h3.classList.toggle('stuck', e.intersectionRatio < 1 && isAtTop);
-    }, { threshold:[1], rootMargin:`-${headerH + 1}px 0px 0px 0px` });
-    observer.observe(h3);
-  });
+  if (window.resultStickyHeaderHandler) {
+    window.removeEventListener('scroll', window.resultStickyHeaderHandler);
+    window.removeEventListener('resize', window.resultStickyHeaderHandler);
+  }
 
-  // Also check on scroll to remove stuck when no longer pinned
-  window.addEventListener('scroll', () => {
+  window.resultStickyHeaderHandler = function() {
+    const stickyTop = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-height')) || headerH;
     document.querySelectorAll('#spring2026Results h3,#fallResults h3,#summerResults h3,#springResults h3').forEach(h3 => {
       const rect = h3.getBoundingClientRect();
-      const isAtTop = Math.abs(rect.top - headerH) < 2;
-      if (!isAtTop) h3.classList.remove('stuck');
+      h3.classList.toggle('stuck', rect.top <= stickyTop + 1 && rect.bottom > stickyTop);
     });
-  }, { passive: true });
+  };
+  window.addEventListener('scroll', window.resultStickyHeaderHandler, { passive: true });
+  window.addEventListener('resize', window.resultStickyHeaderHandler);
+  window.resultStickyHeaderHandler();
 }
 
 /* ── Admin ── */
-let editingGameIdx = -1, editingResultIdx = -1;
+let editingGameIdx = -1, editingResultIdx = -1, editingCarouselPhotoIdx = -1;
+
+function renderAdminLogin(app) {
+  app.className = 'container admin-login-page';
+  if (!authReady) {
+    app.innerHTML = `
+      <section class="admin-card auth-card">
+        <h2>Admin Login</h2>
+        <p class="muted">Checking admin session...</p>
+      </section>`;
+    return;
+  }
+
+  app.innerHTML = `
+    <section class="admin-card auth-card">
+      <h2>Admin Login</h2>
+      <form id="adminLoginForm">
+        <label>Email:<input type="email" id="adminEmail" autocomplete="username" required /></label>
+        <label>Password:<input type="password" id="adminPassword" autocomplete="current-password" required /></label>
+        <div class="form-row">
+          <button type="submit" class="btn">Sign In</button>
+        </div>
+        <p class="auth-error" id="authError"></p>
+      </form>
+    </section>`;
+
+  document.getElementById('adminLoginForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const errorEl = document.getElementById('authError');
+    const submitBtn = e.currentTarget.querySelector('button[type="submit"]');
+    errorEl.textContent = '';
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Signing In...';
+    fbSignIn(
+      document.getElementById('adminEmail').value,
+      document.getElementById('adminPassword').value
+    ).then(() => {
+      navigate();
+    }).catch(err => {
+      errorEl.textContent = err.message || 'Unable to sign in.';
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Sign In';
+    });
+  });
+}
 
 function renderAdmin(app) {
+  if (!authReady || !currentAdminUser) {
+    renderAdminLogin(app);
+    return;
+  }
+
   app.className = 'container admin-page';
   app.innerHTML = `
-    <section class="admin-card">
-      <h2>Add Upcoming Game</h2>
-      <form id="gameForm">
-        <label>Date (MM-DD-YYYY):<input type="date" id="gameDate" required /></label>
-        <label>Opponent:<input type="text" id="gameOpponent" required /></label>
-        <label>Location:<input type="text" id="gameLocation" required placeholder="Home/Away" /></label>
-        <label>Time:<input type="text" id="gameTime" required placeholder="4:00 PM" /></label>
-        <label class="checkbox-label"><input type="checkbox" id="gamePlayoff" /> Playoff Game</label>
-        <div class="form-row">
-          <button type="submit" class="btn">Add Game</button>
-          <button type="button" id="clearGames" class="btn alt">Clear All Games</button>
-        </div>
-      </form>
-    </section>
-    <section class="admin-card">
-      <h2>Record a Result</h2>
-      <form id="resultForm">
-        <label>Date (MM-DD-YYYY):<input type="date" id="resultDate" required /></label>
-        <label>Opponent:<input id="resultOpponent" required /></label>
-        <label>Our Score:<input id="ourScore" type="number" required /></label>
-        <label>Their Score:<input id="theirScore" type="number" required /></label>
-        <div class="form-row">
-          <button type="submit" class="btn">Add Result</button>
-          <button type="button" id="clearResults" class="btn alt">Clear All Results</button>
-        </div>
-      </form>
-    </section>
-    <section class="admin-card">
-      <h2>Data Preview</h2>
-      <div class="admin-preview-grid">
+    <aside class="admin-card admin-sidebar">
+      <button type="button" class="admin-nav-link active" data-admin-panel="dashboard">Dashboard</button>
+      <button type="button" class="admin-nav-link" data-admin-panel="carousel">Carousel photos</button>
+    </aside>
+    <div class="admin-content">
+      <section class="admin-card admin-session">
         <div>
-          <p><strong>Saved games:</strong></p>
-          <ul id="gamesPreview" class="list"></ul>
+          <h2>Admin</h2>
+          <p class="muted">Signed in as ${currentAdminUser.email}</p>
         </div>
-        <div>
-          <p><strong>Saved results:</strong></p>
-          <ul id="resultsPreview" class="list"></ul>
+        <button type="button" class="btn alt" id="adminSignOut">Sign Out</button>
+      </section>
+      <div class="admin-panel active" data-admin-panel-view="dashboard">
+        <div class="admin-main-grid">
+          <section class="admin-card" id="gameAdminCard">
+            <h2>Add Upcoming Game</h2>
+            <form id="gameForm">
+              <label>Date (MM-DD-YYYY):<input type="date" id="gameDate" required /></label>
+              <label>Opponent:<input type="text" id="gameOpponent" required /></label>
+              <label>Location:<input type="text" id="gameLocation" required placeholder="Home/Away" /></label>
+              <label>Time:<input type="text" id="gameTime" required placeholder="4:00 PM" /></label>
+              <label class="checkbox-label"><input type="checkbox" id="gamePlayoff" /> Playoff Game</label>
+              <div class="form-row">
+                <button type="submit" class="btn">Add Game</button>
+              </div>
+              <p class="auth-error" id="gameSaveError"></p>
+            </form>
+          </section>
+          <section class="admin-card" id="resultAdminCard">
+            <h2>Record a Result</h2>
+            <form id="resultForm">
+              <label>Date (MM-DD-YYYY):<input type="date" id="resultDate" required /></label>
+              <label>Opponent:<input id="resultOpponent" required /></label>
+              <label>Our Score:<input id="ourScore" type="number" required /></label>
+              <label>Their Score:<input id="theirScore" type="number" required /></label>
+              <div class="form-row">
+                <button type="submit" class="btn">Add Result</button>
+              </div>
+              <p class="auth-error" id="resultSaveError"></p>
+            </form>
+          </section>
         </div>
+        <section class="admin-card">
+          <h2>Data Preview</h2>
+          <div class="admin-preview-grid">
+            <div>
+              <p><strong>Saved games:</strong></p>
+              <ul id="gamesPreview" class="list"></ul>
+            </div>
+            <div>
+              <p><strong>Saved results:</strong></p>
+              <ul id="resultsPreview" class="list"></ul>
+            </div>
+          </div>
+        </section>
       </div>
-    </section>`;
+      <div class="admin-panel" data-admin-panel-view="carousel">
+        <section class="admin-card" id="carouselAdminCard">
+          <h2>Carousel Photos</h2>
+          <form id="carouselPhotoForm">
+            <label>Upload image:<input type="file" id="carouselPhotoFile" accept="image/*" /></label>
+            <p class="muted crop-note" id="carouselCropNote">Choose an image file to crop and optimize it before upload.</p>
+            <div class="crop-editor" id="carouselCropEditor" hidden>
+              <div class="crop-preview">
+                <img id="carouselCropImage" alt="Carousel crop preview" />
+              </div>
+              <div class="crop-controls">
+                <label>Zoom:<input type="range" id="carouselCropZoom" min="1" max="2.5" step="0.05" value="1" /></label>
+                <p class="muted crop-note">Drag the image in the crop frame to position it.</p>
+              </div>
+            </div>
+            <label>Image URL or path:<input type="text" id="carouselPhotoSrc" placeholder="photos/optimized/1.jpg" /></label>
+            <label>Alt text:<input type="text" id="carouselPhotoAlt" placeholder="Team photo" /></label>
+            <div class="form-row">
+              <button type="submit" class="btn">Add Photo</button>
+            </div>
+            <p class="auth-error" id="carouselPhotoSaveError"></p>
+            <p class="save-success" id="carouselPhotoSaveSuccess"></p>
+          </form>
+        </section>
+        <section class="admin-card">
+          <h2>Current Carousel Photos</h2>
+          <ul id="carouselPhotosPreview" class="list photo-list"></ul>
+        </section>
+      </div>
+    </div>`;
+
+  document.getElementById('adminSignOut').addEventListener('click', () => {
+    fbSignOut().then(() => navigate());
+  });
+
+  function showAdminPanel(panelName) {
+    document.querySelectorAll('.admin-nav-link').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.adminPanel === panelName);
+    });
+    document.querySelectorAll('.admin-panel').forEach(panel => {
+      panel.classList.toggle('active', panel.dataset.adminPanelView === panelName);
+    });
+  }
+
+  document.querySelectorAll('.admin-nav-link').forEach(btn => {
+    btn.addEventListener('click', () => showAdminPanel(btn.dataset.adminPanel));
+  });
 
   let games = getGames().slice();
   let results = getResults().slice();
+  let carouselPhotos = getCarouselPhotos();
+  spring2026Results().concat(historical2025Results()).forEach(r => {
+    const exists = results.some(saved =>
+      saved.date === r.date &&
+      saved.opponent === r.opponent &&
+      +saved.ourScore === +r.ourScore &&
+      +saved.theirScore === +r.theirScore
+    );
+    if (!exists) results.push(r);
+  });
+
+  function buildResultSummary(r) {
+    const span = document.createElement('span');
+    const our = +r.ourScore, their = +r.theirScore;
+    const win = our > their, loss = our < their;
+    const outcome = document.createElement('span');
+    outcome.textContent = win ? 'W' : (loss ? 'L' : 'T');
+    outcome.className = win ? 'win' : (loss ? 'loss' : 'tie');
+    if (win) span.innerHTML = `<strong>Timpanogos</strong>, ${our} ${r.opponent}, ${their} `;
+    else if (loss) span.innerHTML = `Timpanogos, ${our} <strong>${r.opponent}</strong>, ${their} `;
+    else span.innerHTML = `Timpanogos, ${our} ${r.opponent}, ${their} `;
+    span.appendChild(outcome);
+    return span;
+  }
 
   function renderGamesPreview() {
     const ul = document.getElementById('gamesPreview');
     ul.innerHTML = '';
-    games.forEach((g, i) => {
+    games.map((game, index) => ({ game, index }))
+      .sort((a, b) => new Date(b.game.date) - new Date(a.game.date))
+      .forEach(({ game: g, index: i }) => {
       const li = document.createElement('li');
       const span = document.createElement('span');
       span.textContent = `${formatDate(g.date, { year:'numeric', month:'long', day:'numeric' })} - ${g.opponent} (${g.location}) at ${g.time}`;
@@ -546,11 +811,23 @@ function renderAdmin(app) {
         document.getElementById('gamePlayoff').checked = !!g.playoff;
         editingGameIdx = i;
         document.querySelector('#gameForm button[type="submit"]').textContent = 'Update Game';
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        showAdminPanel('dashboard');
+        document.getElementById('gameAdminCard').scrollIntoView({ behavior: 'smooth' });
       });
       const delBtn = document.createElement('button');
       delBtn.textContent = 'Delete'; delBtn.className = 'btn small alt';
-      delBtn.addEventListener('click', () => { games.splice(i, 1); fbSave('games', games); renderGamesPreview(); });
+      delBtn.addEventListener('click', () => {
+        const previousGames = games.slice();
+        const gameKey = firebaseChildKey(games[i], i);
+        games.splice(i, 1);
+        fbDeleteChild('games', gameKey).then(() => {
+          cachedGames = games.slice();
+          renderGamesPreview();
+        }).catch(err => {
+          games = previousGames;
+          document.getElementById('gameSaveError').textContent = err.message || 'Unable to delete game.';
+        });
+      });
       const btns = document.createElement('div');
       btns.className = 'list-actions';
       btns.appendChild(editBtn); btns.appendChild(delBtn);
@@ -562,19 +839,11 @@ function renderAdmin(app) {
   function renderResultsPreview() {
     const ul = document.getElementById('resultsPreview');
     ul.innerHTML = '';
-    results.forEach((r, i) => {
+    results.map((result, index) => ({ result, index }))
+      .sort((a, b) => new Date(b.result.date) - new Date(a.result.date))
+      .forEach(({ result: r, index: i }) => {
       const li = document.createElement('li');
-      const span = document.createElement('span');
-      const our = +r.ourScore, their = +r.theirScore;
-      const win = our > their, loss = our < their;
-      const outcome = document.createElement('span');
-      outcome.textContent = win ? 'W' : (loss ? 'L' : 'T');
-      outcome.className = win ? 'win' : (loss ? 'loss' : 'tie');
-      if (win) span.innerHTML = `<strong>Timpanogos</strong>, ${our} ${r.opponent}, ${their} `;
-      else if (loss) span.innerHTML = `Timpanogos, ${our} <strong>${r.opponent}</strong>, ${their} `;
-      else span.innerHTML = `Timpanogos, ${our} ${r.opponent}, ${their} `;
-      span.appendChild(outcome);
-      li.appendChild(span);
+      li.appendChild(buildResultSummary(r));
       const editBtn = document.createElement('button');
       editBtn.textContent = 'Edit'; editBtn.className = 'btn small';
       editBtn.addEventListener('click', () => {
@@ -584,11 +853,23 @@ function renderAdmin(app) {
         document.getElementById('theirScore').value = r.theirScore;
         editingResultIdx = i;
         document.querySelector('#resultForm button[type="submit"]').textContent = 'Update Result';
-        document.querySelectorAll('.admin-card')[1].scrollIntoView({ behavior: 'smooth' });
+        showAdminPanel('dashboard');
+        document.getElementById('resultAdminCard').scrollIntoView({ behavior: 'smooth' });
       });
       const delBtn = document.createElement('button');
       delBtn.textContent = 'Delete'; delBtn.className = 'btn small alt';
-      delBtn.addEventListener('click', () => { results.splice(i, 1); fbSave('results', results); renderResultsPreview(); });
+      delBtn.addEventListener('click', () => {
+        const previousResults = results.slice();
+        const resultKey = firebaseChildKey(results[i], i);
+        results.splice(i, 1);
+        fbDeleteChild('results', resultKey).then(() => {
+          cachedResults = results.slice();
+          renderResultsPreview();
+        }).catch(err => {
+          results = previousResults;
+          document.getElementById('resultSaveError').textContent = err.message || 'Unable to delete result.';
+        });
+      });
       const btns = document.createElement('div');
       btns.className = 'list-actions';
       btns.appendChild(editBtn); btns.appendChild(delBtn);
@@ -597,8 +878,256 @@ function renderAdmin(app) {
     });
   }
 
+  function renderCarouselPhotosPreview() {
+    const ul = document.getElementById('carouselPhotosPreview');
+    ul.innerHTML = '';
+    carouselPhotos.forEach((photo, i) => {
+      const li = document.createElement('li');
+      li.className = 'photo-list-item';
+      li.draggable = true;
+      li.dataset.index = String(i);
+
+      const handle = document.createElement('button');
+      handle.type = 'button';
+      handle.className = 'drag-handle';
+      handle.textContent = '☰';
+      handle.setAttribute('aria-label', 'Drag to reorder');
+      li.appendChild(handle);
+
+      const img = document.createElement('img');
+      img.src = photo.src + (photo.src.includes('?') ? '&' : '?') + 'thumbBust=' + encodeURIComponent(photo.updatedAt || Date.now());
+      img.alt = photo.alt || 'Carousel photo';
+      img.loading = 'lazy';
+      li.appendChild(img);
+
+      const span = document.createElement('span');
+      const title = document.createElement('strong');
+      title.textContent = photo.alt || 'Team photo';
+      const src = document.createElement('small');
+      src.textContent = photo.src;
+      span.appendChild(title);
+      span.appendChild(src);
+      li.appendChild(span);
+
+      const editBtn = document.createElement('button');
+      editBtn.textContent = 'Edit'; editBtn.className = 'btn small';
+      editBtn.addEventListener('click', () => {
+        document.getElementById('carouselPhotoSrc').value = photo.src;
+        document.getElementById('carouselPhotoAlt').value = photo.alt || '';
+        document.getElementById('carouselPhotoFile').value = '';
+        document.getElementById('carouselCropEditor').hidden = true;
+        document.getElementById('carouselCropNote').textContent = 'This saved photo is already optimized. Choose a new image file to replace it and crop the replacement.';
+        cropState.file = null;
+        cropState.image = null;
+        editingCarouselPhotoIdx = i;
+        document.querySelector('#carouselPhotoForm button[type="submit"]').textContent = 'Update Photo';
+        showAdminPanel('carousel');
+        document.getElementById('carouselAdminCard').scrollIntoView({ behavior: 'smooth' });
+      });
+
+      const delBtn = document.createElement('button');
+      delBtn.textContent = 'Delete'; delBtn.className = 'btn small alt';
+      delBtn.addEventListener('click', () => {
+        const previousPhotos = carouselPhotos.slice();
+        const photoKey = firebaseChildKey(carouselPhotos[i], i);
+        carouselPhotos.splice(i, 1);
+        fbDeleteChild('carouselPhotos', photoKey).then(() => {
+          refreshCarouselPhotos(carouselPhotos);
+          renderCarouselPhotosPreview();
+          showCarouselPhotoMessage('Carousel photo deleted.');
+          if (previousPhotos[i] && previousPhotos[i].storagePath) {
+            fbDeleteFile(previousPhotos[i].storagePath).catch(err => console.warn('Carousel photo file delete failed:', err));
+          }
+        }).catch(err => {
+          carouselPhotos = previousPhotos;
+          document.getElementById('carouselPhotoSaveError').textContent = err.message || 'Unable to delete photo.';
+        });
+      });
+
+      const btns = document.createElement('div');
+      btns.className = 'list-actions';
+      btns.appendChild(editBtn); btns.appendChild(delBtn);
+      li.appendChild(btns);
+      ul.appendChild(li);
+    });
+  }
+
+  let carouselDragIndex = null;
+
+  function saveCarouselPhotoOrder() {
+    const reorderedPhotos = carouselPhotos.map((photo, index) => {
+      const cleaned = cleanFirebaseRecord(photo);
+      cleaned.sortOrder = index;
+      return cleaned;
+    });
+    fbSaveCarouselPhotos(reorderedPhotos).then(savedPhotos => {
+      carouselPhotos = savedPhotos.map(normalizeCarouselPhoto);
+      refreshCarouselPhotos(carouselPhotos);
+      renderCarouselPhotosPreview();
+      showCarouselPhotoMessage('Carousel photo order updated.');
+    }).catch(err => {
+      document.getElementById('carouselPhotoSaveError').textContent = err.message || 'Unable to save photo order.';
+      renderCarouselPhotosPreview();
+    });
+  }
+
+  function showCarouselPhotoMessage(message) {
+    const successEl = document.getElementById('carouselPhotoSaveSuccess');
+    successEl.textContent = message;
+    clearTimeout(showCarouselPhotoMessage.timer);
+    showCarouselPhotoMessage.timer = setTimeout(() => {
+      successEl.textContent = '';
+    }, 4500);
+  }
+
+  const cropState = {
+    file: null,
+    image: null,
+    objectUrl: '',
+    offsetX: 0,
+    offsetY: 0,
+    zoom: 1
+  };
+
+  function cropMetrics() {
+    const preview = document.querySelector('.crop-preview');
+    if (!preview || !cropState.image) return null;
+    const rect = preview.getBoundingClientRect();
+    const image = cropState.image;
+    const frameW = rect.width;
+    const frameH = rect.height;
+    const coverScale = Math.max(frameW / image.naturalWidth, frameH / image.naturalHeight);
+    const displayW = image.naturalWidth * coverScale * cropState.zoom;
+    const displayH = image.naturalHeight * coverScale * cropState.zoom;
+    const maxX = Math.max(0, (displayW - frameW) / 2);
+    const maxY = Math.max(0, (displayH - frameH) / 2);
+    return { frameW, frameH, displayW, displayH, maxX, maxY };
+  }
+
+  function clampCropOffset() {
+    const metrics = cropMetrics();
+    if (!metrics) return;
+    cropState.offsetX = Math.max(-metrics.maxX, Math.min(metrics.maxX, cropState.offsetX));
+    cropState.offsetY = Math.max(-metrics.maxY, Math.min(metrics.maxY, cropState.offsetY));
+  }
+
+  function updateCropPreview() {
+    const img = document.getElementById('carouselCropImage');
+    if (!img) return;
+    clampCropOffset();
+    img.style.width = '100%';
+    img.style.height = '100%';
+    img.style.objectFit = 'cover';
+    img.style.transform = 'translate(' + cropState.offsetX + 'px,' + cropState.offsetY + 'px) scale(' + cropState.zoom + ')';
+  }
+
+  function loadCarouselCropImage(file) {
+    return new Promise((resolve, reject) => {
+      if (cropState.objectUrl) URL.revokeObjectURL(cropState.objectUrl);
+      const url = URL.createObjectURL(file);
+      const image = new Image();
+      image.onload = () => {
+        cropState.file = file;
+        cropState.image = image;
+        cropState.objectUrl = url;
+        cropState.offsetX = 0;
+        cropState.offsetY = 0;
+        cropState.zoom = 1;
+        document.getElementById('carouselCropEditor').hidden = false;
+        document.getElementById('carouselCropImage').src = url;
+        document.getElementById('carouselCropZoom').value = cropState.zoom;
+        updateCropPreview();
+        resolve(image);
+      };
+      image.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('Unable to load that image for cropping.'));
+      };
+      image.src = url;
+    });
+  }
+
+  function optimizedCarouselBlob(file) {
+    const imagePromise = cropState.file === file && cropState.image
+      ? Promise.resolve(cropState.image)
+      : loadCarouselCropImage(file);
+
+    return imagePromise.then(image => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const outputAspect = carouselOutputWidth / carouselOutputHeight;
+      const imageAspect = image.naturalWidth / image.naturalHeight;
+      let coverCropW, coverCropH;
+
+      if (imageAspect > outputAspect) {
+        coverCropH = image.naturalHeight;
+        coverCropW = coverCropH * outputAspect;
+      } else {
+        coverCropW = image.naturalWidth;
+        coverCropH = coverCropW / outputAspect;
+      }
+
+      const cropW = coverCropW / cropState.zoom;
+      const cropH = coverCropH / cropState.zoom;
+      const metrics = cropMetrics();
+      const maxSourceX = (image.naturalWidth - cropW) / 2;
+      const maxSourceY = (image.naturalHeight - cropH) / 2;
+      const sourceOffsetX = metrics && metrics.maxX ? -(cropState.offsetX / metrics.maxX) * maxSourceX : 0;
+      const sourceOffsetY = metrics && metrics.maxY ? -(cropState.offsetY / metrics.maxY) * maxSourceY : 0;
+      const sx = Math.max(0, Math.min(image.naturalWidth - cropW, (image.naturalWidth - cropW) / 2 + sourceOffsetX));
+      const sy = Math.max(0, Math.min(image.naturalHeight - cropH, (image.naturalHeight - cropH) / 2 + sourceOffsetY));
+
+      canvas.width = carouselOutputWidth;
+      canvas.height = carouselOutputHeight;
+      ctx.drawImage(image, sx, sy, cropW, cropH, 0, 0, carouselOutputWidth, carouselOutputHeight);
+      sharpenCanvas(ctx, carouselOutputWidth, carouselOutputHeight, carouselSharpenAmount);
+
+      return new Promise((resolve, reject) => {
+        canvas.toBlob(blob => {
+          if (!blob) reject(new Error('Unable to optimize that image.'));
+          else resolve(blob);
+        }, 'image/jpeg', carouselOutputQuality);
+      });
+    });
+  }
+
+  function sharpenCanvas(ctx, width, height, amount) {
+    if (!amount) return;
+    const imageData = ctx.getImageData(0, 0, width, height);
+    const src = imageData.data;
+    const out = new Uint8ClampedArray(src);
+    const center = 1 + 4 * amount;
+    const side = -amount;
+
+    for (let y = 1; y < height - 1; y++) {
+      for (let x = 1; x < width - 1; x++) {
+        const i = (y * width + x) * 4;
+        for (let c = 0; c < 3; c++) {
+          out[i + c] =
+            src[i + c] * center +
+            src[i - 4 + c] * side +
+            src[i + 4 + c] * side +
+            src[i - width * 4 + c] * side +
+            src[i + width * 4 + c] * side;
+        }
+      }
+    }
+
+    imageData.data.set(out);
+    ctx.putImageData(imageData, 0, 0);
+  }
+
   document.getElementById('gameForm').addEventListener('submit', e => {
     e.preventDefault();
+    const form = e.currentTarget;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const errorEl = document.getElementById('gameSaveError');
+    const previousGames = games.slice();
+    const wasEditing = editingGameIdx >= 0;
+    const savedButtonText = submitBtn.textContent;
+    errorEl.textContent = '';
+    submitBtn.disabled = true;
+    submitBtn.textContent = wasEditing ? 'Saving...' : 'Adding...';
     const game = {
       date: document.getElementById('gameDate').value,
       opponent: document.getElementById('gameOpponent').value,
@@ -606,42 +1135,283 @@ function renderAdmin(app) {
       time: document.getElementById('gameTime').value
     };
     if (document.getElementById('gamePlayoff').checked) game.playoff = true;
-    if (editingGameIdx >= 0) {
+    if (wasEditing) {
+      const gameKey = firebaseChildKey(games[editingGameIdx], editingGameIdx);
       games[editingGameIdx] = game;
-      editingGameIdx = -1;
-      document.querySelector('#gameForm button[type="submit"]').textContent = 'Add Game';
+      fbSaveChild('games', gameKey, game).then(savedGame => {
+        games[editingGameIdx] = savedGame;
+        cachedGames = games.slice();
+        editingGameIdx = -1;
+        submitBtn.textContent = 'Add Game';
+        renderGamesPreview();
+        form.reset();
+      }).catch(err => {
+        games = previousGames;
+        errorEl.textContent = err.message || 'Unable to save game.';
+        submitBtn.textContent = savedButtonText;
+      }).finally(() => {
+        submitBtn.disabled = false;
+      });
     } else { games.push(game); }
-    fbSave('games', games); renderGamesPreview();
-    document.getElementById('gameForm').reset();
-  });
-
-  document.getElementById('clearGames').addEventListener('click', () => {
-    if (confirm('Clear all games?')) { games = []; fbSave('games', games); renderGamesPreview(); }
+    if (!wasEditing) {
+      fbAddChild('games', game).then(savedGame => {
+        games = previousGames.concat(savedGame);
+        cachedGames = games.slice();
+        editingGameIdx = -1;
+        submitBtn.textContent = 'Add Game';
+        renderGamesPreview();
+        form.reset();
+      }).catch(err => {
+        games = previousGames;
+        errorEl.textContent = err.message || 'Unable to save game.';
+        submitBtn.textContent = savedButtonText;
+      }).finally(() => {
+        submitBtn.disabled = false;
+      });
+    }
   });
 
   document.getElementById('resultForm').addEventListener('submit', e => {
     e.preventDefault();
+    const form = e.currentTarget;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const errorEl = document.getElementById('resultSaveError');
+    const previousResults = results.slice();
+    const wasEditing = editingResultIdx >= 0;
+    const savedButtonText = submitBtn.textContent;
+    errorEl.textContent = '';
+    submitBtn.disabled = true;
+    submitBtn.textContent = wasEditing ? 'Saving...' : 'Adding...';
     const result = {
       date: document.getElementById('resultDate').value,
       opponent: document.getElementById('resultOpponent').value,
       ourScore: +document.getElementById('ourScore').value,
       theirScore: +document.getElementById('theirScore').value
     };
-    if (editingResultIdx >= 0) {
+    if (wasEditing) {
+      const resultKey = firebaseChildKey(results[editingResultIdx], editingResultIdx);
       results[editingResultIdx] = result;
-      editingResultIdx = -1;
-      document.querySelector('#resultForm button[type="submit"]').textContent = 'Add Result';
+      fbSaveChild('results', resultKey, result).then(savedResult => {
+        results[editingResultIdx] = savedResult;
+        cachedResults = results.slice();
+        editingResultIdx = -1;
+        submitBtn.textContent = 'Add Result';
+        renderResultsPreview();
+        form.reset();
+      }).catch(err => {
+        results = previousResults;
+        errorEl.textContent = err.message || 'Unable to save result.';
+        submitBtn.textContent = savedButtonText;
+      }).finally(() => {
+        submitBtn.disabled = false;
+      });
     } else { results.push(result); }
-    fbSave('results', results); renderResultsPreview();
-    document.getElementById('resultForm').reset();
+    if (!wasEditing) {
+      fbAddChild('results', result).then(savedResult => {
+        results = previousResults.concat(savedResult);
+        cachedResults = results.slice();
+        editingResultIdx = -1;
+        submitBtn.textContent = 'Add Result';
+        renderResultsPreview();
+        form.reset();
+      }).catch(err => {
+        results = previousResults;
+        errorEl.textContent = err.message || 'Unable to save result.';
+        submitBtn.textContent = savedButtonText;
+      }).finally(() => {
+        submitBtn.disabled = false;
+      });
+    }
   });
 
-  document.getElementById('clearResults').addEventListener('click', () => {
-    if (confirm('Clear all results?')) { results = []; fbSave('results', results); renderResultsPreview(); }
+  document.getElementById('carouselPhotoForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const errorEl = document.getElementById('carouselPhotoSaveError');
+    const previousPhotos = carouselPhotos.slice();
+    const wasEditing = editingCarouselPhotoIdx >= 0;
+    const previousPhoto = wasEditing ? previousPhotos[editingCarouselPhotoIdx] : null;
+    const savedButtonText = submitBtn.textContent;
+    const file = document.getElementById('carouselPhotoFile').files[0];
+    const photo = {
+      src: document.getElementById('carouselPhotoSrc').value.trim(),
+      alt: document.getElementById('carouselPhotoAlt').value.trim() || 'Team photo',
+      updatedAt: Date.now()
+    };
+    if (!file && previousPhoto && photo.src === previousPhoto.src) photo.storagePath = previousPhoto.storagePath;
+
+    errorEl.textContent = '';
+    if (!file && !photo.src) {
+      errorEl.textContent = 'Choose an image file or enter an image URL/path.';
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = file ? 'Optimizing...' : (wasEditing ? 'Saving...' : 'Adding...');
+
+    const upload = file ? optimizedCarouselBlob(file).then(blob => {
+      submitBtn.textContent = 'Uploading...';
+      return fbUploadFile(
+        carouselUploadPath(file),
+        blob,
+        {
+          contentType: 'image/jpeg',
+          customMetadata: {
+            originalName: file.name,
+            optimizedWidth: String(carouselOutputWidth),
+            optimizedHeight: String(carouselOutputHeight)
+          }
+        },
+        progress => {
+          submitBtn.textContent = 'Uploading ' + progress + '%';
+        }
+      );
+    }).then(uploaded => {
+      photo.src = uploaded.url;
+      photo.storagePath = uploaded.storagePath;
+      photo.width = carouselOutputWidth;
+      photo.height = carouselOutputHeight;
+      return photo;
+    }) : Promise.resolve(photo);
+
+    upload.then(nextPhoto => {
+      if (wasEditing) {
+        const photoKey = firebaseChildKey(previousPhoto, editingCarouselPhotoIdx);
+        carouselPhotos[editingCarouselPhotoIdx] = Object.assign({ _key: photoKey }, nextPhoto);
+        submitBtn.textContent = 'Saving...';
+        return fbSaveCarouselPhotoChild(photoKey, nextPhoto);
+      } else {
+        submitBtn.textContent = 'Saving...';
+        return fbAddCarouselPhoto(nextPhoto);
+      }
+    }).then(savedPhoto => {
+      if (wasEditing) {
+        carouselPhotos[editingCarouselPhotoIdx] = normalizeCarouselPhoto(savedPhoto, editingCarouselPhotoIdx);
+      } else {
+        carouselPhotos = previousPhotos.concat(normalizeCarouselPhoto(savedPhoto, previousPhotos.length));
+      }
+      refreshCarouselPhotos(carouselPhotos);
+      editingCarouselPhotoIdx = -1;
+      submitBtn.textContent = 'Add Photo';
+      renderCarouselPhotosPreview();
+      form.reset();
+      document.getElementById('carouselCropEditor').hidden = true;
+      document.getElementById('carouselCropNote').textContent = 'Choose an image file to crop and optimize it before upload.';
+      cropState.file = null;
+      cropState.image = null;
+      showCarouselPhotoMessage(wasEditing ? 'Carousel photo updated.' : 'Carousel photo added.');
+      if (previousPhoto && previousPhoto.storagePath && (file || photo.src !== previousPhoto.src)) {
+        fbDeleteFile(previousPhoto.storagePath).catch(err => console.warn('Old carousel photo file delete failed:', err));
+      }
+    }).catch(err => {
+      carouselPhotos = previousPhotos;
+      errorEl.textContent = err.message || err.code || 'Unable to save photo.';
+      submitBtn.textContent = savedButtonText;
+    }).finally(() => {
+      submitBtn.disabled = false;
+    });
+  });
+
+  document.getElementById('carouselPhotoFile').addEventListener('change', e => {
+    const file = e.currentTarget.files[0];
+    const errorEl = document.getElementById('carouselPhotoSaveError');
+    errorEl.textContent = '';
+    if (!file) {
+      document.getElementById('carouselCropEditor').hidden = true;
+      document.getElementById('carouselCropNote').textContent = editingCarouselPhotoIdx >= 0
+        ? 'This saved photo is already optimized. Choose a new image file to replace it and crop the replacement.'
+        : 'Choose an image file to crop and optimize it before upload.';
+      cropState.file = null;
+      cropState.image = null;
+      return;
+    }
+    loadCarouselCropImage(file).catch(err => {
+      errorEl.textContent = err.message || 'Unable to prepare that image.';
+    });
+    document.getElementById('carouselCropNote').textContent = 'Adjust the crop before uploading. The saved image will be resized and compressed automatically.';
+  });
+
+  document.getElementById('carouselCropZoom').addEventListener('input', e => {
+    const oldZoom = cropState.zoom;
+    cropState.zoom = +e.currentTarget.value;
+    if (oldZoom) {
+      cropState.offsetX = cropState.offsetX * (cropState.zoom / oldZoom);
+      cropState.offsetY = cropState.offsetY * (cropState.zoom / oldZoom);
+    }
+    updateCropPreview();
+  });
+
+  const cropPreview = document.querySelector('.crop-preview');
+  let draggingCrop = null;
+  cropPreview.addEventListener('pointerdown', e => {
+    if (!cropState.image) return;
+    cropPreview.setPointerCapture(e.pointerId);
+    draggingCrop = {
+      startX: e.clientX,
+      startY: e.clientY,
+      offsetX: cropState.offsetX,
+      offsetY: cropState.offsetY
+    };
+    cropPreview.classList.add('dragging');
+  });
+  cropPreview.addEventListener('pointermove', e => {
+    if (!draggingCrop) return;
+    cropState.offsetX = draggingCrop.offsetX + e.clientX - draggingCrop.startX;
+    cropState.offsetY = draggingCrop.offsetY + e.clientY - draggingCrop.startY;
+    updateCropPreview();
+  });
+  function stopCropDrag(e) {
+    if (!draggingCrop) return;
+    if (e && cropPreview.hasPointerCapture(e.pointerId)) cropPreview.releasePointerCapture(e.pointerId);
+    draggingCrop = null;
+    cropPreview.classList.remove('dragging');
+  }
+  cropPreview.addEventListener('pointerup', stopCropDrag);
+  cropPreview.addEventListener('pointercancel', stopCropDrag);
+  window.addEventListener('resize', updateCropPreview);
+
+  document.getElementById('carouselPhotosPreview').addEventListener('dragstart', e => {
+    const li = e.target.closest('.photo-list-item');
+    if (!li) return;
+    carouselDragIndex = +li.dataset.index;
+    li.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', li.dataset.index);
+  });
+  document.getElementById('carouselPhotosPreview').addEventListener('dragover', e => {
+    const li = e.target.closest('.photo-list-item');
+    if (!li || carouselDragIndex == null) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    li.classList.add('drag-over');
+  });
+  document.getElementById('carouselPhotosPreview').addEventListener('dragleave', e => {
+    const li = e.target.closest('.photo-list-item');
+    if (li) li.classList.remove('drag-over');
+  });
+  document.getElementById('carouselPhotosPreview').addEventListener('drop', e => {
+    const li = e.target.closest('.photo-list-item');
+    if (!li || carouselDragIndex == null) return;
+    e.preventDefault();
+    const dropIndex = +li.dataset.index;
+    document.querySelectorAll('.photo-list-item').forEach(item => item.classList.remove('drag-over', 'dragging'));
+    if (dropIndex === carouselDragIndex) return;
+    const moved = carouselPhotos.splice(carouselDragIndex, 1)[0];
+    carouselPhotos.splice(dropIndex, 0, moved);
+    carouselDragIndex = null;
+    renderCarouselPhotosPreview();
+    refreshCarouselPhotos(carouselPhotos);
+    saveCarouselPhotoOrder();
+  });
+  document.getElementById('carouselPhotosPreview').addEventListener('dragend', () => {
+    carouselDragIndex = null;
+    document.querySelectorAll('.photo-list-item').forEach(item => item.classList.remove('drag-over', 'dragging'));
   });
 
   renderGamesPreview();
   renderResultsPreview();
+  renderCarouselPhotosPreview();
 }
 
 /* ── Roster ── */
@@ -659,7 +1429,7 @@ const rosterData = [
   {num:11,name:'Brigham Louder',year:'Jr.',pos:'C, 1B'},
   {num:12,name:'Andrew Allphin',year:'Sr.',pos:'1B, P'},
   {num:13,name:'Crew Peterson',year:'Jr.',pos:'INF'},
-  {num:14,name:'Bronco Blackhurst',year:'So.',pos:'P, OF'},
+  {num:15,name:'Bronco Blackhurst',year:'So.',pos:'P, OF'},
   {num:14,name:'Cole Riggs',year:'Sr.',pos:'P'},
   {num:16,name:'Mason Palmer',year:'Fr.',pos:'C'},
   {num:17,name:'Shane Eaquinto',year:'Jr.',pos:'OF'},
@@ -676,7 +1446,7 @@ const rosterData = [
 function renderRoster(app) {
   app.innerHTML = '<section><h2>2026 Team Roster</h2><div class="roster-grid" id="rosterGrid"></div></section>';
   const grid = document.getElementById('rosterGrid');
-  rosterData.forEach((p, i) => {
+  rosterData.slice().sort((a, b) => a.num - b.num || a.name.localeCompare(b.name)).forEach((p, i) => {
     const card = document.createElement('div');
     card.className = 'roster-card';
     card.style.animationDelay = (i * 0.05) + 's';
@@ -703,7 +1473,7 @@ function navigate() {
   app.className = 'container';
   app.innerHTML = '';
 
-  document.querySelector('.carousel').style.display = hash === 'admin' ? 'none' : '';
+  document.querySelector('.carousel').style.display = hash === 'home' ? '' : 'none';
   document.getElementById('countdownSection').style.display = hash === 'home' ? '' : 'none';
   document.getElementById('heroSection').style.display = hash === 'home' ? '' : 'none';
 
@@ -716,6 +1486,8 @@ function navigate() {
   });
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  if (hash === 'admin') return;
 
   // Scroll reveal animations
   requestAnimationFrame(() => {
@@ -735,13 +1507,17 @@ function navigate() {
 }
 
 window.addEventListener('hashchange', navigate);
+document.addEventListener('adminauthchange', () => {
+  if ((location.hash.slice(1) || 'home').toLowerCase() === 'admin') navigate();
+});
 document.addEventListener('DOMContentLoaded', function() {
   seedDatabase().then(function() {
-    return Promise.all([fbGet('games'), fbGet('results')]);
+    return Promise.all([fbGet('games'), fbGet('results'), fbGet('carouselPhotos')]);
   }).then(function(vals) {
-    var games = vals[0], results = vals[1];
-    cachedGames = games ? (Array.isArray(games) ? games : fbToArray(games)) : [];
-    cachedResults = results ? (Array.isArray(results) ? results : fbToArray(results)) : [];
+    var games = vals[0], results = vals[1], carouselPhotos = vals[2];
+    cachedGames = fbToArray(games);
+    cachedResults = fbToArray(results);
+    cachedCarouselPhotos = carouselPhotos ? fbToArray(carouselPhotos) : null;
     navigate();
   }).catch(function(err) {
     console.error('Firebase load failed:', err);
