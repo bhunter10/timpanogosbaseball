@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="author" content="Jace Hunter" />
+  <meta name="keywords" content="Timpanogos Baseball Admin Login" />
+  <title>Timpanogos Admin Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/admin.css" />
+</head>
+<body class="admin-v2-login-body">
+  <main class="admin-v2-login-page">
+    <section class="admin-v2-login-shell">
+      <a class="admin-v2-brand" href="index.html">
+        <img src="images/logo-twolves-wolf.png" alt="Timpanogos Wolves logo" />
+        <span>Timpanogos Admin</span>
+      </a>
+      <div class="admin-v2-login-copy">
+        <p class="admin-v2-kicker">Admin</p>
+        <h1>Sign in to manage the site.</h1>
+        <p>Schedule, results, and carousel controls in one place.</p>
+      </div>
+      <section class="admin-v2-login-card">
+        <h2>Admin Login</h2>
+        <form id="adminV2LoginForm">
+          <div class="admin-v2-form-field">
+            <label for="adminEmail">Email</label>
+            <input type="email" id="adminEmail" autocomplete="username" required />
+          </div>
+          <div class="admin-v2-form-field">
+            <label for="adminPassword">Password</label>
+            <input type="password" id="adminPassword" autocomplete="current-password" required />
+          </div>
+          <button type="submit" class="admin-v2-btn">Sign In</button>
+          <p class="admin-v2-error" id="authError"></p>
+        </form>
+      </section>
+    </section>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/admin-login.js"></script>
+</body>
+</html>

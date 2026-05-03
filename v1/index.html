@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="author" content="Jace Hunter" />
+  <meta name="keywords" content="Timpanogos Baseball, Timpanogos High School Baseball, T-Wolves Baseball, Jace Hunter" />
+  <title>Timpanogos Baseball Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/flip.min.css" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <img src="../images/logo-twolves-wolf.png" alt="Timpanogos Wolves Logo" class="logo" />
+      <h1>Timpanogos Baseball</h1>
+    </div>
+    <nav class="main-nav" id="mainNav">
+      <div class="nav-links">
+        <a href="#home">Home</a>
+        <a href="#schedule">Schedule</a>
+        <a href="#results">Results</a>
+        <a href="#roster">Roster</a>
+        <a href="#admin" class="admin-link">Admin</a>
+      </div>
+      <div class="header-weather" id="headerWeather"></div>
+    </nav>
+  </header>
+
+  <div class="carousel" style="display:none">
+    <div class="carousel-track"></div>
+    <button class="carousel-btn carousel-prev">&#10094;</button>
+    <button class="carousel-btn carousel-next">&#10095;</button>
+    <div class="carousel-dots"></div>
+  </div>
+
+  <section class="hero" id="heroSection" style="display:none">
+    <div class="hero-content">
+      <div class="hero-text">
+        <h2>T-Wolves Baseball</h2>
+        <p>Your home for game schedules, live results, and team news for Timpanogos High School Baseball.</p>
+        <div class="cta-row">
+          <a class="btn" href="#schedule">View Schedule →</a>
+          <a class="btn alt" href="#results">View Results</a>
+        </div>
+      </div>
+      <div class="hero-image">
+        <img src="../images/logo-twolves-basesball-diamond.png" alt="Timpanogos Baseball Diamond Logo" />
+      </div>
+    </div>
+  </section>
+
+  <section class="countdown-section" id="countdownSection" style="display:none">
+    <div class="countdown-label">Next Game In</div>
+    <div id="tickClock">
+      <div data-repeat="true" data-layout="horizontal center" data-transform="preset(d, h, m, s) -> delay">
+        <div class="tick-group">
+          <div data-key="value" data-repeat="true" data-transform="pad(00) -> split -> delay">
+            <span data-view="flip"></span>
+          </div>
+          <span data-key="label" data-view="text" class="tick-label"></span>
+        </div>
+      </div>
+    </div>
+    <div class="countdown-opponent" id="countdownOpponent"></div>
+  </section>
+
+  <main id="app" class="container"></main>
+
+  <footer class="site-footer">
+    <p>&copy; Jace Hunter - Timpanogos High School Baseball</p>
+  </footer>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="../js/firebase-config.js"></script>
+  <script src="js/carousel.js"></script>
+  <script src="../js/flip.min.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
