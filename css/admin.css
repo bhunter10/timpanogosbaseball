@@ -20,6 +20,36 @@ body.admin-v2-login-body{
     linear-gradient(180deg, #fbfdff 0%, #f3f6fb 100%);
 }
 
+/* Dark theme for admin-login only (keep admin.html light). */
+body.admin-v2-login-body--dark{
+  --admin-v2-bg:#05070c;
+  --admin-v2-surface:#0b1220;
+  --admin-v2-surface-strong:#0f172a;
+  --admin-v2-line:rgba(255,255,255,.10);
+  --admin-v2-text:#e6edf8;
+  --admin-v2-muted:#9aa7bf;
+  --admin-v2-shadow:0 18px 42px rgba(0,0,0,.55);
+  background:
+    radial-gradient(circle at top, rgba(91,205,39,.16), transparent 30%),
+    linear-gradient(180deg, #070a12 0%, #05070c 100%);
+}
+
+body.admin-v2-login-body--dark .admin-v2-login-card{
+  background:linear-gradient(180deg, rgba(15,23,42,.95), rgba(8,13,24,.95));
+  border-color:var(--admin-v2-line);
+  box-shadow:var(--admin-v2-shadow);
+}
+
+body.admin-v2-login-body--dark .admin-v2-login-card input{
+  background:#0b1220;
+  border-color:rgba(255,255,255,.14);
+  color:var(--admin-v2-text);
+}
+
+body.admin-v2-login-body--dark .admin-v2-login-card h2{
+  color:var(--admin-v2-text);
+}
+
 body.admin-v2-body.auth-pending #app{
   visibility:hidden;
 }
