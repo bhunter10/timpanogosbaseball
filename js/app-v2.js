@@ -404,7 +404,7 @@ function v2RenderSchedule(games, results2026) {
   var losses = v2CountLosses(results2026);
 
   document.getElementById('recordBand').innerHTML =
-    '<span class="v2-heading-record-label">Spring 2026 Record</span>' +
+    '<span class="v2-heading-record-label">Record</span>' +
     '<span class="v2-heading-record-value">' + wins + '-' + losses + '</span>';
 
   seasonGames.forEach(function(game) {
