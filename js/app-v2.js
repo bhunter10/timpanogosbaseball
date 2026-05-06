@@ -84,7 +84,7 @@ function v2RenderFilmstripAccents(section) {
     accent.style.setProperty('--v2-accent-y', (18 + Math.round(Math.random() * 46)) + 'px');
     accent.style.setProperty('--v2-accent-delay', delay + 's');
     accent.style.setProperty('--v2-accent-duration', duration + 's');
-    accent.innerHTML = '<img src="images/logo-twolves-basesball-diamond.png" alt="" aria-hidden="true">';
+    accent.innerHTML = '<img src="images/logo-twolves-basesball-diamond.png" alt="" aria-hidden="true" loading="lazy" decoding="async">';
     layer.appendChild(accent);
   }
 
@@ -278,7 +278,7 @@ function v2RenderFilmstrip(photos) {
   v2RenderFilmstripAccents(section);
   track.innerHTML = photos.map(function(photo, index) {
     return '<figure class="v2-filmstrip-frame">' +
-      '<img src="' + photo.src + '" alt="' + (photo.alt || ('Team photo ' + (index + 1))) + '" width="565" height="374" loading="eager" decoding="async"' + (index < 4 ? ' fetchpriority="high"' : '') + '>' +
+      '<img src="' + photo.src + '" alt="' + (photo.alt || ('Team photo ' + (index + 1))) + '" width="565" height="374" loading="lazy" decoding="async">' +
       '<figcaption>' + (photo.alt || 'Team photo') + '</figcaption>' +
     '</figure>';
   }).join('');

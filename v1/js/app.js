@@ -377,7 +377,7 @@ function renderHome(app) {
       </div>
       <div class="swag-card">
         <button type="button" class="swag-image-button" id="blanketImageButton" aria-label="View larger blanket photo">
-          <img src="../images/timp_blanket.jpg" alt="Timpanogos baseball blanket" />
+          <img src="../images/timp_blanket.jpg" alt="Timpanogos baseball blanket" loading="lazy" decoding="async" />
         </button>
         <div>
           <h3>Pay by Venmo</h3>
@@ -390,7 +390,7 @@ function renderHome(app) {
       <button type="button" class="image-modal-backdrop" aria-label="Close blanket photo"></button>
       <div class="image-modal-content" role="dialog" aria-modal="true" aria-label="Timpanogos baseball blanket">
         <button type="button" class="image-modal-close" aria-label="Close blanket photo">x</button>
-        <img src="../images/timp_blanket.jpg" alt="Timpanogos baseball blanket" />
+        <img src="../images/timp_blanket.jpg" alt="Timpanogos baseball blanket" loading="lazy" decoding="async" />
       </div>
     </div>
     <div class="stats-row">
