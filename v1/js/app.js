@@ -1619,7 +1619,7 @@ window.addEventListener('hashchange', navigate);
 document.addEventListener('adminauthchange', () => {
   if ((location.hash.slice(1) || 'home').toLowerCase() === 'admin') navigate();
 });
-document.addEventListener('DOMContentLoaded', function() {
+function v1BootstrapFirebaseAndNavigate() {
   seedDatabase().then(function() {
     return Promise.all([fbGet('games'), fbGet('results'), fbGet('carouselPhotos')]);
   }).then(function(vals) {
@@ -1631,6 +1631,22 @@ document.addEventListener('DOMContentLoaded', function() {
   }).catch(function(err) {
     console.error('Firebase load failed:', err);
     navigate();
+  });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  var started = false;
+  function startWhenSignedIn() {
+    if (started || !firebase.auth().currentUser) return;
+    started = true;
+    v1BootstrapFirebaseAndNavigate();
+  }
+
+  if (firebase.auth().currentUser) {
+    startWhenSignedIn();
+  }
+  firebase.auth().onAuthStateChanged(function() {
+    startWhenSignedIn();
   });
 });
 

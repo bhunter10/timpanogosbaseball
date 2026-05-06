@@ -162,13 +162,28 @@ button{font:inherit}
 .v2-hero-media{
   overflow:hidden;
 }
-.v2-hero-video{
+.v2-hero-youtube{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+}
+.v2-hero-youtube-drift{
+  position:absolute;
+  top:50%;
+  left:50%;
+  width:100vw;
+  height:56.25vw;
+  min-width:177.78vh;
+  min-height:100%;
+  transform:translate(-50%, -50%);
+  animation:v2HeroDrift 18s ease-in-out infinite alternate;
+}
+.v2-hero-youtube-iframe{
+  position:absolute;
+  inset:0;
   width:100%;
   height:100%;
-  object-fit:cover;
-  /* transform:scale(1.06);
-  filter:saturate(1.02) contrast(1.04) brightness(.74); */
-  animation:v2HeroDrift 18s ease-in-out infinite alternate;
+  border:0;
 }
 .v2-hero-overlay{
   background:
@@ -1433,8 +1448,8 @@ body.v2-modal-open{overflow:hidden}
 }
 
 @keyframes v2HeroDrift{
-  0%{transform:scale(1.04) translate3d(0,0,0)}
-  100%{transform:scale(1.12) translate3d(0,-10px,0)}
+  0%{transform:translate(-50%, -50%) scale(1.04) translate3d(0,0,0)}
+  100%{transform:translate(-50%, -50%) scale(1.12) translate3d(0,-10px,0)}
 }
 @keyframes v2TitleRise{
   0%{opacity:0;transform:none}

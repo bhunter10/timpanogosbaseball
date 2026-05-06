@@ -96,15 +96,24 @@ function fbToArray(obj) {
   }).filter(Boolean);
 }
 
-/* Seed database if empty */
+/* Seed database if empty (writes require auth — see Realtime Database rules). */
 function seedDatabase() {
-  return fbGet('/').then(function(data) {
-    if (data && data.games && data.results) return;
+  return Promise.all([
+    fbGet('games'),
+    fbGet('results')
+  ]).then(function(vals) {
+    var games = vals[0];
+    var results = vals[1];
+    if (games && results) return Promise.resolve();
+
+    if (!auth.currentUser) {
+      return Promise.resolve();
+    }
 
     var promises = [];
 
-    if (!data || !data.games) {
-      var games = [
+    if (!games) {
+      var gamesSeed = [
         { date:'2026-03-05', opponent:'Crimson Cliffs', location:'Washington, UT', time:'6:30 PM' },
         { date:'2026-03-06', opponent:'Juab', location:'Washington, UT', time:'3:30 PM' },
         { date:'2026-03-07', opponent:'Ogden', location:'Washington, UT', time:'8:00 AM' },
@@ -131,11 +140,11 @@ function seedDatabase() {
         { date:'2026-04-24', opponent:'Orem', location:'Away', time:'3:30 PM' },
         { date:'2026-05-04', opponent:'TBD', location:'Home', time:'3:30 PM', playoff:true }
       ];
-      promises.push(fbSet('games', games));
+      promises.push(fbSet('games', gamesSeed));
     }
 
-    if (!data || !data.results) {
-      var results = [
+    if (!results) {
+      var resultsSeed = [
         { date:'2025-09-02', opponent:'Spanish Fork', ourScore:7, theirScore:0 },
         { date:'2025-09-11', opponent:'Skyridge', ourScore:4, theirScore:2 },
         { date:'2025-09-16', opponent:'Brighton', ourScore:7, theirScore:0 },
@@ -149,9 +158,10 @@ function seedDatabase() {
         { date:'2025-10-25', opponent:'CBA Warriors Navy', ourScore:4, theirScore:0 },
         { date:'2025-10-25', opponent:'Southern Utah Storm', ourScore:2, theirScore:4 }
       ];
-      promises.push(fbSet('results', results));
+      promises.push(fbSet('results', resultsSeed));
     }
 
+    if (!promises.length) return Promise.resolve();
     return Promise.all(promises);
   });
 }
