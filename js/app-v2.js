@@ -302,6 +302,13 @@ function v2SyncFilmstrip() {
   var track = document.getElementById('v2FilmstripTrack');
   if (!section || !sticky || !chrome || !track) return;
 
+  if (window.matchMedia && window.matchMedia('(max-width: 767px)').matches) {
+    section.style.height = '';
+    section.classList.remove('is-pinned', 'is-complete');
+    track.style.transform = '';
+    return;
+  }
+
   var viewportWidth = window.innerWidth || document.documentElement.clientWidth || sticky.clientWidth;
   var scrollDistance = Math.max(0, track.scrollWidth - viewportWidth);
   var stripHeight = chrome.clientHeight || sticky.clientHeight || 374;
