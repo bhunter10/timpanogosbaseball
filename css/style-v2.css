@@ -710,27 +710,20 @@ button{font:inherit}
   overflow:visible;
 }
 .v2-filmstrip-sticky{
-  position:absolute;
-  top:0;
+  position:sticky;
+  top:max(0px, calc((100svh - 374px) / 2));
   left:0;
   right:0;
   height:374px;
   display:flex;
   align-items:center;
   justify-content:center;
-  overflow:hidden;
+  overflow:visible;
 }
 .v2-filmstrip-band.is-pinned .v2-filmstrip-sticky{
-  position:fixed;
-  top:50%;
-  left:0;
-  right:0;
-  transform:translateY(-50%);
+  transform:none;
 }
 .v2-filmstrip-band.is-complete .v2-filmstrip-sticky{
-  position:absolute;
-  top:auto;
-  bottom:0;
   transform:none;
 }
 .v2-filmstrip-shell{
@@ -743,15 +736,9 @@ button{font:inherit}
   overflow:visible;
 }
 .v2-filmstrip-band.is-pinned .v2-filmstrip-accents{
-  position:fixed;
-  top:50%;
-  left:0;
-  right:0;
   height:374px;
-  transform:translateY(-50%);
 }
 .v2-filmstrip-band.is-complete .v2-filmstrip-accents{
-  position:absolute;
   inset:0;
   transform:none;
 }
@@ -1701,6 +1688,7 @@ body.v2-modal-open{overflow:hidden}
     overflow:visible;
   }
   .v2-filmstrip-sticky{
+    top:max(0px, calc((100svh - clamp(244px, 66vw, 374px)) / 2));
     height:clamp(244px, 66vw, 374px);
   }
   .v2-filmstrip-chrome{

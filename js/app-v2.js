@@ -56,6 +56,7 @@ function v2RenderFilmstripAccents(section) {
   if (!section) return;
   var existing = section.querySelector('.v2-filmstrip-accents');
   if (existing) existing.remove();
+  var sticky = section.querySelector('.v2-filmstrip-sticky');
 
   var layer = document.createElement('div');
   layer.className = 'v2-filmstrip-accents';
@@ -89,7 +90,7 @@ function v2RenderFilmstripAccents(section) {
     layer.appendChild(accent);
   }
 
-  section.appendChild(layer);
+  (sticky || section).appendChild(layer);
 }
 
 function v2WireHeroVideo() {
