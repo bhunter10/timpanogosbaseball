@@ -283,10 +283,10 @@ function v2RenderFilmstrip(photos) {
     '</figure>';
   }).join('');
 
+  v2WireFilmstripScroll();
   var images = Array.prototype.slice.call(track.querySelectorAll('img'));
   Promise.all(images.slice(0, Math.min(4, images.length)).map(v2ImageReady)).then(function() {
     v2SyncFilmstrip();
-    v2WireFilmstripScroll();
   });
   images.slice(4).forEach(function(img) {
     if (img.complete) return;
@@ -302,17 +302,11 @@ function v2SyncFilmstrip() {
   var track = document.getElementById('v2FilmstripTrack');
   if (!section || !sticky || !chrome || !track) return;
 
-  if (window.matchMedia && window.matchMedia('(max-width: 767px)').matches) {
-    section.style.height = '';
-    section.classList.remove('is-pinned', 'is-complete');
-    track.style.transform = '';
-    return;
-  }
-
-  var viewportWidth = window.innerWidth || document.documentElement.clientWidth || sticky.clientWidth;
+  var viewportWidth = chrome.clientWidth || window.innerWidth || document.documentElement.clientWidth || sticky.clientWidth;
   var scrollDistance = Math.max(0, track.scrollWidth - viewportWidth);
   var stripHeight = chrome.clientHeight || sticky.clientHeight || 374;
-  var centerOffset = Math.max(0, Math.round(((window.innerHeight || stripHeight) - stripHeight) / 2));
+  var viewportHeight = (window.visualViewport && window.visualViewport.height) || window.innerHeight || stripHeight;
+  var centerOffset = Math.max(0, Math.round((viewportHeight - stripHeight) / 2));
   var sectionTop = section.getBoundingClientRect().top + window.scrollY;
   var start = sectionTop - centerOffset;
   var end = start + scrollDistance;
@@ -351,6 +345,10 @@ function v2WireFilmstripScroll() {
 
   window.addEventListener('scroll', v2SyncFilmstrip, { passive: true });
   window.addEventListener('resize', v2SyncFilmstrip);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', v2SyncFilmstrip);
+    window.visualViewport.addEventListener('scroll', v2SyncFilmstrip);
+  }
   requestAnimationFrame(v2SyncFilmstrip);
 }
 
