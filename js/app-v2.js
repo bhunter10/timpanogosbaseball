@@ -1,6 +1,7 @@
 var v2CachedGames = null;
 var v2CachedResults = null;
 var v2CachedCarouselPhotos = null;
+var v2FilmstripRaf = 0;
 var v2RegionTeams = ['Mountain View','Summit Academy','Uintah','Provo','Orem'];
 
 function v2DefaultCarouselPhotos() {
@@ -305,9 +306,9 @@ function v2SyncFilmstrip() {
   var viewportWidth = chrome.clientWidth || window.innerWidth || document.documentElement.clientWidth || sticky.clientWidth;
   var scrollDistance = Math.max(0, track.scrollWidth - viewportWidth);
   var stripHeight = chrome.clientHeight || sticky.clientHeight || 374;
-  var viewportHeight = (window.visualViewport && window.visualViewport.height) || window.innerHeight || stripHeight;
+  var viewportHeight = window.innerHeight || document.documentElement.clientHeight || stripHeight;
   var centerOffset = Math.max(0, Math.round((viewportHeight - stripHeight) / 2));
-  var sectionTop = section.getBoundingClientRect().top + window.scrollY;
+  var sectionTop = section.offsetTop;
   var start = sectionTop - centerOffset;
   var end = start + scrollDistance;
 
@@ -335,21 +336,28 @@ function v2SyncFilmstrip() {
   track.style.transform = 'translate3d(' + (-progress) + 'px,0,0)';
 }
 
+function v2QueueFilmstripSync() {
+  if (v2FilmstripRaf) return;
+  v2FilmstripRaf = requestAnimationFrame(function() {
+    v2FilmstripRaf = 0;
+    v2SyncFilmstrip();
+  });
+}
+
 function v2WireFilmstripScroll() {
   var section = document.getElementById('v2Filmstrip');
   if (!section || section._filmstripWired) {
-    v2SyncFilmstrip();
+    v2QueueFilmstripSync();
     return;
   }
   section._filmstripWired = true;
 
-  window.addEventListener('scroll', v2SyncFilmstrip, { passive: true });
-  window.addEventListener('resize', v2SyncFilmstrip);
+  window.addEventListener('scroll', v2QueueFilmstripSync, { passive: true });
+  window.addEventListener('resize', v2QueueFilmstripSync);
   if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', v2SyncFilmstrip);
-    window.visualViewport.addEventListener('scroll', v2SyncFilmstrip);
+    window.visualViewport.addEventListener('resize', v2QueueFilmstripSync);
   }
-  requestAnimationFrame(v2SyncFilmstrip);
+  v2QueueFilmstripSync();
 }
 
 function v2RenderCountdown(games) {
