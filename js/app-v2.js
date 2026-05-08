@@ -834,6 +834,23 @@ function v2WireHeaderScrollState() {
   syncHeaderState();
 }
 
+function v2WireCalendarSyncLinks() {
+  var appleLink = document.getElementById('v2AppleCalendarLink');
+  var googleLink = document.getElementById('v2GoogleCalendarLink');
+  if (!appleLink && !googleLink) return;
+
+  var calendarPath = '/api/schedule.ics';
+  var calendarUrl = window.location.origin + calendarPath;
+
+  if (appleLink) {
+    appleLink.href = calendarUrl.replace(/^https?:\/\//, 'webcal://');
+  }
+
+  if (googleLink) {
+    googleLink.href = 'https://calendar.google.com/calendar/render?cid=' + encodeURIComponent(calendarUrl);
+  }
+}
+
 function v2Boot() {
   var games = v2CachedGames || v2SampleGames();
   var liveResults = v2CachedResults && v2CachedResults.length ? v2CachedResults : v2Fall2025Results();
@@ -849,6 +866,7 @@ function v2Boot() {
   v2WireDiamondStory();
   v2WireMobileNav();
   v2WireHeaderScrollState();
+  v2WireCalendarSyncLinks();
   v2WireRevealAnimations();
 }
 

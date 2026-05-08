@@ -1151,13 +1151,78 @@ button{font:inherit}
 }
 
 .v2-results-header{
-  display:block;
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:24px;
   margin-bottom:30px;
 }
 .v2-results-header .v2-section-heading{
   margin-bottom:0;
   max-width:760px;
   gap:14px;
+}
+.v2-calendar-sync{
+  display:grid;
+  gap:14px;
+  flex:0 0 min(100%, 360px);
+  padding:18px;
+  border:1px solid var(--line);
+  border-radius:20px;
+  background:linear-gradient(180deg, rgba(13,24,51,.82), rgba(7,17,38,.58));
+  box-shadow:0 18px 42px rgba(0,0,0,.24);
+}
+.v2-calendar-sync-label{
+  display:block;
+  color:var(--green);
+  font-size:.76rem;
+  font-weight:900;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+.v2-calendar-sync p{
+  margin:6px 0 0;
+  color:rgba(244,247,251,.72);
+  font-size:.92rem;
+  line-height:1.5;
+}
+.v2-calendar-sync-actions{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:8px;
+}
+.v2-calendar-sync-link{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:42px;
+  padding:0 12px;
+  border:1px solid rgba(91,255,24,.26);
+  border-radius:12px;
+  color:#061006;
+  background:var(--green);
+  font-size:.78rem;
+  font-weight:900;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  text-decoration:none;
+  transition:transform .2s ease, background-color .2s ease, border-color .2s ease, color .2s ease;
+}
+.v2-calendar-sync-link-muted{
+  color:var(--text);
+  background:rgba(255,255,255,.06);
+  border-color:var(--line);
+}
+.v2-calendar-sync-link:hover,
+.v2-calendar-sync-link:focus-visible{
+  transform:translateY(-1px);
+  background:#79ff47;
+  border-color:rgba(91,255,24,.46);
+}
+.v2-calendar-sync-link-muted:hover,
+.v2-calendar-sync-link-muted:focus-visible{
+  color:var(--green);
+  background:rgba(91,255,24,.08);
 }
 .v2-heading-row{
   display:flex;
@@ -1589,7 +1654,13 @@ body.v2-modal-open{overflow:hidden}
     transform:translateY(-26px);
   }
   .v2-results-header{
+    flex-direction:column;
+    align-items:stretch;
+    gap:18px;
     margin-bottom:24px;
+  }
+  .v2-calendar-sync{
+    flex-basis:auto;
   }
   .v2-heading-row{
     align-items:flex-start;
