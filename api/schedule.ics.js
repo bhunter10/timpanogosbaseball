@@ -125,7 +125,7 @@ function buildGameEvent(game, index, now) {
   var startsAt = zonedDateToUtc(dateParts[0], dateParts[1], dateParts[2], parsedTime.hour, parsedTime.minute, TIME_ZONE);
   var endsAt = new Date(startsAt.getTime() + DEFAULT_DURATION_MINUTES * 60000);
   var opponent = game.opponent || 'Opponent TBD';
-  var location = game.location || '';
+  var location = game.locationAddress || game.address || game.location || '';
   var summary = 'Timpanogos Baseball vs ' + opponent;
   var description = ['Timpanogos Baseball spring season game.'];
 

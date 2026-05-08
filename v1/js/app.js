@@ -764,6 +764,7 @@ function renderAdmin(app) {
               <label>Date (MM-DD-YYYY):<input type="date" id="gameDate" required /></label>
               <label>Opponent:<input type="text" id="gameOpponent" required /></label>
               <label>Location:<input type="text" id="gameLocation" required placeholder="Home/Away" /></label>
+              <label>Location Address:<input type="text" id="gameLocationAddress" placeholder="Optional full address for calendar sync" /></label>
               <label>Time:<input type="text" id="gameTime" required placeholder="4:00 PM" /></label>
               <label>Our Score:<input id="gameOurScore" type="number" placeholder="Optional" /></label>
               <label>Their Score:<input id="gameTheirScore" type="number" placeholder="Optional" /></label>
@@ -905,6 +906,7 @@ function renderAdmin(app) {
           date: result.date,
           opponent: result.opponent,
           location: result.location || '',
+          locationAddress: result.locationAddress || '',
           time: result.time || '',
           playoff: !!result.playoff
         },
@@ -933,6 +935,7 @@ function renderAdmin(app) {
       date: game.date,
       opponent: game.opponent,
       location: game.location,
+      locationAddress: game.locationAddress || '',
       time: game.time,
       playoff: !!game.playoff,
       ourScore: +ourScore,
@@ -978,8 +981,9 @@ function renderAdmin(app) {
   function formatAdminGameLine(game, result) {
     const details = [];
     if (game.location) details.push(game.location);
+    if (game.locationAddress) details.push(game.locationAddress);
     if (game.time) details.push(game.time);
-    const detailText = details.length ? ' (' + details.join(' at ') + ')' : '';
+    const detailText = details.length ? ' (' + details.join(' | ') + ')' : '';
     const score = result ? ` | Timpanogos ${result.ourScore}, ${game.opponent} ${result.theirScore}` : '';
     return `${formatDate(game.date, { year:'numeric', month:'long', day:'numeric' })} - ${game.opponent}${detailText}${score}`;
   }
@@ -1000,6 +1004,7 @@ function renderAdmin(app) {
         document.getElementById('gameDate').value = g.date;
         document.getElementById('gameOpponent').value = g.opponent;
         document.getElementById('gameLocation').value = g.location || '';
+        document.getElementById('gameLocationAddress').value = g.locationAddress || '';
         document.getElementById('gameTime').value = g.time || '';
         document.getElementById('gamePlayoff').checked = !!g.playoff;
         document.getElementById('gameOurScore').value = result ? result.ourScore : '';
@@ -1319,6 +1324,7 @@ function renderAdmin(app) {
       date: document.getElementById('gameDate').value,
       opponent: document.getElementById('gameOpponent').value,
       location: document.getElementById('gameLocation').value,
+      locationAddress: document.getElementById('gameLocationAddress').value,
       time: document.getElementById('gameTime').value
     };
     if (document.getElementById('gamePlayoff').checked) game.playoff = true;
