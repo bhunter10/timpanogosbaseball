@@ -1015,6 +1015,21 @@ button{font:inherit}
   background:var(--green);
   box-shadow:0 0 12px rgba(91,255,24,.42);
 }
+.v2-playoff-bracket-link{
+  width:max-content;
+  color:var(--green);
+  font-size:.88rem;
+  font-weight:900;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  text-decoration:none;
+  transition:color .2s ease, transform .2s ease;
+}
+.v2-playoff-bracket-link:hover,
+.v2-playoff-bracket-link:focus-visible{
+  color:var(--text);
+  transform:translateY(-1px);
+}
 .v2-game-card{
   position:relative;
   overflow:hidden;
