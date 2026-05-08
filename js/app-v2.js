@@ -2,6 +2,7 @@ var v2CachedGames = null;
 var v2CachedResults = null;
 var v2CachedCarouselPhotos = null;
 var v2FilmstripRaf = 0;
+var v2CountdownTimer = null;
 var v2RegionTeams = ['Mountain View','Summit Academy','Uintah','Provo','Orem'];
 
 function v2DefaultCarouselPhotos() {
@@ -241,17 +242,21 @@ var v2RosterData = [
   {num:27,name:'Austin Schueller',year:'Jr.',pos:'INF'}
 ];
 
-function v2RenderSummary(games, results) {
+function v2RenderNextGamePanel(games) {
   var futureGames = games.slice().filter(function(game) {
-    return new Date(game.date + 'T23:59:59').getTime() >= Date.now();
+    return v2GameDateTimeValue(game) >= Date.now();
   }).sort(function(a, b) {
-    return new Date(a.date) - new Date(b.date);
+    return v2GameDateTimeValue(a) - v2GameDateTimeValue(b);
   });
   var next = futureGames[0];
   document.getElementById('nextGameTitle').textContent = next ? next.opponent : 'Season Complete';
   document.getElementById('nextGameMeta').textContent = next
     ? v2FormatDate(next.date) + ' | ' + next.location + ' | ' + next.time
     : 'No future games scheduled right now.';
+}
+
+function v2RenderSummary(games, results) {
+  v2RenderNextGamePanel(games);
 
   var recentList = document.getElementById('recentResultsList');
   var recent = results.slice().sort(function(a, b) {
@@ -367,13 +372,18 @@ function v2RenderCountdown(games) {
   var tickEl = document.getElementById('v2TickClock');
   if (!section || !oppEl || !tickEl) return;
 
+  if (v2CountdownTimer) {
+    clearInterval(v2CountdownTimer);
+    v2CountdownTimer = null;
+  }
+
   section.style.display = 'none';
   section.classList.remove('playoff-countdown');
 
   var futureGames = games.slice().filter(function(game) {
-    return new Date(game.date + 'T23:59:59').getTime() >= Date.now();
+    return v2GameDateTimeValue(game) >= Date.now();
   }).sort(function(a, b) {
-    return new Date(a.date) - new Date(b.date);
+    return v2GameDateTimeValue(a) - v2GameDateTimeValue(b);
   });
   var next = futureGames[0];
 
@@ -385,27 +395,44 @@ function v2RenderCountdown(games) {
     : 'vs ' + next.opponent + ' - ' + v2FormatDate(next.date) + ' @ ' + next.time;
   if (next.playoff) section.classList.add('playoff-countdown');
 
-  if (tickEl._tickInit || typeof Tick === 'undefined') return;
-  tickEl._tickInit = true;
+  if (!tickEl._tickInit && typeof Tick !== 'undefined') {
+    tickEl._tickInit = true;
+    setTimeout(function() {
+      Tick.DOM.create(tickEl, {
+        didInit: function(tick) {
+          tickEl._v2Tick = tick;
+          v2UpdateCountdownTick(tickEl, next, games);
+        }
+      });
+    }, 0);
+  }
 
-  var timeParts = (next.time || '').match(/(\d+):(\d+)\s*(AM|PM)/i);
-  var h = timeParts ? +timeParts[1] : 15;
-  var m = timeParts ? +timeParts[2] : 30;
-  if (timeParts && timeParts[3].toUpperCase() === 'PM' && h !== 12) h += 12;
-  if (timeParts && timeParts[3].toUpperCase() === 'AM' && h === 12) h = 0;
+  v2UpdateCountdownTick(tickEl, next, games);
+  v2CountdownTimer = setInterval(function() {
+    v2UpdateCountdownTick(tickEl, next, games);
+  }, 1000);
+}
 
-  var dateParts = (next.date || '').split('-');
-  var gameDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2], h, m);
+function v2UpdateCountdownTick(tickEl, next, games) {
+  var remaining = v2GameDateTimeValue(next) - Date.now();
+  if (remaining <= 0) {
+    v2RenderNextGamePanel(games);
+    setTimeout(function() {
+      v2RenderCountdown(games);
+    }, 250);
+    return;
+  }
 
-  setTimeout(function() {
-    Tick.DOM.create(tickEl, {
-      didInit: function(tick) {
-        Tick.count.down(gameDate, { format: ['d', 'h', 'm', 's'] }).onupdate = function(val) {
-          tick.value = val;
-        };
-      }
-    });
-  }, 0);
+  if (!tickEl._v2Tick) return;
+
+  var totalSeconds = Math.floor(remaining / 1000);
+  var days = Math.floor(totalSeconds / 86400);
+  totalSeconds -= days * 86400;
+  var hours = Math.floor(totalSeconds / 3600);
+  totalSeconds -= hours * 3600;
+  var minutes = Math.floor(totalSeconds / 60);
+  var seconds = totalSeconds - minutes * 60;
+  tickEl._v2Tick.value = [days, hours, minutes, seconds];
 }
 
 function v2RenderSchedule(games, results2026) {
@@ -474,6 +501,16 @@ function v2BuildSeasonGames(games, results) {
 function v2GameDateTimeValue(game) {
   var dateValue = game && game.date ? game.date : '';
   var timeValue = game && game.time ? game.time : '';
+  var dateParts = dateValue.split('-').map(function(part) { return +part; });
+  if (dateParts.length === 3 && dateParts.every(function(part) { return Number.isFinite(part); })) {
+    var timeParts = timeValue.match(/(\d+):(\d+)\s*(AM|PM)/i);
+    var h = timeParts ? +timeParts[1] : 15;
+    var m = timeParts ? +timeParts[2] : 30;
+    if (timeParts && timeParts[3].toUpperCase() === 'PM' && h !== 12) h += 12;
+    if (timeParts && timeParts[3].toUpperCase() === 'AM' && h === 12) h = 0;
+    return new Date(dateParts[0], dateParts[1] - 1, dateParts[2], h, m).getTime();
+  }
+
   var parsed = new Date((dateValue + ' ' + timeValue).trim()).getTime();
   return Number.isFinite(parsed) ? parsed : new Date(dateValue).getTime();
 }

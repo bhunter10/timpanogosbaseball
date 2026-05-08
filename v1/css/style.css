@@ -681,6 +681,7 @@ body.modal-open{overflow:hidden}
 .admin-content>.admin-card,.admin-panel>.admin-card,.admin-main-grid{margin:24px}
 .admin-main-grid+.admin-card{margin-top:0}
 .admin-main-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px}
+.admin-main-grid-single{grid-template-columns:1fr}
 .admin-panel{display:none}
 .admin-panel.active{display:block}
 .admin-panel>.admin-card+ .admin-card{margin-top:24px}

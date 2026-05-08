@@ -757,14 +757,16 @@ function renderAdmin(app) {
         <button type="button" class="btn alt" id="adminSignOut">Sign Out</button>
       </section>
       <div class="admin-panel active" data-admin-panel-view="dashboard">
-        <div class="admin-main-grid">
+        <div class="admin-main-grid admin-main-grid-single">
           <section class="admin-card" id="gameAdminCard">
-            <h2>Add Upcoming Game</h2>
+            <h2>Add Game / Result</h2>
             <form id="gameForm">
               <label>Date (MM-DD-YYYY):<input type="date" id="gameDate" required /></label>
               <label>Opponent:<input type="text" id="gameOpponent" required /></label>
               <label>Location:<input type="text" id="gameLocation" required placeholder="Home/Away" /></label>
               <label>Time:<input type="text" id="gameTime" required placeholder="4:00 PM" /></label>
+              <label>Our Score:<input id="gameOurScore" type="number" placeholder="Optional" /></label>
+              <label>Their Score:<input id="gameTheirScore" type="number" placeholder="Optional" /></label>
               <label class="checkbox-label"><input type="checkbox" id="gamePlayoff" /> Playoff Game</label>
               <div class="form-row">
                 <button type="submit" class="btn">Add Game</button>
@@ -772,32 +774,10 @@ function renderAdmin(app) {
               <p class="auth-error" id="gameSaveError"></p>
             </form>
           </section>
-          <section class="admin-card" id="resultAdminCard">
-            <h2>Record a Result</h2>
-            <form id="resultForm">
-              <label>Date (MM-DD-YYYY):<input type="date" id="resultDate" required /></label>
-              <label>Opponent:<input id="resultOpponent" required /></label>
-              <label>Our Score:<input id="ourScore" type="number" required /></label>
-              <label>Their Score:<input id="theirScore" type="number" required /></label>
-              <div class="form-row">
-                <button type="submit" class="btn">Add Result</button>
-              </div>
-              <p class="auth-error" id="resultSaveError"></p>
-            </form>
-          </section>
         </div>
         <section class="admin-card">
-          <h2>Data Preview</h2>
-          <div class="admin-preview-grid">
-            <div>
-              <p><strong>Saved games:</strong></p>
-              <ul id="gamesPreview" class="list"></ul>
-            </div>
-            <div>
-              <p><strong>Saved results:</strong></p>
-              <ul id="resultsPreview" class="list"></ul>
-            </div>
-          </div>
+          <h2>Saved Games & Results</h2>
+          <ul id="gamesPreview" class="list"></ul>
         </section>
       </div>
       <div class="admin-panel" data-admin-panel-view="carousel">
@@ -849,16 +829,23 @@ function renderAdmin(app) {
 
   let games = getGames().slice();
   let results = getResults().slice();
+  let adminResults = [];
   let carouselPhotos = getCarouselPhotos();
-  spring2026Results().concat(historical2025Results()).forEach(r => {
-    const exists = results.some(saved =>
-      saved.date === r.date &&
-      saved.opponent === r.opponent &&
-      +saved.ourScore === +r.ourScore &&
-      +saved.theirScore === +r.theirScore
-    );
-    if (!exists) results.push(r);
-  });
+
+  function syncAdminResults() {
+    adminResults = results.slice();
+    spring2026Results().concat(summer2025Results(), historical2025Results()).forEach(r => {
+      const exists = adminResults.some(saved =>
+        saved.date === r.date &&
+        saved.opponent === r.opponent &&
+        +saved.ourScore === +r.ourScore &&
+        +saved.theirScore === +r.theirScore
+      );
+      if (!exists) adminResults.push(Object.assign({ _staticResult: true }, r));
+    });
+  }
+
+  syncAdminResults();
 
   function buildResultSummary(r) {
     const span = document.createElement('span');
@@ -874,26 +861,147 @@ function renderAdmin(app) {
     return span;
   }
 
+  function findResultIndexForGame(game) {
+    return results.findIndex(result =>
+      result.date === game.date &&
+      result.opponent === game.opponent
+    );
+  }
+
+  function findGameIndexForResult(result) {
+    return games.findIndex(game =>
+      game.date === result.date &&
+      game.opponent === result.opponent
+    );
+  }
+
+  function savedResultIndexFromAdminIndex(adminResultIndex) {
+    if (adminResultIndex < 0 || !adminResults[adminResultIndex]) return -1;
+    const result = adminResults[adminResultIndex];
+    if (result._staticResult) return -1;
+    return results.findIndex(saved => {
+      if (result._key != null && saved._key === result._key) return true;
+      return saved.date === result.date && saved.opponent === result.opponent;
+    });
+  }
+
+  function buildCombinedGameResults() {
+    const usedResultIndexes = [];
+    const combined = games.map((game, gameIndex) => {
+      const resultIndex = adminResults.findIndex((result, index) =>
+        usedResultIndexes.indexOf(index) === -1 &&
+        result.date === game.date &&
+        result.opponent === game.opponent
+      );
+      const result = resultIndex >= 0 ? adminResults[resultIndex] : null;
+      if (resultIndex >= 0) usedResultIndexes.push(resultIndex);
+      return { game, gameIndex, result, resultIndex: savedResultIndexFromAdminIndex(resultIndex), adminResultIndex: resultIndex };
+    });
+
+    adminResults.forEach((result, resultIndex) => {
+      if (usedResultIndexes.indexOf(resultIndex) !== -1) return;
+      combined.push({
+        game: {
+          date: result.date,
+          opponent: result.opponent,
+          location: result.location || '',
+          time: result.time || '',
+          playoff: !!result.playoff
+        },
+        gameIndex: findGameIndexForResult(result),
+        result,
+        resultIndex: savedResultIndexFromAdminIndex(resultIndex),
+        adminResultIndex: resultIndex
+      });
+    });
+
+    return combined.sort((a, b) => {
+      const aDate = new Date(((a.game && a.game.date) || '') + ' ' + ((a.game && a.game.time) || '')).getTime();
+      const bDate = new Date(((b.game && b.game.date) || '') + ' ' + ((b.game && b.game.time) || '')).getTime();
+      return (Number.isFinite(bDate) ? bDate : 0) - (Number.isFinite(aDate) ? aDate : 0);
+    });
+  }
+
+  function getGameScoreResult(game) {
+    const ourScore = document.getElementById('gameOurScore').value;
+    const theirScore = document.getElementById('gameTheirScore').value;
+    if (ourScore === '' && theirScore === '') return null;
+    if (ourScore === '' || theirScore === '') {
+      throw new Error('Enter both scores, or leave both score fields blank.');
+    }
+    return {
+      date: game.date,
+      opponent: game.opponent,
+      location: game.location,
+      time: game.time,
+      playoff: !!game.playoff,
+      ourScore: +ourScore,
+      theirScore: +theirScore
+    };
+  }
+
+  function saveResultForGame(matchGame, result, preferredResultIndex) {
+    if (!result) return Promise.resolve(null);
+
+    const resultIndex = preferredResultIndex >= 0 ? preferredResultIndex : findResultIndexForGame(matchGame);
+    if (resultIndex >= 0) {
+      const resultKey = firebaseChildKey(results[resultIndex], resultIndex);
+      results[resultIndex] = result;
+      return fbSaveChild('results', resultKey, result).then(savedResult => {
+        results[resultIndex] = savedResult;
+        cachedResults = results.slice();
+        syncAdminResults();
+        return savedResult;
+      });
+    }
+
+    results.push(result);
+    return fbAddChild('results', result).then(savedResult => {
+      results = results.filter(saved => saved !== result).concat(savedResult);
+      cachedResults = results.slice();
+      syncAdminResults();
+      return savedResult;
+    });
+  }
+
+  function deleteResultForGame(matchGame, preferredResultIndex) {
+    const resultIndex = preferredResultIndex >= 0 ? preferredResultIndex : findResultIndexForGame(matchGame);
+    if (resultIndex < 0) return Promise.resolve();
+    const resultKey = firebaseChildKey(results[resultIndex], resultIndex);
+    results.splice(resultIndex, 1);
+    return fbDeleteChild('results', resultKey).then(() => {
+      cachedResults = results.slice();
+      syncAdminResults();
+    });
+  }
+
   function renderGamesPreview() {
     const ul = document.getElementById('gamesPreview');
     ul.innerHTML = '';
-    games.map((game, index) => ({ game, index }))
-      .sort((a, b) => new Date(b.game.date) - new Date(a.game.date))
-      .forEach(({ game: g, index: i }) => {
+    buildCombinedGameResults().forEach(record => {
+      const g = record.game;
+      const result = record.result;
       const li = document.createElement('li');
       const span = document.createElement('span');
-      span.textContent = `${formatDate(g.date, { year:'numeric', month:'long', day:'numeric' })} - ${g.opponent} (${g.location}) at ${g.time}`;
+      const score = result ? ` | Timpanogos ${result.ourScore}, ${g.opponent} ${result.theirScore}` : '';
+      span.textContent = `${formatDate(g.date, { year:'numeric', month:'long', day:'numeric' })} - ${g.opponent} (${g.location}) at ${g.time}${score}`;
       li.appendChild(span);
       const editBtn = document.createElement('button');
       editBtn.textContent = 'Edit'; editBtn.className = 'btn small';
       editBtn.addEventListener('click', () => {
         document.getElementById('gameDate').value = g.date;
         document.getElementById('gameOpponent').value = g.opponent;
-        document.getElementById('gameLocation').value = g.location;
-        document.getElementById('gameTime').value = g.time;
+        document.getElementById('gameLocation').value = g.location || '';
+        document.getElementById('gameTime').value = g.time || '';
         document.getElementById('gamePlayoff').checked = !!g.playoff;
-        editingGameIdx = i;
-        document.querySelector('#gameForm button[type="submit"]').textContent = 'Update Game';
+        document.getElementById('gameOurScore').value = result ? result.ourScore : '';
+        document.getElementById('gameTheirScore').value = result ? result.theirScore : '';
+        editingGameIdx = record.gameIndex;
+        editingResultIdx = record.resultIndex;
+        if (editingGameIdx < 0 && record.adminResultIndex >= 0) {
+          editingResultIdx = savedResultIndexFromAdminIndex(record.adminResultIndex);
+        }
+        document.querySelector('#gameForm button[type="submit"]').textContent = 'Update';
         showAdminPanel('dashboard');
         document.getElementById('gameAdminCard').scrollIntoView({ behavior: 'smooth' });
       });
@@ -901,56 +1009,31 @@ function renderAdmin(app) {
       delBtn.textContent = 'Delete'; delBtn.className = 'btn small alt';
       delBtn.addEventListener('click', () => {
         const previousGames = games.slice();
-        const gameKey = firebaseChildKey(games[i], i);
-        games.splice(i, 1);
-        fbDeleteChild('games', gameKey).then(() => {
+        const previousResults = results.slice();
+        const previousAdminResults = adminResults.slice();
+        const deletes = [];
+        if (record.gameIndex >= 0) {
+          const gameKey = firebaseChildKey(games[record.gameIndex], record.gameIndex);
+          games.splice(record.gameIndex, 1);
+          deletes.push(fbDeleteChild('games', gameKey));
+        }
+        if (record.resultIndex >= 0) {
+          const resultKey = firebaseChildKey(results[record.resultIndex], record.resultIndex);
+          results.splice(record.resultIndex, 1);
+          deletes.push(fbDeleteChild('results', resultKey));
+        }
+        Promise.all(deletes).then(() => {
           cachedGames = games.slice();
+          cachedResults = results.slice();
+          syncAdminResults();
           renderGamesPreview();
         }).catch(err => {
           games = previousGames;
-          document.getElementById('gameSaveError').textContent = err.message || 'Unable to delete game.';
-        });
-      });
-      const btns = document.createElement('div');
-      btns.className = 'list-actions';
-      btns.appendChild(editBtn); btns.appendChild(delBtn);
-      li.appendChild(btns);
-      ul.appendChild(li);
-    });
-  }
-
-  function renderResultsPreview() {
-    const ul = document.getElementById('resultsPreview');
-    ul.innerHTML = '';
-    results.map((result, index) => ({ result, index }))
-      .sort((a, b) => new Date(b.result.date) - new Date(a.result.date))
-      .forEach(({ result: r, index: i }) => {
-      const li = document.createElement('li');
-      li.appendChild(buildResultSummary(r));
-      const editBtn = document.createElement('button');
-      editBtn.textContent = 'Edit'; editBtn.className = 'btn small';
-      editBtn.addEventListener('click', () => {
-        document.getElementById('resultDate').value = r.date;
-        document.getElementById('resultOpponent').value = r.opponent;
-        document.getElementById('ourScore').value = r.ourScore;
-        document.getElementById('theirScore').value = r.theirScore;
-        editingResultIdx = i;
-        document.querySelector('#resultForm button[type="submit"]').textContent = 'Update Result';
-        showAdminPanel('dashboard');
-        document.getElementById('resultAdminCard').scrollIntoView({ behavior: 'smooth' });
-      });
-      const delBtn = document.createElement('button');
-      delBtn.textContent = 'Delete'; delBtn.className = 'btn small alt';
-      delBtn.addEventListener('click', () => {
-        const previousResults = results.slice();
-        const resultKey = firebaseChildKey(results[i], i);
-        results.splice(i, 1);
-        fbDeleteChild('results', resultKey).then(() => {
-          cachedResults = results.slice();
-          renderResultsPreview();
-        }).catch(err => {
           results = previousResults;
-          document.getElementById('resultSaveError').textContent = err.message || 'Unable to delete result.';
+          cachedGames = previousGames.slice();
+          cachedResults = previousResults.slice();
+          adminResults = previousAdminResults;
+          document.getElementById('gameSaveError').textContent = err.message || 'Unable to delete game.';
         });
       });
       const btns = document.createElement('div');
@@ -1218,11 +1301,12 @@ function renderAdmin(app) {
     const submitBtn = form.querySelector('button[type="submit"]');
     const errorEl = document.getElementById('gameSaveError');
     const previousGames = games.slice();
-    const wasEditing = editingGameIdx >= 0;
+    const previousResults = results.slice();
+    const previousAdminResults = adminResults.slice();
+    const wasEditingGame = editingGameIdx >= 0;
+    const wasEditingRecord = editingGameIdx >= 0 || editingResultIdx >= 0;
     const savedButtonText = submitBtn.textContent;
     errorEl.textContent = '';
-    submitBtn.disabled = true;
-    submitBtn.textContent = wasEditing ? 'Saving...' : 'Adding...';
     const game = {
       date: document.getElementById('gameDate').value,
       opponent: document.getElementById('gameOpponent').value,
@@ -1230,88 +1314,66 @@ function renderAdmin(app) {
       time: document.getElementById('gameTime').value
     };
     if (document.getElementById('gamePlayoff').checked) game.playoff = true;
-    if (wasEditing) {
+    let scoreResult = null;
+    try {
+      scoreResult = getGameScoreResult(game);
+    } catch (err) {
+      errorEl.textContent = err.message;
+      return;
+    }
+    submitBtn.disabled = true;
+    submitBtn.textContent = wasEditingRecord ? 'Saving...' : 'Adding...';
+    const saveScore = savedGame => {
+      if (scoreResult) return saveResultForGame(originalGameForResult, scoreResult, editingResultIdx);
+      return deleteResultForGame(originalGameForResult, editingResultIdx);
+    };
+    let originalGameForResult = wasEditingGame
+      ? previousGames[editingGameIdx]
+      : (editingResultIdx >= 0 ? results[editingResultIdx] : game);
+
+    if (wasEditingGame) {
       const gameKey = firebaseChildKey(games[editingGameIdx], editingGameIdx);
       games[editingGameIdx] = game;
       fbSaveChild('games', gameKey, game).then(savedGame => {
         games[editingGameIdx] = savedGame;
         cachedGames = games.slice();
+        return saveScore(savedGame);
+      }).then(() => {
         editingGameIdx = -1;
+        editingResultIdx = -1;
         submitBtn.textContent = 'Add Game';
         renderGamesPreview();
         form.reset();
       }).catch(err => {
         games = previousGames;
+        results = previousResults;
+        cachedGames = previousGames.slice();
+        cachedResults = previousResults.slice();
+        adminResults = previousAdminResults;
         errorEl.textContent = err.message || 'Unable to save game.';
         submitBtn.textContent = savedButtonText;
       }).finally(() => {
         submitBtn.disabled = false;
       });
     } else { games.push(game); }
-    if (!wasEditing) {
+    if (!wasEditingGame) {
       fbAddChild('games', game).then(savedGame => {
         games = previousGames.concat(savedGame);
         cachedGames = games.slice();
+        return saveScore(savedGame);
+      }).then(() => {
         editingGameIdx = -1;
+        editingResultIdx = -1;
         submitBtn.textContent = 'Add Game';
         renderGamesPreview();
         form.reset();
       }).catch(err => {
         games = previousGames;
+        results = previousResults;
+        cachedGames = previousGames.slice();
+        cachedResults = previousResults.slice();
+        adminResults = previousAdminResults;
         errorEl.textContent = err.message || 'Unable to save game.';
-        submitBtn.textContent = savedButtonText;
-      }).finally(() => {
-        submitBtn.disabled = false;
-      });
-    }
-  });
-
-  document.getElementById('resultForm').addEventListener('submit', e => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const submitBtn = form.querySelector('button[type="submit"]');
-    const errorEl = document.getElementById('resultSaveError');
-    const previousResults = results.slice();
-    const wasEditing = editingResultIdx >= 0;
-    const savedButtonText = submitBtn.textContent;
-    errorEl.textContent = '';
-    submitBtn.disabled = true;
-    submitBtn.textContent = wasEditing ? 'Saving...' : 'Adding...';
-    const result = {
-      date: document.getElementById('resultDate').value,
-      opponent: document.getElementById('resultOpponent').value,
-      ourScore: +document.getElementById('ourScore').value,
-      theirScore: +document.getElementById('theirScore').value
-    };
-    if (wasEditing) {
-      const resultKey = firebaseChildKey(results[editingResultIdx], editingResultIdx);
-      results[editingResultIdx] = result;
-      fbSaveChild('results', resultKey, result).then(savedResult => {
-        results[editingResultIdx] = savedResult;
-        cachedResults = results.slice();
-        editingResultIdx = -1;
-        submitBtn.textContent = 'Add Result';
-        renderResultsPreview();
-        form.reset();
-      }).catch(err => {
-        results = previousResults;
-        errorEl.textContent = err.message || 'Unable to save result.';
-        submitBtn.textContent = savedButtonText;
-      }).finally(() => {
-        submitBtn.disabled = false;
-      });
-    } else { results.push(result); }
-    if (!wasEditing) {
-      fbAddChild('results', result).then(savedResult => {
-        results = previousResults.concat(savedResult);
-        cachedResults = results.slice();
-        editingResultIdx = -1;
-        submitBtn.textContent = 'Add Result';
-        renderResultsPreview();
-        form.reset();
-      }).catch(err => {
-        results = previousResults;
-        errorEl.textContent = err.message || 'Unable to save result.';
         submitBtn.textContent = savedButtonText;
       }).finally(() => {
         submitBtn.disabled = false;
@@ -1519,7 +1581,6 @@ function renderAdmin(app) {
   });
 
   renderGamesPreview();
-  renderResultsPreview();
   renderCarouselPhotosPreview();
 }
 
