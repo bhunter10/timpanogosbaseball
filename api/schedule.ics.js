@@ -1,5 +1,5 @@
 var DATABASE_URL = 'https://timpanogos-baseball-default-rtdb.firebaseio.com';
-var CALENDAR_NAME = 'Timpanogos Baseball Spring Schedule';
+var DEFAULT_CALENDAR_NAME = 'Timpanogos Baseball Spring Schedule';
 var TIME_ZONE = 'America/Denver';
 var DEFAULT_DURATION_MINUTES = 150;
 
@@ -28,6 +28,21 @@ function isSpringGame(game) {
   if (!game || !game.date) return false;
   var month = Number(String(game.date).split('-')[1]);
   return month >= 2 && month <= 6;
+}
+
+function getGameYear(game) {
+  var year = Number(String((game && game.date) || '').split('-')[0]);
+  return Number.isFinite(year) ? year : null;
+}
+
+function buildCalendarName(games) {
+  var years = games.map(getGameYear).filter(function(year) {
+    return year !== null;
+  });
+
+  if (!years.length) return DEFAULT_CALENDAR_NAME;
+
+  return 'Timpanogos Baseball Spring ' + Math.max.apply(Math, years) + ' Schedule';
 }
 
 function parseGameTime(time) {
@@ -147,18 +162,19 @@ function buildGameEvent(game, index, now) {
 
 function buildCalendar(games) {
   var now = new Date();
+  var springGames = games.filter(isSpringGame);
+  var calendarName = buildCalendarName(springGames);
   var lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
     'PRODID:-//Timpanogos Baseball//Spring Schedule//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
-    'X-WR-CALNAME:' + escapeIcsText(CALENDAR_NAME),
+    'X-WR-CALNAME:' + escapeIcsText(calendarName),
     'X-WR-TIMEZONE:' + TIME_ZONE
   ];
 
-  games
-    .filter(isSpringGame)
+  springGames
     .sort(function(a, b) {
       return String(a.date || '').localeCompare(String(b.date || '')) || String(a.time || '').localeCompare(String(b.time || ''));
     })
@@ -197,7 +213,7 @@ module.exports = async function handler(req, res) {
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
       'PRODID:-//Timpanogos Baseball//Spring Schedule//EN',
-      'X-WR-CALNAME:' + escapeIcsText(CALENDAR_NAME),
+      'X-WR-CALNAME:' + escapeIcsText(DEFAULT_CALENDAR_NAME),
       'END:VCALENDAR'
     ].join('\r\n') + '\r\n');
   }
