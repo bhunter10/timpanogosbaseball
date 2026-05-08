@@ -975,6 +975,15 @@ function renderAdmin(app) {
     });
   }
 
+  function formatAdminGameLine(game, result) {
+    const details = [];
+    if (game.location) details.push(game.location);
+    if (game.time) details.push(game.time);
+    const detailText = details.length ? ' (' + details.join(' at ') + ')' : '';
+    const score = result ? ` | Timpanogos ${result.ourScore}, ${game.opponent} ${result.theirScore}` : '';
+    return `${formatDate(game.date, { year:'numeric', month:'long', day:'numeric' })} - ${game.opponent}${detailText}${score}`;
+  }
+
   function renderGamesPreview() {
     const ul = document.getElementById('gamesPreview');
     ul.innerHTML = '';
@@ -983,8 +992,7 @@ function renderAdmin(app) {
       const result = record.result;
       const li = document.createElement('li');
       const span = document.createElement('span');
-      const score = result ? ` | Timpanogos ${result.ourScore}, ${g.opponent} ${result.theirScore}` : '';
-      span.textContent = `${formatDate(g.date, { year:'numeric', month:'long', day:'numeric' })} - ${g.opponent} (${g.location}) at ${g.time}${score}`;
+      span.textContent = formatAdminGameLine(g, result);
       li.appendChild(span);
       const editBtn = document.createElement('button');
       editBtn.textContent = 'Edit'; editBtn.className = 'btn small';

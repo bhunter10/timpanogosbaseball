@@ -413,6 +413,34 @@ function v2RenderCountdown(games) {
   }, 1000);
 }
 
+function v2MergeSeasonResults(staticResults, savedResults) {
+  var saved = (savedResults || []).filter(function(result) {
+    return result && result.date && result.opponent && result.ourScore != null && result.theirScore != null;
+  });
+  var savedKeys = {};
+
+  saved.forEach(function(result) {
+    savedKeys[(result.date || '') + '|' + (result.opponent || '')] = true;
+  });
+
+  return saved.concat((staticResults || []).filter(function(result) {
+    return !savedKeys[(result.date || '') + '|' + (result.opponent || '')];
+  }));
+}
+
+function v2FilterScheduleResults(games, results) {
+  var gameKeys = {};
+  (games || []).forEach(function(game) {
+    gameKeys[(game.date || '') + '|' + (game.opponent || '')] = true;
+  });
+
+  return (results || []).filter(function(result) {
+    if (!result || !result.date || !result.opponent) return false;
+    if (gameKeys[(result.date || '') + '|' + (result.opponent || '')]) return true;
+    return String(result.date).indexOf('2026-') === 0 || !!result.playoff;
+  });
+}
+
 function v2UpdateCountdownTick(tickEl, next, games) {
   var remaining = v2GameDateTimeValue(next) - Date.now();
   if (remaining <= 0) {
@@ -462,7 +490,9 @@ function v2RenderSchedule(games, results2026) {
     var grid = document.getElementById(group.id);
     grid.innerHTML = group.games.map(function(game) {
       var result = results2026.find(function(entry, index) {
-        return entry.date === game.date && entry.opponent === game.opponent && usedResults.indexOf(index) === -1;
+        var sameGame = entry.date === game.date && entry.opponent === game.opponent;
+        var sameTime = !entry.time || !game.time || entry.time === game.time;
+        return sameGame && sameTime && usedResults.indexOf(index) === -1;
       });
       if (result) usedResults.push(results2026.indexOf(result));
       return v2BuildGameCard(game, result);
@@ -488,9 +518,9 @@ function v2BuildSeasonGames(games, results) {
     mergedGames.push({
       date: result.date,
       opponent: result.opponent,
-      location: 'Final',
-      time: '',
-      playoff: false
+      location: result.location || 'Final',
+      time: result.time || '',
+      playoff: !!result.playoff
     });
     gameKeys[key] = true;
   });
@@ -807,12 +837,13 @@ function v2WireHeaderScrollState() {
 function v2Boot() {
   var games = v2CachedGames || v2SampleGames();
   var liveResults = v2CachedResults && v2CachedResults.length ? v2CachedResults : v2Fall2025Results();
-  var seasonResults = v2Spring2026Results();
+  var scheduleResults = v2MergeSeasonResults(v2Spring2026Results(), v2FilterScheduleResults(games, liveResults));
+  var summaryResults = v2MergeSeasonResults(v2Spring2026Results().concat(v2Fall2025Results()), liveResults);
   v2WireHeroVideo();
-  v2RenderSummary(games, seasonResults.concat(liveResults));
+  v2RenderSummary(games, summaryResults);
   v2RenderFilmstrip(v2GetCarouselPhotos());
   v2RenderCountdown(games);
-  v2RenderSchedule(games, seasonResults);
+  v2RenderSchedule(games, scheduleResults);
   v2RenderRoster();
   v2WireModal();
   v2WireDiamondStory();
