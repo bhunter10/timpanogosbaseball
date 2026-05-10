@@ -2,6 +2,7 @@
 var cachedGames = null;
 var cachedResults = null;
 var cachedCarouselPhotos = null;
+var carouselRefreshStorageKey = 'timpanogosCarouselPhotosUpdatedAt';
 
 function fbSave(key, data) {
   if (Array.isArray(data)) {
@@ -73,27 +74,84 @@ function getCarouselPhotos() {
     .filter(photo => photo.src)
     .sort((a, b) => (+a.sortOrder || 0) - (+b.sortOrder || 0));
 }
+
+function normalizeCarouselPhotoList(photos) {
+  return (photos || []).map(normalizeCarouselPhoto)
+    .filter(photo => photo.src)
+    .sort((a, b) => (+a.sortOrder || 0) - (+b.sortOrder || 0));
+}
+
 function refreshCarouselPhotos(photos) {
   cachedCarouselPhotos = photos.slice();
-  if (window.timpanogosCarousel) window.timpanogosCarousel.setPhotos(cachedCarouselPhotos, true);
+  if (window.timpanogosCarousel && document.querySelector('.carousel-track') && document.querySelector('.carousel-dots')) {
+    try {
+      window.timpanogosCarousel.setPhotos(cachedCarouselPhotos, true);
+    } catch (err) {
+      console.warn('Carousel preview refresh skipped:', err);
+    }
+  }
 }
+
+function announceCarouselPhotosChanged(timestamp) {
+  var updatedAt = timestamp || Date.now();
+  try {
+    localStorage.setItem(carouselRefreshStorageKey, String(updatedAt));
+  } catch (err) {}
+
+  if (typeof db === 'undefined' || !db.ref) return Promise.resolve(updatedAt);
+  return db.ref('siteMeta/carouselPhotosUpdatedAt').set(updatedAt).catch(function(err) {
+    console.warn('Carousel refresh marker update failed:', err);
+    return updatedAt;
+  });
+}
+
 function fbSaveCarouselPhotos(photos) {
   const cleaned = photos.map(cleanFirebaseRecord).filter(photo => photo && photo.src);
   const data = cleaned.length ? cleaned : { __empty: true };
   return fbSet('carouselPhotos', data).then(function() {
-    return cleaned;
+    return announceCarouselPhotosChanged().then(function() {
+      return cleaned;
+    });
   });
 }
+
+function fbSaveCarouselPhotoOrder(photos) {
+  var orderedPhotos = photos.map(function(photo, index) {
+    var key = firebaseChildKey(photo, index);
+    var cleaned = cleanFirebaseRecord(photo);
+    cleaned.sortOrder = index;
+    return Object.assign({ _key: key }, cleaned);
+  }).filter(function(photo) {
+    return photo && photo.src;
+  });
+
+  var updates = {};
+  orderedPhotos.forEach(function(photo) {
+    updates['carouselPhotos/' + photo._key + '/sortOrder'] = photo.sortOrder;
+  });
+
+  if (!Object.keys(updates).length) return Promise.resolve([]);
+  return db.ref().update(updates).then(function() {
+    return announceCarouselPhotosChanged().then(function() {
+      return orderedPhotos;
+    });
+  });
+}
+
 function fbSaveCarouselPhotoChild(childKey, photo) {
   var cleaned = cleanFirebaseRecord(photo);
   return fbSet('carouselPhotos/' + childKey, cleaned).then(function() {
-    return Object.assign({ _key: childKey }, cleaned);
+    return announceCarouselPhotosChanged(cleaned.updatedAt).then(function() {
+      return Object.assign({ _key: childKey }, cleaned);
+    });
   });
 }
 function fbAddCarouselPhoto(photo) {
   var cleaned = cleanFirebaseRecord(photo);
   return fbPush('carouselPhotos', cleaned).then(function(ref) {
-    return Object.assign({ _key: ref.key }, cleaned);
+    return announceCarouselPhotosChanged(cleaned.updatedAt).then(function() {
+      return Object.assign({ _key: ref.key }, cleaned);
+    });
   });
 }
 function carouselUploadPath(file) {
@@ -806,6 +864,7 @@ function renderAdmin(app) {
         </section>
         <section class="admin-card">
           <h2>Current Carousel Photos</h2>
+          <p class="auth-error" id="carouselPhotoOrderError"></p>
           <ul id="carouselPhotosPreview" class="list photo-list"></ul>
         </section>
       </div>
@@ -1114,6 +1173,7 @@ function renderAdmin(app) {
           refreshCarouselPhotos(carouselPhotos);
           renderCarouselPhotosPreview();
           showCarouselPhotoMessage('Carousel photo deleted.');
+          announceCarouselPhotosChanged();
           if (previousPhotos[i] && previousPhotos[i].storagePath) {
             fbDeleteFile(previousPhotos[i].storagePath).catch(err => console.warn('Carousel photo file delete failed:', err));
           }
@@ -1133,29 +1193,57 @@ function renderAdmin(app) {
 
   let carouselDragIndex = null;
 
-  function saveCarouselPhotoOrder() {
+  function setCarouselPhotoOrderError(message) {
+    const formErrorEl = document.getElementById('carouselPhotoSaveError');
+    const orderErrorEl = document.getElementById('carouselPhotoOrderError');
+    if (formErrorEl) formErrorEl.textContent = message || '';
+    if (orderErrorEl) orderErrorEl.textContent = message || '';
+  }
+
+  function saveCarouselPhotoOrder(previousPhotos) {
+    setCarouselPhotoOrderError('');
     const reorderedPhotos = carouselPhotos.map((photo, index) => {
       const cleaned = cleanFirebaseRecord(photo);
       cleaned.sortOrder = index;
-      return cleaned;
+      return Object.assign({ _key: firebaseChildKey(photo, index) }, cleaned);
     });
-    fbSaveCarouselPhotos(reorderedPhotos).then(savedPhotos => {
-      carouselPhotos = savedPhotos.map(normalizeCarouselPhoto);
-      refreshCarouselPhotos(carouselPhotos);
-      renderCarouselPhotosPreview();
-      showCarouselPhotoMessage('Carousel photo order updated.');
+    fbSaveCarouselPhotoOrder(reorderedPhotos).then(savedPhotos => {
+      return fbGet('carouselPhotos').then(latestPhotos => {
+        carouselPhotos = normalizeCarouselPhotoList(fbToArray(latestPhotos));
+        refreshCarouselPhotos(carouselPhotos);
+        renderCarouselPhotosPreview();
+      }).catch(() => {
+        carouselPhotos = normalizeCarouselPhotoList(savedPhotos);
+        refreshCarouselPhotos(carouselPhotos);
+        renderCarouselPhotosPreview();
+      });
     }).catch(err => {
-      document.getElementById('carouselPhotoSaveError').textContent = err.message || 'Unable to save photo order.';
+      if (previousPhotos) {
+        carouselPhotos = previousPhotos;
+        refreshCarouselPhotos(carouselPhotos);
+      }
+      const message = err.message || err.code || 'Unable to save photo order.';
+      setCarouselPhotoOrderError(message);
       renderCarouselPhotosPreview();
     });
   }
 
+  function reorderCarouselPhoto(fromIndex, toIndex) {
+    if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || fromIndex >= carouselPhotos.length || toIndex >= carouselPhotos.length) return;
+    const previousPhotos = carouselPhotos.slice();
+    const moved = carouselPhotos.splice(fromIndex, 1)[0];
+    carouselPhotos.splice(toIndex, 0, moved);
+    renderCarouselPhotosPreview();
+    refreshCarouselPhotos(carouselPhotos);
+    saveCarouselPhotoOrder(previousPhotos);
+  }
+
   function showCarouselPhotoMessage(message) {
     const successEl = document.getElementById('carouselPhotoSaveSuccess');
-    successEl.textContent = message;
+    if (successEl) successEl.textContent = message;
     clearTimeout(showCarouselPhotoMessage.timer);
     showCarouselPhotoMessage.timer = setTimeout(() => {
-      successEl.textContent = '';
+      if (successEl) successEl.textContent = '';
     }, 4500);
   }
 
@@ -1582,12 +1670,9 @@ function renderAdmin(app) {
     const dropIndex = +li.dataset.index;
     document.querySelectorAll('.photo-list-item').forEach(item => item.classList.remove('drag-over', 'dragging'));
     if (dropIndex === carouselDragIndex) return;
-    const moved = carouselPhotos.splice(carouselDragIndex, 1)[0];
-    carouselPhotos.splice(dropIndex, 0, moved);
+    const previousDragIndex = carouselDragIndex;
     carouselDragIndex = null;
-    renderCarouselPhotosPreview();
-    refreshCarouselPhotos(carouselPhotos);
-    saveCarouselPhotoOrder();
+    reorderCarouselPhoto(previousDragIndex, dropIndex);
   });
   document.getElementById('carouselPhotosPreview').addEventListener('dragend', () => {
     carouselDragIndex = null;

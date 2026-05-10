@@ -6,6 +6,8 @@ var v2CountdownTimer = null;
 var v2RegionTeams = ['Mountain View','Summit Academy','Uintah','Provo','Orem'];
 var v2CarouselPhotoSignature = '';
 var v2CarouselPhotoListenerWired = false;
+var v2CarouselRefreshStorageKey = 'timpanogosCarouselPhotosUpdatedAt';
+var v2LastCarouselRefreshStamp = '';
 
 function v2DefaultCarouselPhotos() {
   return ['photos/optimized/1.jpg','photos/optimized/2.jpg','photos/optimized/3.jpg','photos/optimized/4.jpg','photos/optimized/5.jpg','photos/optimized/6.jpg','photos/optimized/7.jpg','photos/optimized/8.jpg','photos/optimized/9.jpg'].map(function(src, index) {
@@ -18,7 +20,8 @@ function v2NormalizeCarouselPhoto(photo, index) {
   return {
     src: photo && photo.src ? photo.src : '',
     alt: photo && photo.alt ? photo.alt : 'Team photo',
-    sortOrder: photo && photo.sortOrder != null ? +photo.sortOrder : index
+    sortOrder: photo && photo.sortOrder != null ? +photo.sortOrder : index,
+    updatedAt: photo && photo.updatedAt ? photo.updatedAt : null
   };
 }
 
@@ -35,7 +38,8 @@ function v2GetCarouselPhotoSignature(photos) {
     return [
       photo && photo.src ? photo.src : '',
       photo && photo.alt ? photo.alt : '',
-      photo && photo.sortOrder != null ? photo.sortOrder : ''
+      photo && photo.sortOrder != null ? photo.sortOrder : '',
+      photo && photo.updatedAt != null ? photo.updatedAt : ''
     ].join('|');
   }).join('||');
 }
@@ -387,6 +391,23 @@ function v2UpdateFilmstripFromSnapshot(snapshotValue) {
   v2RenderFilmstrip(photos);
 }
 
+function v2FetchLatestCarouselPhotos() {
+  if (typeof fbGet !== 'function') return Promise.resolve();
+  return fbGet('carouselPhotos').then(function(value) {
+    v2UpdateFilmstripFromSnapshot(value);
+  }).catch(function(error) {
+    console.error('Carousel photo refresh failed:', error);
+  });
+}
+
+function v2HandleCarouselRefreshStamp(stamp) {
+  if (stamp == null) return;
+  var nextStamp = String(stamp);
+  if (nextStamp === v2LastCarouselRefreshStamp) return;
+  v2LastCarouselRefreshStamp = nextStamp;
+  v2FetchLatestCarouselPhotos();
+}
+
 function v2WireCarouselPhotoListener() {
   if (v2CarouselPhotoListenerWired || typeof db === 'undefined' || !db.ref) return;
   v2CarouselPhotoListenerWired = true;
@@ -395,6 +416,17 @@ function v2WireCarouselPhotoListener() {
     v2UpdateFilmstripFromSnapshot(snapshot.val());
   }, function(error) {
     console.error('Carousel photo updates failed:', error);
+  });
+
+  db.ref('siteMeta/carouselPhotosUpdatedAt').on('value', function(snapshot) {
+    v2HandleCarouselRefreshStamp(snapshot.val());
+  }, function(error) {
+    console.error('Carousel refresh marker updates failed:', error);
+  });
+
+  window.addEventListener('storage', function(event) {
+    if (event.key !== v2CarouselRefreshStorageKey) return;
+    v2HandleCarouselRefreshStamp(event.newValue);
   });
 }
 
