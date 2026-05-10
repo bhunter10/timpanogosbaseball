@@ -4,6 +4,8 @@ var v2CachedCarouselPhotos = null;
 var v2FilmstripRaf = 0;
 var v2CountdownTimer = null;
 var v2RegionTeams = ['Mountain View','Summit Academy','Uintah','Provo','Orem'];
+var v2CarouselPhotoSignature = '';
+var v2CarouselPhotoListenerWired = false;
 
 function v2DefaultCarouselPhotos() {
   return ['photos/optimized/1.jpg','photos/optimized/2.jpg','photos/optimized/3.jpg','photos/optimized/4.jpg','photos/optimized/5.jpg','photos/optimized/6.jpg','photos/optimized/7.jpg','photos/optimized/8.jpg','photos/optimized/9.jpg'].map(function(src, index) {
@@ -26,6 +28,16 @@ function v2GetCarouselPhotos() {
     .filter(function(photo) { return photo.src; })
     .sort(function(a, b) { return (+a.sortOrder || 0) - (+b.sortOrder || 0); });
   return photos;
+}
+
+function v2GetCarouselPhotoSignature(photos) {
+  return (photos || []).map(function(photo) {
+    return [
+      photo && photo.src ? photo.src : '',
+      photo && photo.alt ? photo.alt : '',
+      photo && photo.sortOrder != null ? photo.sortOrder : ''
+    ].join('|');
+  }).join('||');
 }
 
 function v2ImageReady(img) {
@@ -275,6 +287,7 @@ function v2RenderFilmstrip(photos) {
   var section = document.getElementById('v2Filmstrip');
   var track = document.getElementById('v2FilmstripTrack');
   if (!section || !track) return;
+  v2CarouselPhotoSignature = v2GetCarouselPhotoSignature(photos);
   if (!photos.length) {
     section.style.display = 'none';
     return;
@@ -364,6 +377,25 @@ function v2WireFilmstripScroll() {
     window.visualViewport.addEventListener('resize', v2QueueFilmstripSync);
   }
   v2QueueFilmstripSync();
+}
+
+function v2UpdateFilmstripFromSnapshot(snapshotValue) {
+  v2CachedCarouselPhotos = fbToArray(snapshotValue);
+  var photos = v2GetCarouselPhotos();
+  var signature = v2GetCarouselPhotoSignature(photos);
+  if (signature === v2CarouselPhotoSignature) return;
+  v2RenderFilmstrip(photos);
+}
+
+function v2WireCarouselPhotoListener() {
+  if (v2CarouselPhotoListenerWired || typeof db === 'undefined' || !db.ref) return;
+  v2CarouselPhotoListenerWired = true;
+
+  db.ref('carouselPhotos').on('value', function(snapshot) {
+    v2UpdateFilmstripFromSnapshot(snapshot.val());
+  }, function(error) {
+    console.error('Carousel photo updates failed:', error);
+  });
 }
 
 function v2RenderCountdown(games) {
@@ -867,6 +899,7 @@ function v2Boot() {
   v2WireMobileNav();
   v2WireHeaderScrollState();
   v2WireCalendarSyncLinks();
+  v2WireCarouselPhotoListener();
   v2WireRevealAnimations();
 }
 
