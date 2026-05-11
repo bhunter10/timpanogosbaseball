@@ -256,6 +256,84 @@ body.admin-v2-body.auth-pending #app{
   border-color:rgba(15,23,42,.08);
 }
 
+.admin-v2-body #gamesPreview{
+  display:grid;
+  gap:12px;
+}
+
+.admin-v2-body #gamesPreview .game-preview-item{
+  min-height:0;
+  height:auto;
+  margin:0;
+  padding:16px;
+  align-items:flex-start;
+  gap:14px;
+}
+
+.admin-v2-body .game-preview-details{
+  display:grid;
+  gap:5px;
+  flex:1 1 280px;
+  min-width:0;
+  margin-right:0;
+}
+
+.admin-v2-body .game-preview-details span{
+  flex:initial;
+  min-width:0;
+  margin-right:0;
+  word-break:normal;
+}
+
+.admin-v2-body .game-preview-date{
+  color:var(--admin-v2-muted);
+  font-size:.78rem;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+
+.admin-v2-body .game-preview-opponent{
+  color:var(--admin-v2-text);
+  font-size:1rem;
+  font-weight:800;
+  line-height:1.25;
+}
+
+.admin-v2-body .game-preview-details small{
+  color:var(--admin-v2-muted);
+  font-size:.82rem;
+  line-height:1.35;
+}
+
+.admin-v2-body .game-preview-score{
+  display:inline-flex;
+  width:max-content;
+  max-width:100%;
+  margin-top:3px;
+  padding:5px 9px;
+  border-radius:999px;
+  background:rgba(91,205,39,.12);
+  color:#2f7a17;
+  font-size:.82rem;
+  font-weight:800;
+  line-height:1.25;
+}
+
+.admin-v2-body .game-preview-score.loss{
+  background:rgba(220,38,38,.10);
+  color:#b91c1c;
+}
+
+.admin-v2-body .game-preview-score.tie{
+  background:rgba(100,116,139,.12);
+  color:#475569;
+}
+
+.admin-v2-body #gamesPreview .list-actions{
+  align-self:center;
+}
+
 .admin-v2-body .save-success{
   color:var(--admin-v2-green);
 }
@@ -428,6 +506,24 @@ body.admin-v2-body.auth-pending #app{
     flex-direction:column;
     align-items:flex-start;
     padding:24px 0 32px;
+  }
+
+  .admin-v2-body #gamesPreview .game-preview-item{
+    display:grid;
+    grid-template-columns:1fr;
+    padding:14px;
+  }
+
+  .admin-v2-body #gamesPreview .list-actions{
+    width:100%;
+    margin-left:0;
+    align-self:stretch;
+  }
+
+  .admin-v2-body #gamesPreview .list-actions .btn{
+    flex:1 1 0;
+    text-align:center;
+    padding:10px 12px;
   }
 
   .admin-v2-login-shell{

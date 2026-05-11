@@ -945,6 +945,25 @@ function renderAdmin(app) {
     });
   }
 
+  function adminGameDateTimeValue(game) {
+    if (!game || !game.date) return 0;
+    const dateParts = String(game.date).split('-').map(Number);
+    if (dateParts.length < 3 || dateParts.some(part => !Number.isFinite(part))) return 0;
+
+    let hours = 23;
+    let minutes = 59;
+    const timeMatch = String(game.time || '').trim().match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?$/i);
+    if (timeMatch) {
+      hours = Number(timeMatch[1]);
+      minutes = Number(timeMatch[2] || 0);
+      const meridiem = (timeMatch[3] || '').toUpperCase();
+      if (meridiem === 'PM' && hours < 12) hours += 12;
+      if (meridiem === 'AM' && hours === 12) hours = 0;
+    }
+
+    return new Date(dateParts[0], dateParts[1] - 1, dateParts[2], hours, minutes).getTime();
+  }
+
   function buildCombinedGameResults() {
     const usedResultIndexes = [];
     const combined = games.map((game, gameIndex) => {
@@ -977,9 +996,7 @@ function renderAdmin(app) {
     });
 
     return combined.sort((a, b) => {
-      const aDate = new Date(((a.game && a.game.date) || '') + ' ' + ((a.game && a.game.time) || '')).getTime();
-      const bDate = new Date(((b.game && b.game.date) || '') + ' ' + ((b.game && b.game.time) || '')).getTime();
-      return (Number.isFinite(bDate) ? bDate : 0) - (Number.isFinite(aDate) ? aDate : 0);
+      return adminGameDateTimeValue(b.game) - adminGameDateTimeValue(a.game);
     });
   }
 
@@ -1053,9 +1070,36 @@ function renderAdmin(app) {
     buildCombinedGameResults().forEach(record => {
       const g = record.game;
       const result = record.result;
+      const details = [];
+      if (g.location) details.push(g.location);
+      if (g.locationAddress) details.push(g.locationAddress);
+      if (g.time) details.push(g.time);
       const li = document.createElement('li');
+      li.className = 'game-preview-item';
       const span = document.createElement('span');
-      span.textContent = formatAdminGameLine(g, result);
+      span.className = 'game-preview-details';
+      const dateEl = document.createElement('span');
+      dateEl.className = 'game-preview-date';
+      dateEl.textContent = formatDate(g.date, { year:'numeric', month:'long', day:'numeric' });
+      const opponentEl = document.createElement('span');
+      opponentEl.className = 'game-preview-opponent';
+      opponentEl.textContent = g.opponent;
+      span.appendChild(dateEl);
+      span.appendChild(opponentEl);
+      if (details.length) {
+        const metaEl = document.createElement('small');
+        metaEl.textContent = details.join(' | ');
+        span.appendChild(metaEl);
+      }
+      if (result) {
+        const scoreEl = document.createElement('span');
+        const resultClass = result.ourScore > result.theirScore
+          ? 'win'
+          : (result.ourScore < result.theirScore ? 'loss' : 'tie');
+        scoreEl.className = 'game-preview-score ' + resultClass;
+        scoreEl.textContent = `Timpanogos ${result.ourScore}, ${g.opponent} ${result.theirScore}`;
+        span.appendChild(scoreEl);
+      }
       li.appendChild(span);
       const editBtn = document.createElement('button');
       editBtn.textContent = 'Edit'; editBtn.className = 'btn small';
