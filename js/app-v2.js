@@ -547,7 +547,7 @@ function v2RenderSchedule(games, results2026) {
   });
 
   [
-    { id: 'v2PlayoffGrid', games: playoffGames.sort(v2OldestGameFirst) },
+    { id: 'v2PlayoffGrid', games: playoffGames.sort(v2NewestGameFirst) },
     { id: 'v2RegionGrid', games: regionGames.sort(v2NewestGameFirst) },
     { id: 'v2NonRegionGrid', games: nonRegionGames.sort(v2NewestGameFirst) }
   ].forEach(function(group) {
