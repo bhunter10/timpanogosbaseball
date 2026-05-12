@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "prebuild": "node scripts/generate-schedule-ics.js",
     "dev": "next dev",
     "build": "next build",
+    "build:pages": "next build && node scripts/generate-schedule-ics.js",
     "start": "next start"
   },
   "dependencies": {
