@@ -1,6 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const handler = require('../api/schedule.ics.js');
+const handler = require('./schedule-ics-handler.js');
 
 const outputPath = path.join(process.cwd(), 'out', 'api', 'schedule.ics');
 
