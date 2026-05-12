@@ -3,6 +3,8 @@ const DEFAULT_CALENDAR_NAME = 'Timpanogos Baseball Spring Schedule';
 const TIME_ZONE = 'America/Denver';
 const DEFAULT_DURATION_MINUTES = 150;
 
+export const dynamic = 'force-static';
+
 function calendarResponse(body, status = 200, extraHeaders = {}) {
   return new Response(body, {
     status,
@@ -203,9 +205,7 @@ export async function OPTIONS() {
 
 export async function GET() {
   try {
-    const response = await fetch(DATABASE_URL + '/games.json', {
-      next: { revalidate: 300 }
-    });
+    const response = await fetch(DATABASE_URL + '/games.json', { cache: 'force-cache' });
     if (!response.ok) throw new Error('Firebase responded with ' + response.status);
     const games = fbToArray(await response.json());
     return calendarResponse(buildCalendar(games));
