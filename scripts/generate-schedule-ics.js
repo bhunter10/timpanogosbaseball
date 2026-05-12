@@ -3,6 +3,7 @@ const path = require('node:path');
 const handler = require('../api/schedule.ics.js');
 
 const outputPath = path.join(process.cwd(), 'public', 'api', 'schedule.ics');
+const shouldGenerateStaticIcs = process.env.GITHUB_ACTIONS === 'true' && process.env.VERCEL !== '1';
 
 function createResponse() {
   return {
@@ -19,6 +20,12 @@ function createResponse() {
 }
 
 async function main() {
+  if (!shouldGenerateStaticIcs) {
+    if (fs.existsSync(outputPath)) fs.rmSync(outputPath);
+    console.log('Skipping static schedule.ics generation outside GitHub Pages build');
+    return;
+  }
+
   const response = createResponse();
   await handler({ method: 'GET' }, response);
 
