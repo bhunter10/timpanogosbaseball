@@ -10,7 +10,9 @@ var v2CarouselRefreshStorageKey = 'timpanogosCarouselPhotosUpdatedAt';
 var v2LastCarouselRefreshStamp = '';
 
 function v2DefaultCarouselPhotos() {
-  return ['photos/optimized/1.jpg','photos/optimized/2.jpg','photos/optimized/3.jpg','photos/optimized/4.jpg','photos/optimized/5.jpg','photos/optimized/6.jpg','photos/optimized/7.jpg','photos/optimized/8.jpg','photos/optimized/9.jpg'].map(function(src, index) {
+  var basePath = window.__SITE_BASE_PATH || '';
+  return ['/photos/optimized/1.jpg','/photos/optimized/2.jpg','/photos/optimized/3.jpg','/photos/optimized/4.jpg','/photos/optimized/5.jpg','/photos/optimized/6.jpg','/photos/optimized/7.jpg','/photos/optimized/8.jpg','/photos/optimized/9.jpg'].map(function(src, index) {
+    src = basePath + src;
     return { src: src, alt: 'Team photo ' + (index + 1), sortOrder: index };
   });
 }
@@ -897,7 +899,7 @@ function v2WireCalendarSyncLinks() {
   var googleLink = document.getElementById('v2GoogleCalendarLink');
   if (!appleLink && !googleLink) return;
 
-  var calendarPath = '/api/schedule.ics';
+  var calendarPath = (window.__SITE_BASE_PATH || '') + '/api/schedule.ics';
   var calendarUrl = window.location.origin + calendarPath;
 
   if (appleLink) {

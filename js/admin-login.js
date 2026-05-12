@@ -2,10 +2,11 @@ function initAdminLogin() {
   var form = document.getElementById('adminV2LoginForm');
   if (!form || form._adminLoginWired) return;
   form._adminLoginWired = true;
+  var basePath = window.__SITE_BASE_PATH || '';
 
   document.addEventListener('adminauthchange', function() {
     if (authReady && currentAdminUser) {
-      window.location.replace('/admin#admin');
+      window.location.replace(basePath + '/admin/#admin');
     }
   });
 
@@ -21,7 +22,7 @@ function initAdminLogin() {
       document.getElementById('adminEmail').value,
       document.getElementById('adminPassword').value
     ).then(function() {
-      window.location.replace('/admin#admin');
+      window.location.replace(basePath + '/admin/#admin');
     }).catch(function(err) {
       errorEl.textContent = err && err.message ? err.message : 'Unable to sign in.';
       submitBtn.disabled = false;

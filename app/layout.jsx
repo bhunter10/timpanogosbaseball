@@ -4,6 +4,8 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }) {
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+
   return (
     <html lang="en">
       <head>
@@ -18,7 +20,12 @@ export default function RootLayout({ children }) {
           href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=Manrope:wght@400;500;700;800&display=swap"
           rel="stylesheet"
         />
-        <link rel="icon" href="/images/twolves-wolf.svg" type="image/svg+xml" />
+        <link rel="icon" href={`${basePath}/images/twolves-wolf.svg`} type="image/svg+xml" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.__SITE_BASE_PATH=${JSON.stringify(basePath)};`
+          }}
+        />
       </head>
       <body>{children}</body>
     </html>

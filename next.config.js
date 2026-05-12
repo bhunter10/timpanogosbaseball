@@ -1,9 +1,18 @@
 /** @type {import('next').NextConfig} */
+const repoName = 'timpanogosbaseball';
+const isGitHubPagesBuild = process.env.GITHUB_ACTIONS === 'true';
+const basePath = isGitHubPagesBuild ? `/${repoName}` : '';
+
 const nextConfig = {
   output: 'export',
   trailingSlash: true,
+  basePath,
+  assetPrefix: basePath || undefined,
   images: {
     unoptimized: true
+  },
+  env: {
+    NEXT_PUBLIC_BASE_PATH: basePath
   }
 };
 
