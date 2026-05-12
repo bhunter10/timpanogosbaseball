@@ -31,8 +31,8 @@
       </button>
       <nav class="v2-nav" id="v2Nav">
         <a href="#info">Info</a>
-        <a href="#v2Filmstrip">Gallery</a>
         <a href="#schedule">Schedule</a>
+        <a href="#v2Filmstrip">Gallery</a>
         <a href="#roster">Roster</a>
         <a href="#swag">Swag</a>
       </nav>
@@ -103,6 +103,88 @@
           <span>Commitment</span>
           <span>Honor</span>
            <span>Excellence</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="v2-summary v2-reveal" id="info">
+      <div class="v2-shell">
+        <div class="v2-summary-grid">
+          <article class="v2-panel v2-panel-highlight">
+            <p class="v2-panel-label">Next Game</p>
+            <h2 id="nextGameTitle">Loading...</h2>
+            <p id="nextGameMeta">Checking schedule...</p>
+          </article>
+          <article class="v2-panel">
+            <p class="v2-panel-label">Recent Results</p>
+            <div id="recentResultsList" class="v2-stack-list"></div>
+          </article>
+          <article class="v2-panel">
+            <p class="v2-panel-label">Team Contact</p>
+            <h3>Billy Hunter</h3>
+            <p>billyhunter@me.com</p>
+            <p class="v2-panel-note">Questions about the team, schedule, or swag can start here.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="v2-countdown-section v2-reveal" id="v2CountdownSection" style="display:none">
+      <div class="v2-shell">
+        <div class="v2-countdown-card">
+          <div class="v2-countdown-label">Next Game In</div>
+          <div class="v2-tick-clock" id="v2TickClock">
+            <div data-repeat="true" data-layout="horizontal center" data-transform="preset(d, h, m, s) -> delay">
+              <div class="tick-group">
+                <div data-key="value" data-repeat="true" data-transform="pad(00) -> split -> delay">
+                  <span data-view="flip"></span>
+                </div>
+                <span data-key="label" data-view="text" class="tick-label"></span>
+              </div>
+            </div>
+          </div>
+          <div class="v2-countdown-opponent" id="v2CountdownOpponent"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="v2-section v2-reveal" id="schedule">
+      <div class="v2-shell">
+        <div class="v2-results-header">
+          <div class="v2-section-heading">
+            <p class="v2-kicker">Schedule and Results</p>
+            <div class="v2-heading-row">
+              <h2>2026 Season</h2>
+              <div class="v2-heading-record" id="recordBand"></div>
+            </div>
+            <p>The full spring slate, grouped by playoff, region, and non-region games with every final marked by result.</p>
+          </div>
+          <div class="v2-calendar-sync" aria-label="Sync schedule calendar">
+            <div>
+              <span class="v2-calendar-sync-label">Sync Calendar</span>
+              <p>Subscribe once and get the spring schedule on your phone each season.</p>
+            </div>
+            <div class="v2-calendar-sync-actions">
+              <a class="v2-calendar-sync-link" id="v2AppleCalendarLink" href="/api/schedule.ics">Apple</a>
+              <a class="v2-calendar-sync-link" id="v2GoogleCalendarLink" href="/api/schedule.ics" target="_blank" rel="noopener">Android</a>
+              <a class="v2-calendar-sync-link v2-calendar-sync-link-muted" href="/api/schedule.ics" download="timpanogos-baseball-spring-schedule.ics">ICS</a>
+            </div>
+          </div>
+        </div>
+        <div class="v2-schedule-groups">
+          <section class="v2-schedule-block" id="v2PlayoffSection" style="display:none">
+            <div class="v2-schedule-label">State Playoff Games</div>
+            <div class="v2-schedule-grid" id="v2PlayoffGrid"></div>
+            <a class="v2-playoff-bracket-link" href="https://www.uhsaa.org/baseball/2025-26/4ABaseball26.pdf" target="_blank" rel="noopener">view playoff bracket</a>
+          </section>
+          <section class="v2-schedule-block">
+            <div class="v2-schedule-label">Region Games</div>
+            <div class="v2-schedule-grid" id="v2RegionGrid"></div>
+          </section>
+          <section class="v2-schedule-block">
+            <div class="v2-schedule-label">Non-Region Games</div>
+            <div class="v2-schedule-grid" id="v2NonRegionGrid"></div>
+          </section>
         </div>
       </div>
     </section>
@@ -184,94 +266,12 @@
       </div>
     </section>
 
-    <section class="v2-summary v2-reveal" id="info">
-      <div class="v2-shell">
-        <div class="v2-summary-grid">
-          <article class="v2-panel v2-panel-highlight">
-            <p class="v2-panel-label">Next Game</p>
-            <h2 id="nextGameTitle">Loading...</h2>
-            <p id="nextGameMeta">Checking schedule...</p>
-          </article>
-          <article class="v2-panel">
-            <p class="v2-panel-label">Recent Results</p>
-            <div id="recentResultsList" class="v2-stack-list"></div>
-          </article>
-          <article class="v2-panel">
-            <p class="v2-panel-label">Team Contact</p>
-            <h3>Billy Hunter</h3>
-            <p>billyhunter@me.com</p>
-            <p class="v2-panel-note">Questions about the team, schedule, or swag can start here.</p>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section class="v2-countdown-section v2-reveal" id="v2CountdownSection" style="display:none">
-      <div class="v2-shell">
-        <div class="v2-countdown-card">
-          <div class="v2-countdown-label">Next Game In</div>
-          <div class="v2-tick-clock" id="v2TickClock">
-            <div data-repeat="true" data-layout="horizontal center" data-transform="preset(d, h, m, s) -> delay">
-              <div class="tick-group">
-                <div data-key="value" data-repeat="true" data-transform="pad(00) -> split -> delay">
-                  <span data-view="flip"></span>
-                </div>
-                <span data-key="label" data-view="text" class="tick-label"></span>
-              </div>
-            </div>
-          </div>
-          <div class="v2-countdown-opponent" id="v2CountdownOpponent"></div>
-        </div>
-      </div>
-    </section>
-
     <section class="v2-filmstrip-band" id="v2Filmstrip" aria-label="Team photo filmstrip">
       <div class="v2-filmstrip-sticky">
         <div class="v2-filmstrip-shell">
           <div class="v2-filmstrip-chrome">
             <div class="v2-filmstrip-track" id="v2FilmstripTrack"></div>
           </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="v2-section v2-reveal" id="schedule">
-      <div class="v2-shell">
-        <div class="v2-results-header">
-          <div class="v2-section-heading">
-            <p class="v2-kicker">Schedule and Results</p>
-            <div class="v2-heading-row">
-              <h2>2026 Season</h2>
-              <div class="v2-heading-record" id="recordBand"></div>
-            </div>
-            <p>The full spring slate, grouped by playoff, region, and non-region games with every final marked by result.</p>
-          </div>
-          <div class="v2-calendar-sync" aria-label="Sync schedule calendar">
-            <div>
-              <span class="v2-calendar-sync-label">Sync Calendar</span>
-              <p>Subscribe once and get the spring schedule on your phone each season.</p>
-            </div>
-            <div class="v2-calendar-sync-actions">
-              <a class="v2-calendar-sync-link" id="v2AppleCalendarLink" href="/api/schedule.ics">Apple</a>
-              <a class="v2-calendar-sync-link" id="v2GoogleCalendarLink" href="/api/schedule.ics" target="_blank" rel="noopener">Android</a>
-              <a class="v2-calendar-sync-link v2-calendar-sync-link-muted" href="/api/schedule.ics" download="timpanogos-baseball-spring-schedule.ics">ICS</a>
-            </div>
-          </div>
-        </div>
-        <div class="v2-schedule-groups">
-          <section class="v2-schedule-block" id="v2PlayoffSection" style="display:none">
-            <div class="v2-schedule-label">State Playoff Games</div>
-            <div class="v2-schedule-grid" id="v2PlayoffGrid"></div>
-            <a class="v2-playoff-bracket-link" href="https://www.uhsaa.org/baseball/2025-26/4ABaseball26.pdf" target="_blank" rel="noopener">view playoff bracket</a>
-          </section>
-          <section class="v2-schedule-block">
-            <div class="v2-schedule-label">Region Games</div>
-            <div class="v2-schedule-grid" id="v2RegionGrid"></div>
-          </section>
-          <section class="v2-schedule-block">
-            <div class="v2-schedule-label">Non-Region Games</div>
-            <div class="v2-schedule-grid" id="v2NonRegionGrid"></div>
-          </section>
         </div>
       </div>
     </section>
