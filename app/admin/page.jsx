@@ -16,10 +16,6 @@ export default async function AdminPage() {
       <link rel="stylesheet" href={withBasePath('/v1/css/style.css')} />
       <link rel="stylesheet" href={withBasePath('/css/admin.css')} />
       <div dangerouslySetInnerHTML={{ __html: body }} />
-      <Script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js" strategy="afterInteractive" />
-      <Script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js" strategy="afterInteractive" />
-      <Script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js" strategy="afterInteractive" />
-      <Script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js" strategy="afterInteractive" />
       <Script src={withBasePath('/js/firebase-config.js')} strategy="afterInteractive" />
       <Script src={withBasePath('/js/flip.min.js')} strategy="afterInteractive" />
       <Script src={withBasePath('/v1/js/carousel.js')} strategy="afterInteractive" />

@@ -1,3 +1,5 @@
+import Script from 'next/script';
+
 export const metadata = {
   title: 'Timpanogos Baseball',
   description: 'Schedules, results, roster, and team information for Timpanogos Baseball.'
@@ -27,7 +29,25 @@ export default function RootLayout({ children }) {
           }}
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <Script
+          src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"
+          strategy="beforeInteractive"
+        />
+        <Script
+          src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"
+          strategy="beforeInteractive"
+        />
+        <Script
+          src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"
+          strategy="beforeInteractive"
+        />
+        <Script
+          src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"
+          strategy="beforeInteractive"
+        />
+        {children}
+      </body>
     </html>
   );
 }
