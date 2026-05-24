@@ -17,10 +17,19 @@ function v2DefaultCarouselPhotos() {
   });
 }
 
+function v2NormalizeAssetUrl(src) {
+  if (!src) return '';
+  if (/^(https?:|data:|blob:|\/\/)/i.test(src)) return src;
+  var basePath = window.__SITE_BASE_PATH || '';
+  var cleanSrc = String(src).replace(/^\.?\//, '');
+  if (cleanSrc.indexOf(basePath.replace(/^\//, '') + '/') === 0) return '/' + cleanSrc;
+  return basePath + '/' + cleanSrc;
+}
+
 function v2NormalizeCarouselPhoto(photo, index) {
-  if (typeof photo === 'string') return { src: photo, alt: 'Team photo', sortOrder: index };
+  if (typeof photo === 'string') return { src: v2NormalizeAssetUrl(photo), alt: 'Team photo', sortOrder: index };
   return {
-    src: photo && photo.src ? photo.src : '',
+    src: photo && photo.src ? v2NormalizeAssetUrl(photo.src) : '',
     alt: photo && photo.alt ? photo.alt : 'Team photo',
     sortOrder: photo && photo.sortOrder != null ? +photo.sortOrder : index,
     updatedAt: photo && photo.updatedAt ? photo.updatedAt : null
@@ -105,7 +114,7 @@ function v2RenderFilmstripAccents(section) {
     accent.style.setProperty('--v2-accent-y', (18 + Math.round(Math.random() * 46)) + 'px');
     accent.style.setProperty('--v2-accent-delay', delay + 's');
     accent.style.setProperty('--v2-accent-duration', duration + 's');
-    accent.innerHTML = '<img src="images/logo-twolves-basesball-diamond.png" alt="" aria-hidden="true" loading="lazy" decoding="async">';
+    accent.innerHTML = '<img src="' + (window.__SITE_BASE_PATH || '') + '/images/logo-twolves-basesball-diamond.png" alt="" aria-hidden="true" loading="lazy" decoding="async">';
     layer.appendChild(accent);
   }
 
@@ -261,14 +270,18 @@ var v2RosterData = [
 ];
 
 function v2RenderNextGamePanel(games) {
+  var titleEl = document.getElementById('nextGameTitle');
+  var metaEl = document.getElementById('nextGameMeta');
+  if (!titleEl || !metaEl) return;
+
   var futureGames = games.slice().filter(function(game) {
     return v2GameDateTimeValue(game) >= Date.now();
   }).sort(function(a, b) {
     return v2GameDateTimeValue(a) - v2GameDateTimeValue(b);
   });
   var next = futureGames[0];
-  document.getElementById('nextGameTitle').textContent = next ? next.opponent : 'Season Complete';
-  document.getElementById('nextGameMeta').textContent = next
+  titleEl.textContent = next ? next.opponent : 'Season Complete';
+  metaEl.textContent = next
     ? v2FormatDate(next.date) + ' | ' + next.location + ' | ' + next.time
     : 'No future games scheduled right now.';
 }
@@ -277,6 +290,7 @@ function v2RenderSummary(games, results) {
   v2RenderNextGamePanel(games);
 
   var recentList = document.getElementById('recentResultsList');
+  if (!recentList) return;
   var recent = results.slice().sort(function(a, b) {
     return new Date(b.date) - new Date(a.date);
   }).slice(0, 3);
@@ -524,6 +538,12 @@ function v2UpdateCountdownTick(tickEl, next, games) {
 }
 
 function v2RenderSchedule(games, results2026) {
+  var recordBand = document.getElementById('recordBand');
+  var playoffGrid = document.getElementById('v2PlayoffGrid');
+  var regionGrid = document.getElementById('v2RegionGrid');
+  var nonRegionGrid = document.getElementById('v2NonRegionGrid');
+  if (!recordBand || !playoffGrid || !regionGrid || !nonRegionGrid) return;
+
   var seasonGames = v2BuildSeasonGames(games, results2026);
   var usedResults = [];
   var playoffGames = [];
@@ -532,7 +552,7 @@ function v2RenderSchedule(games, results2026) {
   var wins = v2CountWins(results2026);
   var losses = v2CountLosses(results2026);
 
-  document.getElementById('recordBand').innerHTML =
+  recordBand.innerHTML =
     '<span class="v2-heading-record-label">Record</span>' +
     '<span class="v2-heading-record-value">' + wins + '-' + losses + '</span>';
 
@@ -548,6 +568,7 @@ function v2RenderSchedule(games, results2026) {
     { id: 'v2NonRegionGrid', games: nonRegionGames.sort(v2NewestGameFirst) }
   ].forEach(function(group) {
     var grid = document.getElementById(group.id);
+    if (!grid) return;
     grid.innerHTML = group.games.map(function(game) {
       var result = results2026.find(function(entry, index) {
         var sameGame = entry.date === game.date && entry.opponent === game.opponent;
@@ -559,7 +580,8 @@ function v2RenderSchedule(games, results2026) {
     }).join('');
   });
 
-  document.getElementById('v2PlayoffSection').style.display = playoffGames.length ? '' : 'none';
+  var playoffSection = document.getElementById('v2PlayoffSection');
+  if (playoffSection) playoffSection.style.display = playoffGames.length ? '' : 'none';
   v2ApplyStagger('#schedule', '.v2-game-card', 80);
   v2RestartAnimations('#schedule');
 }
@@ -674,8 +696,145 @@ function v2RestartAnimations(selector) {
   });
 }
 
+function v2EscapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function v2FormatNewsDate(pubDate) {
+  if (!pubDate) return '';
+  var date = new Date(pubDate);
+  if (isNaN(date.getTime())) return '';
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'America/Denver'
+  });
+}
+
+function v2RenderNewsCard(article) {
+  var image = v2NormalizeAssetUrl(article.image || '/images/outlets/generic.svg');
+  var title = v2EscapeHtml(article.title);
+  var excerpt = v2EscapeHtml(article.excerpt);
+  var source = v2EscapeHtml(article.source || 'News');
+  var date = v2FormatNewsDate(article.pubDate);
+  var link = v2EscapeHtml(article.link);
+
+  return '<a class="v2-news-card" href="' + link + '" target="_blank" rel="noopener noreferrer">' +
+    '<div class="v2-news-media"><img src="' + image + '" alt="" loading="lazy" decoding="async"></div>' +
+    '<div class="v2-news-body">' +
+      '<div class="v2-news-meta">' +
+        '<span class="v2-news-source">' + source + '</span>' +
+        (date ? '<time class="v2-news-date" datetime="' + v2EscapeHtml(article.pubDate) + '">' + v2EscapeHtml(date) + '</time>' : '') +
+      '</div>' +
+      '<h3>' + title + '</h3>' +
+      (excerpt ? '<p>' + excerpt + '</p>' : '') +
+    '</div>' +
+  '</a>';
+}
+
+function v2RenderNewsFromArticles(articles) {
+  var grid = document.getElementById('newsGrid');
+  if (!grid) return;
+
+  if (!articles || !articles.length) {
+    grid.innerHTML = '<p class="v2-news-empty">No coverage found right now. Check back after the next site update.</p>';
+    return;
+  }
+
+  var sorted = articles.slice().sort(function(a, b) {
+    var aTime = Date.parse(a.pubDate || 0) || 0;
+    var bTime = Date.parse(b.pubDate || 0) || 0;
+    return bTime - aTime;
+  });
+
+  grid.innerHTML = sorted.map(v2RenderNewsCard).join('');
+  v2ApplyStagger('#news', '.v2-news-card', 70);
+}
+
+function v2NormalizeNewsKey(value) {
+  try {
+    var parsed = new URL(String(value || ''));
+    ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'fbclid', 'gclid', 'oc'].forEach(function(key) {
+      parsed.searchParams.delete(key);
+    });
+    return parsed.toString().toLowerCase();
+  } catch (error) {
+    return String(value || '').trim().toLowerCase();
+  }
+}
+
+function v2MergeNewsArticles(primaryArticles, backupArticles) {
+  var seen = {};
+  var merged = [];
+
+  function add(article) {
+    if (!article || !article.title || !article.link) return;
+    var key = v2NormalizeNewsKey(article.link) || String(article.title).toLowerCase();
+    if (seen[key]) return;
+    seen[key] = true;
+    merged.push(article);
+  }
+
+  (primaryArticles || []).forEach(add);
+  (backupArticles || []).forEach(add);
+  return merged;
+}
+
+function v2FetchNewsJson() {
+  var dataPath = (window.__SITE_BASE_PATH || '') + '/data/news.json';
+  return fetch(dataPath)
+    .then(function(response) {
+      if (!response.ok) throw new Error('news fetch failed');
+      return response.json();
+    })
+    .then(function(payload) {
+      return payload && payload.articles ? payload.articles : [];
+    });
+}
+
+function v2RenderNews() {
+  var grid = document.getElementById('newsGrid');
+  if (!grid) return;
+
+  function finish(articles) {
+    v2RenderNewsFromArticles(articles);
+  }
+
+  if (typeof fbGet === 'function') {
+    Promise.all([
+      fbGet('news').catch(function() { return null; }),
+      v2FetchNewsJson().catch(function() { return []; })
+    ]).then(function(values) {
+      var payload = values[0];
+      var backupArticles = values[1];
+      var articles = payload && payload.articles
+        ? (Array.isArray(payload.articles) ? payload.articles : (typeof fbToArray === 'function' ? fbToArray(payload.articles) : []))
+        : [];
+      finish(v2MergeNewsArticles(articles, backupArticles));
+    }).catch(function() {
+      return v2FetchNewsJson().then(finish).catch(function() {
+        finish([]);
+      });
+    });
+    return;
+  }
+
+  v2FetchNewsJson().then(finish).catch(function() {
+    finish([]);
+  });
+}
+
 function v2RenderRoster() {
-  document.getElementById('rosterGrid').innerHTML = v2RosterData.slice().sort(function(a, b) {
+  var rosterGrid = document.getElementById('rosterGrid');
+  if (!rosterGrid) return;
+
+  rosterGrid.innerHTML = v2RosterData.slice().sort(function(a, b) {
     return a.num - b.num || a.name.localeCompare(b.name);
   }).map(function(player) {
     return '<article class="v2-roster-card">' +
@@ -925,6 +1084,7 @@ function v2Boot() {
   v2RenderCountdown(games);
   v2RenderSchedule(games, scheduleResults);
   v2RenderRoster();
+  v2RenderNews();
   v2WireModal();
   v2WireDiamondStory();
   v2WireMobileNav();

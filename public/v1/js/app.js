@@ -815,6 +815,7 @@ function renderAdmin(app) {
     <aside class="admin-card admin-sidebar">
       <button type="button" class="admin-nav-link active" data-admin-panel="dashboard">Dashboard</button>
       <button type="button" class="admin-nav-link" data-admin-panel="carousel">Carousel photos</button>
+      <button type="button" class="admin-nav-link" data-admin-panel="news">Utah News</button>
     </aside>
     <div class="admin-content">
       <section class="admin-card admin-session">
@@ -878,6 +879,26 @@ function renderAdmin(app) {
           <ul id="carouselPhotosPreview" class="list photo-list"></ul>
         </section>
       </div>
+      <div class="admin-panel" data-admin-panel-view="news">
+        <section class="admin-card" id="newsAdminCard">
+          <h2>Utah News</h2>
+          <p class="muted">Refresh coverage from Herald Extra, KSL, and other Utah feeds. Saved articles appear on the public <a href="news/">News page</a> immediately.</p>
+          <dl class="admin-news-stats">
+            <div><dt>Last updated</dt><dd id="adminNewsLastUpdated">Never</dd></div>
+            <div><dt>Articles saved</dt><dd id="adminNewsCount">0</dd></div>
+          </dl>
+          <div class="form-row">
+            <button type="button" class="btn" id="adminNewsRefreshBtn">Update news articles</button>
+          </div>
+          <p class="save-success" id="adminNewsStatus"></p>
+          <p class="auth-error" id="adminNewsError"></p>
+          <p class="muted admin-news-note">Run this whenever you want fresh stories. For deploy backups, <code>npm run fetch-news</code> still updates <code>public/data/news.json</code>.</p>
+        </section>
+        <section class="admin-card">
+          <h2>Latest headlines</h2>
+          <ul id="adminNewsPreview" class="list admin-news-preview"></ul>
+        </section>
+      </div>
     </div>`;
 
   document.getElementById('adminSignOut').addEventListener('click', () => {
@@ -894,7 +915,13 @@ function renderAdmin(app) {
   }
 
   document.querySelectorAll('.admin-nav-link').forEach(btn => {
-    btn.addEventListener('click', () => showAdminPanel(btn.dataset.adminPanel));
+    btn.addEventListener('click', () => {
+      const panelName = btn.dataset.adminPanel;
+      showAdminPanel(panelName);
+      if (panelName === 'news' && window.AdminNews) {
+        window.AdminNews.loadStatus();
+      }
+    });
   });
 
   let games = getGames().slice();

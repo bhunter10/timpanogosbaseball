@@ -1,0 +1,20 @@
+import Script from 'next/script';
+import BodyClass from './BodyClass';
+import { readLegacyPage } from '../lib/legacy-html';
+import { withBasePath } from '../lib/base-path';
+
+export default async function LegacyPage({ sections }) {
+  const body = await readLegacyPage('index.html', sections);
+
+  return (
+    <>
+      <BodyClass />
+      <link rel="stylesheet" href={withBasePath('/css/flip.min.css')} />
+      <link rel="stylesheet" href={withBasePath('/css/style-v2.css')} />
+      <div dangerouslySetInnerHTML={{ __html: body }} />
+      <Script src={withBasePath('/js/firebase-config.js')} strategy="afterInteractive" />
+      <Script src={withBasePath('/js/flip.min.js')} strategy="afterInteractive" />
+      <Script src={withBasePath('/js/app-v2.js')} strategy="afterInteractive" />
+    </>
+  );
+}

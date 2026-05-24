@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:pages": "next build && node scripts/generate-schedule-ics.js",
+    "build:pages": "node scripts/fetch-news.js && next build && node scripts/generate-schedule-ics.js",
+    "fetch-news": "node scripts/fetch-news.js",
     "start": "next start"
   },
   "dependencies": {
@@ -15,6 +16,7 @@
   },
   "devDependencies": {
     "eslint": "9.39.4",
-    "eslint-config-next": "16.2.6"
+    "eslint-config-next": "16.2.6",
+    "fast-xml-parser": "^4.5.3"
   }
 }
