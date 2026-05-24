@@ -531,6 +531,210 @@ button{font:inherit}
 .v2-coach-links a:hover{
   color:var(--accent);
 }
+.v2-home-story{
+  position:relative;
+  overflow:clip;
+}
+.v2-home-story::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:
+    linear-gradient(90deg, rgba(91,255,24,.08), transparent 28%),
+    radial-gradient(circle at 85% 12%, rgba(255,255,255,.08), transparent 26%);
+  opacity:.42;
+}
+.v2-home-story > .v2-shell{
+  position:relative;
+  z-index:1;
+}
+.v2-home-story-layout,
+.v2-home-strengths-layout,
+.v2-coaching-story-layout{
+  display:grid;
+  grid-template-columns:minmax(0, .86fr) minmax(360px, 1fr);
+  gap:clamp(32px, 6vw, 78px);
+  align-items:center;
+}
+.v2-home-story-copy,
+.v2-home-strengths-copy,
+.v2-coaching-story-copy{
+  min-width:0;
+}
+.v2-home-feature-photo,
+.v2-strengths-photo,
+.v2-coach-stack-photo,
+.v2-coach-photo-mark{
+  position:relative;
+  margin:0;
+  overflow:hidden;
+  border-radius:8px;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.12);
+  box-shadow:0 28px 64px rgba(0,0,0,.34);
+}
+.v2-home-feature-photo img,
+.v2-strengths-photo img,
+.v2-coach-stack-photo img,
+.v2-coach-photo-mark img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+.v2-home-feature-photo::after,
+.v2-strengths-photo::after,
+.v2-coach-stack-photo::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(180deg, transparent 48%, rgba(0,0,0,.7));
+  pointer-events:none;
+}
+.v2-home-feature-photo figcaption,
+.v2-strengths-photo figcaption,
+.v2-coach-stack-photo figcaption{
+  position:absolute;
+  left:16px;
+  right:16px;
+  bottom:14px;
+  z-index:1;
+  color:#fff;
+  font-size:.78rem;
+  font-weight:800;
+  letter-spacing:.1em;
+  line-height:1.35;
+  text-transform:uppercase;
+}
+.v2-home-feature-photo{
+  aspect-ratio:1.24;
+  transform:translateY(30px) scale(.96);
+  opacity:.72;
+  transition:opacity .7s ease, transform .8s cubic-bezier(.2,.8,.2,1);
+}
+.v2-home-feature-photo.is-inview{
+  transform:translateY(0) scale(1);
+  opacity:1;
+}
+.v2-home-strengths{
+  padding-top:112px;
+  padding-bottom:112px;
+}
+.v2-home-strengths-layout{
+  align-items:start;
+  min-height:calc(100svh + 760px);
+}
+.v2-home-strengths-copy{
+  display:grid;
+  gap:4px;
+}
+.v2-home-strengths .v2-strengths-grid{
+  grid-template-columns:1fr;
+  gap:14px;
+  margin-top:10px;
+}
+.v2-home-strengths .v2-strength-card{
+  min-height:0;
+  border-radius:8px;
+  transform:translateX(-12px);
+  opacity:.74;
+  transition:border-color .35s ease, background .35s ease, opacity .35s ease, transform .35s ease;
+}
+.v2-home-strengths .v2-strength-card.is-active,
+.v2-home-strengths .v2-strength-card.is-inview{
+  transform:translateX(0);
+  opacity:1;
+}
+.v2-home-strengths .v2-strength-card.is-active{
+  border-color:rgba(91,255,24,.34);
+  background:
+    linear-gradient(90deg, rgba(91,255,24,.1), transparent 38%),
+    linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.018));
+}
+.v2-strengths-photo-stage{
+  position:sticky;
+  top:132px;
+  height:min(640px, calc(100svh - 164px));
+  min-height:0;
+}
+.v2-strengths-photo{
+  position:absolute;
+  inset:0;
+  aspect-ratio:1.12;
+  opacity:0;
+  transform:translateY(34px) scale(.96);
+  transition:opacity .5s ease, transform .65s cubic-bezier(.2,.8,.2,1);
+}
+.v2-strengths-photo.is-active{
+  opacity:1;
+  transform:translateY(0) scale(1);
+}
+.v2-home-coaching{
+  padding-top:112px;
+}
+.v2-coaching-story-layout{
+  align-items:start;
+}
+.v2-coaching-story-copy{
+  position:sticky;
+  top:132px;
+}
+.v2-home-coaching .v2-coaching-grid{
+  grid-template-columns:1fr;
+  gap:14px;
+  margin-top:28px;
+}
+.v2-home-coaching .v2-coach-card{
+  grid-template-columns:112px minmax(0, 1fr);
+  border-radius:8px;
+}
+.v2-home-coaching .v2-coach-card:not(.v2-coach-card-featured){
+  display:block;
+}
+.v2-home-coaching .v2-coach-card:not(.v2-coach-card-featured) .v2-panel-label{
+  margin:0 0 8px;
+}
+.v2-coach-photo-mark{
+  width:112px;
+  height:112px;
+  align-self:stretch;
+}
+.v2-coach-photo-stack{
+  position:relative;
+  min-height:820px;
+  padding:28px 0 96px;
+}
+.v2-coach-stack-photo{
+  width:min(82%, 470px);
+  aspect-ratio:1.7;
+  opacity:.38;
+  transform:translateY(44px) rotate(var(--stack-rotate, 0deg)) scale(.94);
+  transition:opacity .55s ease, transform .75s cubic-bezier(.2,.8,.2,1);
+}
+.v2-coach-stack-photo + .v2-coach-stack-photo{
+  margin-top:-38px;
+}
+.v2-coach-stack-photo.is-inview{
+  opacity:1;
+  transform:translateY(0) rotate(var(--stack-rotate, 0deg)) scale(1);
+}
+.v2-coach-stack-photo-1{
+  --stack-rotate:-2deg;
+  margin-left:0;
+}
+.v2-coach-stack-photo-2{
+  --stack-rotate:2.5deg;
+  margin-left:auto;
+}
+.v2-coach-stack-photo-3{
+  --stack-rotate:-1deg;
+  margin-left:7%;
+}
+.v2-coach-stack-photo-4{
+  --stack-rotate:2deg;
+  margin-left:auto;
+  margin-right:4%;
+}
 .v2-news-grid{
   display:grid;
   grid-template-columns:repeat(3, minmax(0, 1fr));
@@ -2062,6 +2266,39 @@ body.v2-modal-open{overflow:hidden}
   .v2-coaching-grid{
     grid-template-columns:1fr;
   }
+  .v2-home-story-layout,
+  .v2-home-strengths-layout,
+  .v2-coaching-story-layout{
+    grid-template-columns:1fr;
+  }
+  .v2-home-strengths-layout{
+    min-height:0;
+  }
+  .v2-strengths-photo-stage,
+  .v2-coaching-story-copy{
+    position:relative;
+    top:auto;
+  }
+  .v2-strengths-photo-stage{
+    height:auto;
+    min-height:auto;
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:14px;
+  }
+  .v2-strengths-photo{
+    position:relative;
+    inset:auto;
+    opacity:1;
+    transform:none;
+  }
+  .v2-coach-photo-stack{
+    min-height:0;
+    padding:0;
+  }
+  .v2-coach-stack-photo{
+    opacity:1;
+  }
 }
 
 /* mobile */
@@ -2101,6 +2338,50 @@ body.v2-modal-open{overflow:hidden}
     grid-template-columns:1fr;
     justify-items:center;
     text-align:center;
+  }
+  .v2-home-story{
+    overflow:hidden;
+  }
+  .v2-home-story-layout,
+  .v2-home-strengths-layout,
+  .v2-coaching-story-layout{
+    gap:28px;
+  }
+  .v2-home-strengths,
+  .v2-home-coaching{
+    padding-top:72px;
+    padding-bottom:72px;
+  }
+  .v2-home-feature-photo{
+    aspect-ratio:1.2;
+  }
+  .v2-strengths-photo-stage{
+    grid-template-columns:1fr;
+  }
+  .v2-home-strengths .v2-strength-card{
+    transform:none;
+  }
+  .v2-home-coaching .v2-coach-card{
+    grid-template-columns:1fr;
+  }
+  .v2-coach-photo-mark{
+    width:min(260px, 100%);
+    height:auto;
+    aspect-ratio:1.45;
+  }
+  .v2-coach-stack-photo{
+    width:100%;
+    transform:none;
+  }
+  .v2-coach-stack-photo + .v2-coach-stack-photo{
+    margin-top:14px;
+  }
+  .v2-coach-stack-photo-1,
+  .v2-coach-stack-photo-2,
+  .v2-coach-stack-photo-3,
+  .v2-coach-stack-photo-4{
+    margin-left:0;
+    margin-right:0;
   }
   .v2-coach-links{
     justify-content:center;
@@ -2384,6 +2665,31 @@ body.v2-modal-open{overflow:hidden}
     flex-direction:column;
     align-items:flex-start;
     padding:24px 14px 36px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .v2-home-feature-photo,
+  .v2-strengths-photo,
+  .v2-home-strengths .v2-strength-card,
+  .v2-coach-stack-photo{
+    transition:none;
+    transform:none;
+  }
+  .v2-strengths-photo,
+  .v2-coach-stack-photo{
+    opacity:1;
+  }
+  .v2-strengths-photo-stage{
+    position:relative;
+    top:auto;
+    min-height:auto;
+    display:grid;
+    gap:14px;
+  }
+  .v2-strengths-photo{
+    position:relative;
+    inset:auto;
   }
 }
 
