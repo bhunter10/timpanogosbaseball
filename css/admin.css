@@ -393,6 +393,395 @@ body.admin-v2-body.auth-pending #app{
   object-fit:contain;
 }
 
+.admin-v2-body .opponent-import-list{
+  display:grid;
+  gap:10px;
+  margin-top:16px;
+  max-height:min(52vh, 520px);
+  overflow:auto;
+  padding-right:4px;
+}
+
+.admin-v2-body .opponent-import-list > li{
+  height:auto;
+  min-height:0;
+  margin:0;
+  padding:0;
+  display:block;
+  flex-wrap:nowrap;
+  align-items:stretch;
+  box-shadow:none;
+  border:1px solid rgba(15,23,42,.1);
+  border-radius:12px;
+  background:#fff;
+  overflow:hidden;
+}
+
+.admin-v2-body .opponent-import-list > li:hover{
+  box-shadow:0 4px 14px rgba(15,23,42,.08);
+}
+
+.admin-v2-body .opponent-import-list > li label{
+  display:grid;
+  grid-template-columns:auto 44px minmax(0, 1fr) auto;
+  align-items:center;
+  gap:12px;
+  padding:12px 14px;
+  margin:0;
+  font-weight:600;
+  cursor:pointer;
+}
+
+.admin-v2-body .opponent-import-list > li label input[type="checkbox"]{
+  width:18px;
+  height:18px;
+  margin:0;
+  flex-shrink:0;
+}
+
+.admin-v2-body .opponent-import-list > li label span{
+  flex:initial;
+  min-width:0;
+  margin:0;
+  word-break:normal;
+  overflow-wrap:anywhere;
+  line-height:1.35;
+}
+
+.admin-v2-body .opponent-import-list .maxpreps-import-logo{
+  width:44px;
+  height:44px;
+  display:grid;
+  place-items:center;
+  border-radius:8px;
+  background:#eef2f7;
+  overflow:hidden;
+}
+
+.admin-v2-body .opponent-import-list .maxpreps-import-logo img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+}
+
+.admin-v2-body .opponent-import-list .maxpreps-import-main{
+  display:grid;
+  gap:3px;
+  min-width:0;
+}
+
+.admin-v2-body .opponent-import-list .maxpreps-import-name{
+  color:var(--admin-v2-text);
+  font-size:.95rem;
+  font-weight:800;
+  line-height:1.25;
+}
+
+.admin-v2-body .opponent-import-list .maxpreps-import-mascot{
+  color:var(--admin-v2-muted);
+  font-size:.8rem;
+  font-weight:600;
+}
+
+.admin-v2-body .opponent-import-list .maxpreps-import-badge{
+  justify-self:end;
+  padding:4px 10px;
+  border-radius:999px;
+  font-size:.72rem;
+  font-weight:800;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+
+.admin-v2-body .opponent-import-list .maxpreps-import-badge.add{
+  background:rgba(91,205,39,.14);
+  color:#2f7a17;
+}
+
+.admin-v2-body .opponent-import-list .maxpreps-import-badge.update{
+  background:rgba(37,99,235,.12);
+  color:#1d4ed8;
+}
+
+.admin-v2-body .opponent-import-list .maxpreps-import-badge.skip{
+  background:rgba(100,116,139,.12);
+  color:#475569;
+}
+
+.admin-v2-body .opponent-import-list > li small{
+  display:block;
+  margin:0;
+  padding:0 14px 12px 86px;
+  color:var(--admin-v2-muted);
+  font-size:.8rem;
+  line-height:1.4;
+}
+
+@media (max-width: 640px){
+  .admin-v2-body .opponent-import-list > li label{
+    grid-template-columns:auto 40px minmax(0, 1fr);
+    grid-template-rows:auto auto;
+  }
+
+  .admin-v2-body .opponent-import-list .maxpreps-import-badge{
+    grid-column:3;
+    grid-row:2;
+    justify-self:start;
+    margin-top:4px;
+  }
+}
+
+.admin-v2-body .admin-field-label{
+  display:block;
+  margin-bottom:6px;
+  font-size:.82rem;
+  font-weight:700;
+  color:var(--admin-v2-text);
+}
+
+.admin-v2-body .admin-opponent-picker-field{
+  margin-bottom:14px;
+}
+
+.admin-v2-body .admin-opponent-picker-btn{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  min-height:48px;
+  padding:12px 14px;
+  border:1px solid rgba(15,23,42,.14);
+  border-radius:12px;
+  background:#fff;
+  color:var(--admin-v2-text);
+  font:inherit;
+  font-weight:700;
+  text-align:left;
+  cursor:pointer;
+  transition:border-color .15s ease, box-shadow .15s ease;
+}
+
+.admin-v2-body .admin-opponent-picker-btn:hover{
+  border-color:rgba(91,205,39,.55);
+  box-shadow:0 0 0 3px rgba(91,205,39,.12);
+}
+
+.admin-v2-body .admin-opponent-picker-btn.is-selected{
+  border-color:rgba(91,205,39,.7);
+  background:rgba(91,205,39,.06);
+}
+
+.admin-v2-body .admin-opponent-picker-btn::after{
+  content:'›';
+  color:var(--admin-v2-muted);
+  font-size:1.2rem;
+  line-height:1;
+}
+
+.admin-v2-body .admin-opponent-modal[hidden]{
+  display:none;
+}
+
+.admin-v2-body .admin-opponent-modal{
+  position:fixed;
+  inset:0;
+  z-index:3000;
+  display:grid;
+  place-items:center;
+  padding:20px;
+}
+
+.admin-v2-body .admin-opponent-modal-backdrop{
+  position:absolute;
+  inset:0;
+  border:0;
+  background:rgba(15,23,42,.55);
+  cursor:pointer;
+}
+
+.admin-v2-body .admin-opponent-modal-panel{
+  position:relative;
+  z-index:1;
+  width:min(560px, 100%);
+  max-height:min(82vh, 720px);
+  display:grid;
+  grid-template-rows:auto auto minmax(0, 1fr) auto;
+  border-radius:16px;
+  background:#fff;
+  box-shadow:0 24px 60px rgba(15,23,42,.28);
+  overflow:hidden;
+}
+
+.admin-v2-body .admin-opponent-quick-add-panel[hidden]{
+  display:none !important;
+}
+
+.admin-v2-body .admin-opponent-quick-add-panel:not([hidden]){
+  margin-bottom:12px;
+}
+
+.admin-v2-body .admin-opponent-quick-add{
+  display:grid;
+  gap:10px;
+  padding:12px;
+  border:1px solid rgba(15,23,42,.1);
+  border-radius:12px;
+  background:#f8fafc;
+}
+
+.admin-v2-body .admin-opponent-quick-add label{
+  display:grid;
+  gap:4px;
+  font-size:.82rem;
+  font-weight:700;
+}
+
+.admin-v2-body .admin-opponent-quick-add input{
+  font-weight:500;
+}
+
+.admin-v2-body .admin-opponent-picker-empty .btn{
+  margin-top:8px;
+}
+
+.admin-v2-body .admin-opponent-modal-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:16px 18px 10px;
+}
+
+.admin-v2-body .admin-opponent-modal-header h3{
+  margin:0;
+  font-size:1.1rem;
+}
+
+.admin-v2-body .admin-opponent-modal-close{
+  width:36px;
+  height:36px;
+  border:0;
+  border-radius:999px;
+  background:#edf2f7;
+  color:var(--admin-v2-text);
+  font-size:1.4rem;
+  line-height:1;
+  cursor:pointer;
+}
+
+.admin-v2-body .admin-opponent-modal-search{
+  padding:0 18px 12px;
+}
+
+.admin-v2-body .admin-opponent-modal-search input{
+  width:100%;
+  padding:11px 12px;
+  border:1px solid rgba(15,23,42,.14);
+  border-radius:10px;
+  font:inherit;
+}
+
+.admin-v2-body .admin-opponent-picker-list{
+  list-style:none;
+  margin:0;
+  padding:0 10px;
+  overflow:auto;
+  display:grid;
+  gap:8px;
+  align-content:start;
+}
+
+.admin-v2-body .admin-opponent-picker-list > li{
+  height:auto;
+  margin:0;
+  padding:0;
+  display:block;
+  border:0;
+  box-shadow:none;
+  background:transparent;
+}
+
+.admin-v2-body .admin-opponent-picker-option{
+  width:100%;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:10px 12px;
+  border:1px solid rgba(15,23,42,.1);
+  border-radius:12px;
+  background:#f8fafc;
+  color:inherit;
+  font:inherit;
+  text-align:left;
+  cursor:pointer;
+  transition:border-color .15s ease, background .15s ease;
+}
+
+.admin-v2-body .admin-opponent-picker-option:hover{
+  border-color:rgba(91,205,39,.55);
+  background:#fff;
+}
+
+.admin-v2-body .admin-opponent-picker-option.is-selected{
+  border-color:rgba(91,205,39,.75);
+  background:rgba(91,205,39,.08);
+}
+
+.admin-v2-body .admin-opponent-picker-details{
+  display:grid;
+  gap:2px;
+  flex:1;
+  min-width:0;
+}
+
+.admin-v2-body .admin-opponent-picker-name{
+  font-weight:800;
+  line-height:1.25;
+}
+
+.admin-v2-body .admin-opponent-picker-mascot{
+  color:var(--admin-v2-muted);
+  font-size:.82rem;
+  font-weight:600;
+}
+
+.admin-v2-body .admin-opponent-picker-address{
+  color:var(--admin-v2-muted);
+  font-size:.78rem;
+  line-height:1.35;
+}
+
+.admin-v2-body .admin-opponent-picker-empty{
+  padding:18px 12px;
+  color:var(--admin-v2-muted);
+  text-align:center;
+  line-height:1.45;
+}
+
+.admin-v2-body .admin-opponent-modal-footer{
+  padding:12px 18px 16px;
+  border-top:1px solid rgba(15,23,42,.08);
+  display:grid;
+  gap:0;
+}
+
+.admin-v2-body .admin-opponent-modal-footer-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+}
+
+.admin-v2-body .admin-opponent-modal-footer-actions .btn{
+  flex:1 1 140px;
+  min-width:0;
+}
+
+body.admin-modal-open{
+  overflow:hidden;
+}
+
 .admin-v2-body .save-success{
   color:var(--admin-v2-green);
 }

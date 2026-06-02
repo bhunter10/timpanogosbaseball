@@ -5,8 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build && node scripts/generate-schedule-ics.js",
-    "build:pages": "node scripts/fetch-news.js && next build && node scripts/generate-schedule-ics.js",
+    "build:pages": "node scripts/fetch-news.js && node scripts/fetch-opponents-maxpreps.js && next build && node scripts/generate-schedule-ics.js",
     "fetch-news": "node scripts/fetch-news.js",
+    "fetch-opponents": "node scripts/fetch-opponents-maxpreps.js",
     "start": "next start"
   },
   "dependencies": {

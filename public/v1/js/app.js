@@ -118,16 +118,78 @@ function normalizeOpponent(opponent, index) {
     address: opponent && opponent.address ? opponent.address : '',
     logoUrl: opponent && opponent.logoUrl ? opponent.logoUrl : '',
     logoStoragePath: opponent && opponent.logoStoragePath ? opponent.logoStoragePath : '',
+    maxprepsSchoolId: opponent && opponent.maxprepsSchoolId ? opponent.maxprepsSchoolId : '',
+    maxprepsUrl: opponent && opponent.maxprepsUrl ? opponent.maxprepsUrl : '',
     sortOrder: opponent && opponent.sortOrder != null ? +opponent.sortOrder : index,
     _key: opponent && opponent._key != null ? opponent._key : String(index)
   };
+}
+function normalizeSchoolKey(name) {
+  return String(name || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+function findOpponentForMaxPreps(mpTeam, opponentsList) {
+  const list = opponentsList || opponents;
+  const mpId = mpTeam && mpTeam.maxprepsSchoolId;
+  const mpKey = normalizeSchoolKey(mpTeam && mpTeam.schoolName);
+  return list.find(function(opponent) {
+    if (opponent.maxprepsSchoolId && mpId && opponent.maxprepsSchoolId === mpId) return true;
+    return normalizeSchoolKey(opponent.schoolName) === mpKey;
+  }) || null;
+}
+function maxprepsImportAction(mpTeam, existing) {
+  if (!existing) return 'add';
+  const needsMascot = mpTeam.mascot && !existing.mascot;
+  const needsAddress = mpTeam.address && !existing.address;
+  const needsLogo = mpTeam.logoUrl && !existing.logoUrl;
+  if (needsMascot || needsAddress || needsLogo) return 'update';
+  return 'skip';
+}
+function mascotBlobToPngFile(blob, schoolName) {
+  return new Promise(function(resolve, reject) {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(blob);
+    img.crossOrigin = 'anonymous';
+    img.onload = function() {
+      URL.revokeObjectURL(objectUrl);
+      const size = 256;
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, size, size);
+      const scale = Math.min(size / img.width, size / img.height);
+      const w = img.width * scale;
+      const h = img.height * scale;
+      ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
+      canvas.toBlob(function(pngBlob) {
+        if (!pngBlob) {
+          reject(new Error('Could not convert logo'));
+          return;
+        }
+        const safe = (schoolName || 'opponent').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'opponent';
+        resolve(new File([pngBlob], safe + '.png', { type: 'image/png' }));
+      }, 'image/png', 0.92);
+    };
+    img.onerror = function() {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Logo image failed to load'));
+    };
+    img.src = objectUrl;
+  });
+}
+function opponentLogoFileFromUrl(logoUrl, schoolName) {
+  return fetch(logoUrl, { mode: 'cors' }).then(function(response) {
+    if (!response.ok) throw new Error('Logo download failed');
+    return response.blob();
+  }).then(function(blob) {
+    return mascotBlobToPngFile(blob, schoolName);
+  });
 }
 function normalizeOpponentList(opponents) {
   return (opponents || []).map(normalizeOpponent)
     .filter(function(opponent) { return opponent.schoolName; })
     .sort(function(a, b) {
-      if ((+a.sortOrder || 0) !== (+b.sortOrder || 0)) return (+a.sortOrder || 0) - (+b.sortOrder || 0);
-      return a.schoolName.localeCompare(b.schoolName);
+      return (a.schoolName || '').localeCompare(b.schoolName || '', undefined, { sensitivity: 'base' });
     });
 }
 function findOpponentById(opponentId, opponents) {
@@ -959,8 +1021,13 @@ function renderAdmin(app) {
             <form id="gameForm">
               <label>Schedule:<select id="gameTeamLevel">${scheduleTeamLevels.map(level => `<option value="${level.value}">${level.label}</option>`).join('')}</select></label>
               <label class="admin-date-field">Date (MM-DD-YYYY):<input type="date" id="gameDate" required /><span class="admin-season-hint muted" id="gameSeasonHint" aria-live="polite"></span></label>
-              <label>Opponent from list:<select id="gameOpponentId"><option value="">Choose opponent</option></select></label>
-              <label>Opponent name:<input type="text" id="gameOpponent" required placeholder="Used if no opponent is selected" /></label>
+              <div class="admin-opponent-picker-field">
+                <span class="admin-field-label">Opponent</span>
+                <input type="hidden" id="gameOpponentId" value="" />
+                <button type="button" class="admin-opponent-picker-btn" id="gameOpponentPickerBtn" aria-haspopup="dialog" aria-controls="gameOpponentModal">
+                  <span id="gameOpponentPickerLabel">Choose or add opponent</span>
+                </button>
+              </div>
               <label>Location:<input type="text" id="gameLocation" required placeholder="Home/Away" /></label>
               <label>Location Address:<input type="text" id="gameLocationAddress" placeholder="Auto-filled from opponent when available" /></label>
               <label>Time:<input type="text" id="gameTime" required placeholder="4:00 PM" /></label>
@@ -1006,6 +1073,17 @@ function renderAdmin(app) {
         <section class="admin-card">
           <h2>Saved Opponents</h2>
           <ul id="opponentsPreview" class="list opponent-list"></ul>
+        </section>
+        <section class="admin-card" id="maxprepsOpponentsCard">
+          <h2>Import from MaxPreps</h2>
+          <p class="muted">Loads school name, mascot, address, and a 256px PNG mascot logo from varsity schedules scraped into <code>public/data/opponents-maxpreps.json</code>. Refresh that file with <code>npm run fetch-opponents</code> (included in <code>build:pages</code>).</p>
+          <div class="form-row">
+            <button type="button" class="btn" id="maxprepsOpponentsLoadBtn">Load MaxPreps list</button>
+            <button type="button" class="btn alt" id="maxprepsOpponentsImportBtn" hidden disabled>Import selected</button>
+          </div>
+          <ul id="maxprepsOpponentsImportList" class="list opponent-import-list" hidden></ul>
+          <p class="auth-error" id="maxprepsOpponentsError"></p>
+          <p class="save-success" id="maxprepsOpponentsSuccess"></p>
         </section>
       </div>
       <div class="admin-panel" data-admin-panel-view="carousel">
@@ -1056,6 +1134,34 @@ function renderAdmin(app) {
           <h2>Latest headlines</h2>
           <ul id="adminNewsPreview" class="list admin-news-preview"></ul>
         </section>
+      </div>
+    </div>
+    <div class="admin-opponent-modal" id="gameOpponentModal" hidden>
+      <button type="button" class="admin-opponent-modal-backdrop" aria-label="Close opponent picker"></button>
+      <div class="admin-opponent-modal-panel" role="dialog" aria-modal="true" aria-labelledby="gameOpponentModalTitle">
+        <header class="admin-opponent-modal-header">
+          <h3 id="gameOpponentModalTitle">Choose opponent</h3>
+          <button type="button" class="admin-opponent-modal-close" aria-label="Close">×</button>
+        </header>
+        <div class="admin-opponent-modal-search">
+          <input type="search" id="gameOpponentModalSearch" placeholder="Search schools or mascots…" autocomplete="off" />
+        </div>
+        <ul id="gameOpponentModalList" class="admin-opponent-picker-list"></ul>
+        <footer class="admin-opponent-modal-footer">
+          <div id="gameOpponentQuickAddPanel" class="admin-opponent-quick-add-panel" hidden>
+            <form id="gameOpponentQuickAddForm" class="admin-opponent-quick-add">
+              <label>School name<input type="text" id="gameOpponentQuickName" required placeholder="Mountain View" /></label>
+              <label>Mascot<input type="text" id="gameOpponentQuickMascot" placeholder="Bruins" /></label>
+              <label>Address<input type="text" id="gameOpponentQuickAddress" placeholder="Full address for calendar sync" /></label>
+              <p class="auth-error" id="gameOpponentQuickError"></p>
+              <button type="submit" class="btn small">Save &amp; select</button>
+            </form>
+          </div>
+          <div class="admin-opponent-modal-footer-actions">
+            <button type="button" class="btn alt" id="gameOpponentModalClear">Clear selection</button>
+            <button type="button" class="btn" id="gameOpponentModalAddToggle" aria-expanded="false" aria-controls="gameOpponentQuickAddPanel">+ Add new school</button>
+          </div>
+        </footer>
       </div>
     </div>`;
 
@@ -1122,6 +1228,7 @@ function renderAdmin(app) {
   let carouselPhotos = getCarouselPhotos();
   let opponents = normalizeOpponentList(getOpponents());
   let editingOpponentIdx = -1;
+  let maxprepsImportCandidates = [];
 
   function syncAdminResults() {
     adminResults = results.slice();
@@ -1381,8 +1488,8 @@ function renderAdmin(app) {
           document.getElementById('gameTeamLevel').value = getScheduleTeamLevel(g.teamLevel);
           document.getElementById('gameDate').value = g.date;
           updateGameSeasonHint();
-          document.getElementById('gameOpponentId').value = g.opponentId || '';
-          document.getElementById('gameOpponent').value = g.opponent;
+          const matchedOpponent = matchOpponentForGame(g);
+          setGameOpponentSelection(matchedOpponent ? matchedOpponent._key : (g.opponentId || ''));
           document.getElementById('gameLocation').value = g.location || '';
           document.getElementById('gameLocationAddress').value = g.locationAddress || '';
           document.getElementById('gameTime').value = g.time || '';
@@ -1438,22 +1545,284 @@ function renderAdmin(app) {
     });
   }
 
+  function getGameOpponentDisplayName(opponent) {
+    if (!opponent) return '';
+    return opponent.shortName || opponent.schoolName || '';
+  }
+
+  function matchOpponentForGame(game) {
+    if (!game) return null;
+    if (game.opponentId) {
+      const byId = findOpponentById(game.opponentId, opponents);
+      if (byId) return byId;
+    }
+    if (!game.opponent) return null;
+    const key = normalizeSchoolKey(game.opponent);
+    return opponents.find(function(opponent) {
+      return normalizeSchoolKey(opponent.schoolName) === key
+        || (opponent.shortName && normalizeSchoolKey(opponent.shortName) === key);
+    }) || null;
+  }
+
+  function setGameOpponentSelection(opponentId) {
+    const hidden = document.getElementById('gameOpponentId');
+    if (hidden) hidden.value = opponentId || '';
+    updateGameOpponentPickerDisplay();
+  }
+
+  function updateGameOpponentPickerDisplay() {
+    const label = document.getElementById('gameOpponentPickerLabel');
+    const btn = document.getElementById('gameOpponentPickerBtn');
+    const hidden = document.getElementById('gameOpponentId');
+    if (!label || !hidden) return;
+    const opponent = findOpponentById(hidden.value, opponents);
+    if (opponent) {
+      label.textContent = opponent.schoolName + (opponent.mascot ? ' (' + opponent.mascot + ')' : '');
+      if (btn) btn.classList.add('is-selected');
+    } else {
+      label.textContent = 'Choose or add opponent';
+      if (btn) btn.classList.remove('is-selected');
+    }
+  }
+
   function renderOpponentOptions(selectedId) {
-    const select = document.getElementById('gameOpponentId');
-    if (!select) return;
-    select.innerHTML = '<option value="">Choose opponent</option>' + opponents.map(function(opponent) {
-      return '<option value="' + opponent._key + '">' + opponent.schoolName + (opponent.mascot ? ' ' + opponent.mascot : '') + '</option>';
-    }).join('');
-    select.value = selectedId || '';
+    setGameOpponentSelection(selectedId);
+    const searchEl = document.getElementById('gameOpponentModalSearch');
+    renderOpponentPickerList(searchEl ? searchEl.value : '');
   }
 
   function applySelectedOpponentToGameForm() {
     const opponent = findOpponentById(document.getElementById('gameOpponentId').value, opponents);
     if (!opponent) return;
-    document.getElementById('gameOpponent').value = opponent.shortName || opponent.schoolName;
-    if (opponent.address && !document.getElementById('gameLocationAddress').value) {
-      document.getElementById('gameLocationAddress').value = opponent.address;
+    const addressEl = document.getElementById('gameLocationAddress');
+    if (opponent.address && addressEl && !addressEl.value) {
+      addressEl.value = opponent.address;
     }
+  }
+
+  function setQuickAddOpponentFormVisible(show, schoolName) {
+    const panel = document.getElementById('gameOpponentQuickAddPanel');
+    const form = document.getElementById('gameOpponentQuickAddForm');
+    const toggle = document.getElementById('gameOpponentModalAddToggle');
+    const nameEl = document.getElementById('gameOpponentQuickName');
+    const errorEl = document.getElementById('gameOpponentQuickError');
+    if (!panel || !toggle) return;
+    panel.hidden = !show;
+    toggle.setAttribute('aria-expanded', show ? 'true' : 'false');
+    toggle.textContent = show ? 'Cancel new school' : '+ Add new school';
+    if (errorEl) errorEl.textContent = '';
+    if (show && nameEl) {
+      if (schoolName) nameEl.value = schoolName;
+      panel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      setTimeout(function() { nameEl.focus(); }, 0);
+    } else if (!show && form) {
+      form.reset();
+    }
+  }
+
+  function saveQuickAddOpponent(event) {
+    if (event) event.preventDefault();
+    const errorEl = document.getElementById('gameOpponentQuickError');
+    const submitBtn = document.querySelector('#gameOpponentQuickAddForm button[type="submit"]');
+    const schoolName = document.getElementById('gameOpponentQuickName').value.trim();
+    if (!schoolName) {
+      if (errorEl) errorEl.textContent = 'School name is required.';
+      return Promise.resolve();
+    }
+    const opponent = {
+      schoolName: schoolName,
+      shortName: '',
+      mascot: document.getElementById('gameOpponentQuickMascot').value.trim(),
+      address: document.getElementById('gameOpponentQuickAddress').value.trim(),
+      logoUrl: '',
+      logoStoragePath: '',
+      maxprepsSchoolId: '',
+      maxprepsUrl: '',
+      sortOrder: opponents.length
+    };
+    const savedText = submitBtn && submitBtn.textContent;
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Saving...';
+    }
+    if (errorEl) errorEl.textContent = '';
+    const previousOpponents = opponents.slice();
+    return fbAddChild('opponents', opponent).then(function(savedOpponent) {
+      opponents = normalizeOpponentList(previousOpponents.concat(normalizeOpponent(savedOpponent, previousOpponents.length)));
+      cachedOpponents = opponents.slice();
+      renderOpponentsPreview();
+      renderOpponentOptions(savedOpponent._key);
+      setQuickAddOpponentFormVisible(false);
+      selectGameOpponent(findOpponentById(savedOpponent._key, opponents));
+    }).catch(function(err) {
+      opponents = previousOpponents;
+      cachedOpponents = previousOpponents.slice();
+      if (errorEl) {
+        errorEl.textContent = typeof fbFormatError === 'function'
+          ? fbFormatError(err, 'opponents')
+          : (err.message || 'Unable to save opponent.');
+      }
+    }).finally(function() {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = savedText;
+      }
+    });
+  }
+
+  function selectGameOpponent(opponent) {
+    if (!opponent) return;
+    setGameOpponentSelection(opponent._key);
+    applySelectedOpponentToGameForm();
+    closeOpponentPickerModal();
+  }
+
+  function clearGameOpponentSelection() {
+    setGameOpponentSelection('');
+    closeOpponentPickerModal();
+  }
+
+  function opponentPickerModalKeydown(event) {
+    if (event.key === 'Escape') closeOpponentPickerModal();
+  }
+
+  function openOpponentPickerModal() {
+    const modal = document.getElementById('gameOpponentModal');
+    const searchEl = document.getElementById('gameOpponentModalSearch');
+    if (!modal) return;
+    setQuickAddOpponentFormVisible(false);
+    renderOpponentPickerList('');
+    modal.hidden = false;
+    document.body.classList.add('admin-modal-open');
+    document.addEventListener('keydown', opponentPickerModalKeydown);
+    if (searchEl) {
+      searchEl.value = '';
+      renderOpponentPickerList('');
+      setTimeout(function() { searchEl.focus(); }, 0);
+    }
+  }
+
+  function closeOpponentPickerModal() {
+    const modal = document.getElementById('gameOpponentModal');
+    if (!modal) return;
+    modal.hidden = true;
+    document.body.classList.remove('admin-modal-open');
+    document.removeEventListener('keydown', opponentPickerModalKeydown);
+    setQuickAddOpponentFormVisible(false);
+  }
+
+  function renderOpponentPickerList(query) {
+    const ul = document.getElementById('gameOpponentModalList');
+    if (!ul) return;
+    const selectedId = document.getElementById('gameOpponentId') && document.getElementById('gameOpponentId').value;
+    const needle = normalizeSchoolKey(query);
+    const filtered = opponents.filter(function(opponent) {
+      if (!needle) return true;
+      const haystack = normalizeSchoolKey(
+        [opponent.schoolName, opponent.mascot, opponent.address].filter(Boolean).join(' ')
+      );
+      return haystack.indexOf(needle) !== -1;
+    }).sort(function(a, b) {
+      return (a.schoolName || '').localeCompare(b.schoolName || '', undefined, { sensitivity: 'base' });
+    });
+    ul.innerHTML = '';
+    if (!opponents.length && !needle) {
+      const empty = document.createElement('li');
+      empty.className = 'admin-opponent-picker-empty';
+      empty.textContent = 'No schools saved yet. Use Add new school above.';
+      ul.appendChild(empty);
+      return;
+    }
+    if (!filtered.length) {
+      const empty = document.createElement('li');
+      empty.className = 'admin-opponent-picker-empty';
+      if (needle && query && query.trim()) {
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className = 'btn small';
+        addBtn.textContent = 'Add "' + query.trim() + '" as new school';
+        addBtn.addEventListener('click', function() {
+          setQuickAddOpponentFormVisible(true, query.trim());
+        });
+        empty.appendChild(addBtn);
+      } else {
+        empty.textContent = 'No schools match your search.';
+      }
+      ul.appendChild(empty);
+      return;
+    }
+    filtered.forEach(function(opponent) {
+      const li = document.createElement('li');
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'admin-opponent-picker-option' + (opponent._key === selectedId ? ' is-selected' : '');
+      const logo = document.createElement('span');
+      logo.className = 'opponent-logo-preview';
+      if (opponent.logoUrl) {
+        const img = document.createElement('img');
+        img.src = opponent.logoUrl;
+        img.alt = '';
+        img.loading = 'lazy';
+        logo.appendChild(img);
+      } else {
+        logo.textContent = (opponent.schoolName || 'OP').slice(0, 2).toUpperCase();
+      }
+      btn.appendChild(logo);
+      const details = document.createElement('span');
+      details.className = 'admin-opponent-picker-details';
+      const title = document.createElement('span');
+      title.className = 'admin-opponent-picker-name';
+      title.textContent = opponent.schoolName;
+      details.appendChild(title);
+      if (opponent.mascot) {
+        const mascot = document.createElement('span');
+        mascot.className = 'admin-opponent-picker-mascot';
+        mascot.textContent = opponent.mascot;
+        details.appendChild(mascot);
+      }
+      if (opponent.address) {
+        const address = document.createElement('span');
+        address.className = 'admin-opponent-picker-address';
+        address.textContent = opponent.address;
+        details.appendChild(address);
+      }
+      btn.appendChild(details);
+      btn.addEventListener('click', function() {
+        selectGameOpponent(opponent);
+      });
+      li.appendChild(btn);
+      ul.appendChild(li);
+    });
+  }
+
+  function wireOpponentPickerModal() {
+    const openBtn = document.getElementById('gameOpponentPickerBtn');
+    const modal = document.getElementById('gameOpponentModal');
+    const searchEl = document.getElementById('gameOpponentModalSearch');
+    const clearBtn = document.getElementById('gameOpponentModalClear');
+    const addToggle = document.getElementById('gameOpponentModalAddToggle');
+    const quickAddForm = document.getElementById('gameOpponentQuickAddForm');
+    if (!modal) return;
+
+    if (openBtn) openBtn.addEventListener('click', openOpponentPickerModal);
+    if (clearBtn) clearBtn.addEventListener('click', clearGameOpponentSelection);
+    if (addToggle) {
+      addToggle.addEventListener('click', function() {
+        const panel = document.getElementById('gameOpponentQuickAddPanel');
+        setQuickAddOpponentFormVisible(panel ? panel.hidden : true);
+      });
+    }
+    setQuickAddOpponentFormVisible(false);
+    if (quickAddForm) quickAddForm.addEventListener('submit', saveQuickAddOpponent);
+    if (searchEl) {
+      searchEl.addEventListener('input', function() {
+        renderOpponentPickerList(searchEl.value);
+      });
+    }
+
+    modal.querySelectorAll('.admin-opponent-modal-backdrop, .admin-opponent-modal-close').forEach(function(el) {
+      el.addEventListener('click', closeOpponentPickerModal);
+    });
   }
 
   function showOpponentMessage(message) {
@@ -1463,6 +1832,205 @@ function renderAdmin(app) {
     showOpponentMessage.timer = setTimeout(() => {
       if (successEl) successEl.textContent = '';
     }, 4500);
+  }
+
+  function showMaxPrepsOpponentMessage(message) {
+    const successEl = document.getElementById('maxprepsOpponentsSuccess');
+    const errorEl = document.getElementById('maxprepsOpponentsError');
+    if (errorEl) errorEl.textContent = '';
+    if (successEl) successEl.textContent = message || '';
+    clearTimeout(showMaxPrepsOpponentMessage.timer);
+    showMaxPrepsOpponentMessage.timer = setTimeout(function() {
+      if (successEl) successEl.textContent = '';
+    }, 6000);
+  }
+
+  function renderMaxPrepsImportList() {
+    const ul = document.getElementById('maxprepsOpponentsImportList');
+    const importBtn = document.getElementById('maxprepsOpponentsImportBtn');
+    if (!ul || !importBtn) return;
+    ul.innerHTML = '';
+    if (!maxprepsImportCandidates.length) {
+      ul.hidden = true;
+      importBtn.hidden = true;
+      importBtn.disabled = true;
+      return;
+    }
+    ul.hidden = false;
+    importBtn.hidden = false;
+    importBtn.disabled = false;
+    maxprepsImportCandidates.forEach(function(candidate, index) {
+      const li = document.createElement('li');
+      const label = document.createElement('label');
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.checked = candidate.action !== 'skip';
+      checkbox.disabled = candidate.action === 'skip';
+      checkbox.dataset.index = String(index);
+      label.appendChild(checkbox);
+
+      const logo = document.createElement('span');
+      logo.className = 'maxpreps-import-logo';
+      if (candidate.mp.logoUrl) {
+        const img = document.createElement('img');
+        img.src = candidate.mp.logoUrl;
+        img.alt = '';
+        img.loading = 'lazy';
+        logo.appendChild(img);
+      } else {
+        logo.textContent = (candidate.mp.schoolName || 'OP').slice(0, 2).toUpperCase();
+      }
+      label.appendChild(logo);
+
+      const main = document.createElement('span');
+      main.className = 'maxpreps-import-main';
+      const name = document.createElement('span');
+      name.className = 'maxpreps-import-name';
+      name.textContent = candidate.mp.schoolName || 'Unknown school';
+      main.appendChild(name);
+      if (candidate.mp.mascot) {
+        const mascot = document.createElement('span');
+        mascot.className = 'maxpreps-import-mascot';
+        mascot.textContent = candidate.mp.mascot;
+        main.appendChild(mascot);
+      }
+      label.appendChild(main);
+
+      const badge = document.createElement('span');
+      badge.className = 'maxpreps-import-badge ' + candidate.action;
+      badge.textContent = candidate.action === 'add' ? 'New' : (candidate.action === 'update' ? 'Update' : 'Saved');
+      label.appendChild(badge);
+
+      li.appendChild(label);
+      if (candidate.mp.address) {
+        const small = document.createElement('small');
+        small.textContent = candidate.mp.address;
+        li.appendChild(small);
+      }
+      ul.appendChild(li);
+    });
+  }
+
+  function loadMaxPrepsOpponents() {
+    const loadBtn = document.getElementById('maxprepsOpponentsLoadBtn');
+    const errorEl = document.getElementById('maxprepsOpponentsError');
+    if (!loadBtn) return Promise.resolve();
+    const savedText = loadBtn.textContent;
+    loadBtn.disabled = true;
+    loadBtn.textContent = 'Loading...';
+    if (errorEl) errorEl.textContent = '';
+    const dataUrl = (window.__SITE_BASE_PATH || '') + '/data/opponents-maxpreps.json';
+    return fetch(dataUrl + (dataUrl.indexOf('?') === -1 ? '?' : '&') + 't=' + Date.now())
+      .then(function(response) {
+        if (!response.ok) throw new Error('Could not load opponents-maxpreps.json. Run npm run fetch-opponents and deploy, or open admin from the site root.');
+        return response.json();
+      })
+      .then(function(payload) {
+        const list = payload && Array.isArray(payload.opponents) ? payload.opponents : [];
+        maxprepsImportCandidates = list.map(function(mp) {
+          const existing = findOpponentForMaxPreps(mp, opponents);
+          return { mp: mp, existing: existing, action: maxprepsImportAction(mp, existing) };
+        });
+        renderMaxPrepsImportList();
+        const addCount = maxprepsImportCandidates.filter(function(c) { return c.action === 'add'; }).length;
+        const updateCount = maxprepsImportCandidates.filter(function(c) { return c.action === 'update'; }).length;
+        showMaxPrepsOpponentMessage(
+          list.length + ' schools from MaxPreps — ' + addCount + ' new, ' + updateCount + ' to update.'
+        );
+      })
+      .catch(function(err) {
+        maxprepsImportCandidates = [];
+        renderMaxPrepsImportList();
+        if (errorEl) errorEl.textContent = err.message || 'Unable to load MaxPreps opponents.';
+      })
+      .finally(function() {
+        loadBtn.disabled = false;
+        loadBtn.textContent = savedText;
+      });
+  }
+
+  function importOneMaxPrepsOpponent(candidate) {
+    const mp = candidate.mp;
+    const existing = candidate.existing;
+    const opponent = {
+      schoolName: mp.schoolName,
+      shortName: existing && existing.shortName ? existing.shortName : '',
+      mascot: mp.mascot || (existing && existing.mascot) || '',
+      address: mp.address || (existing && existing.address) || '',
+      logoUrl: existing && existing.logoUrl ? existing.logoUrl : '',
+      logoStoragePath: existing && existing.logoStoragePath ? existing.logoStoragePath : '',
+      maxprepsSchoolId: mp.maxprepsSchoolId || '',
+      maxprepsUrl: mp.maxprepsUrl || '',
+      sortOrder: existing ? existing.sortOrder : opponents.length
+    };
+    const shouldFetchLogo = mp.logoUrl && (!existing || !existing.logoUrl);
+    const logoPromise = shouldFetchLogo
+      ? opponentLogoFileFromUrl(mp.logoUrl, mp.schoolName).then(function(file) {
+        return uploadOpponentLogoIfNeeded(opponent, file, existing);
+      })
+      : Promise.resolve(opponent);
+
+    return logoPromise.then(function(finalOpponent) {
+      if (existing) {
+        const idx = opponents.indexOf(existing);
+        const opponentKey = firebaseChildKey(existing, idx);
+        return fbSaveChild('opponents', opponentKey, finalOpponent).then(function(savedOpponent) {
+          opponents[idx] = normalizeOpponent(savedOpponent, idx);
+        });
+      }
+      return fbAddChild('opponents', finalOpponent).then(function(savedOpponent) {
+        opponents.push(normalizeOpponent(savedOpponent, opponents.length));
+      });
+    });
+  }
+
+  function importSelectedMaxPrepsOpponents() {
+    const importBtn = document.getElementById('maxprepsOpponentsImportBtn');
+    const errorEl = document.getElementById('maxprepsOpponentsError');
+    const checkboxes = document.querySelectorAll('#maxprepsOpponentsImportList input[type="checkbox"]:checked:not(:disabled)');
+    const selected = Array.from(checkboxes).map(function(cb) {
+      return maxprepsImportCandidates[Number(cb.dataset.index)];
+    }).filter(Boolean);
+    if (!selected.length) {
+      if (errorEl) errorEl.textContent = 'Select at least one school to import.';
+      return Promise.resolve();
+    }
+    const previousOpponents = opponents.slice();
+    const savedText = importBtn.textContent;
+    importBtn.disabled = true;
+    importBtn.textContent = 'Importing...';
+    if (errorEl) errorEl.textContent = '';
+
+    let chain = Promise.resolve();
+    selected.forEach(function(candidate) {
+      chain = chain.then(function() {
+        return importOneMaxPrepsOpponent(candidate);
+      });
+    });
+
+    return chain.then(function() {
+      opponents = normalizeOpponentList(opponents);
+      cachedOpponents = opponents.slice();
+      renderOpponentOptions();
+      renderOpponentsPreview();
+      maxprepsImportCandidates = maxprepsImportCandidates.map(function(candidate) {
+        const existing = findOpponentForMaxPreps(candidate.mp, opponents);
+        return { mp: candidate.mp, existing: existing, action: maxprepsImportAction(candidate.mp, existing) };
+      });
+      renderMaxPrepsImportList();
+      showMaxPrepsOpponentMessage('Imported ' + selected.length + ' opponent' + (selected.length === 1 ? '' : 's') + ' from MaxPreps.');
+    }).catch(function(err) {
+      opponents = previousOpponents;
+      cachedOpponents = previousOpponents.slice();
+      if (errorEl) {
+        errorEl.textContent = typeof fbFormatError === 'function'
+          ? fbFormatError(err, 'opponents')
+          : (err.message || 'Import failed.');
+      }
+    }).finally(function() {
+      importBtn.disabled = false;
+      importBtn.textContent = savedText;
+    });
   }
 
   function renderOpponentsPreview() {
@@ -1843,9 +2411,14 @@ function renderAdmin(app) {
 
   renderOpponentOptions();
   renderOpponentsPreview();
-  document.getElementById('gameOpponentId').addEventListener('change', applySelectedOpponentToGameForm);
+  wireOpponentPickerModal();
   document.getElementById('gameDate').addEventListener('change', updateGameSeasonHint);
   updateGameSeasonHint();
+
+  const maxprepsLoadBtn = document.getElementById('maxprepsOpponentsLoadBtn');
+  const maxprepsImportBtn = document.getElementById('maxprepsOpponentsImportBtn');
+  if (maxprepsLoadBtn) maxprepsLoadBtn.addEventListener('click', loadMaxPrepsOpponents);
+  if (maxprepsImportBtn) maxprepsImportBtn.addEventListener('click', importSelectedMaxPrepsOpponents);
 
   document.getElementById('opponentForm').addEventListener('submit', e => {
     e.preventDefault();
@@ -1865,6 +2438,8 @@ function renderAdmin(app) {
       address: document.getElementById('opponentAddress').value.trim(),
       logoUrl: previousOpponent && previousOpponent.logoUrl ? previousOpponent.logoUrl : '',
       logoStoragePath: previousOpponent && previousOpponent.logoStoragePath ? previousOpponent.logoStoragePath : '',
+      maxprepsSchoolId: previousOpponent && previousOpponent.maxprepsSchoolId ? previousOpponent.maxprepsSchoolId : '',
+      maxprepsUrl: previousOpponent && previousOpponent.maxprepsUrl ? previousOpponent.maxprepsUrl : '',
       sortOrder: wasEditing ? previousOpponent.sortOrder : opponents.length
     };
     const file = document.getElementById('opponentLogoFile').files[0];
@@ -1917,16 +2492,19 @@ function renderAdmin(app) {
     const savedButtonText = submitBtn.textContent;
     errorEl.textContent = '';
     const selectedOpponent = findOpponentById(document.getElementById('gameOpponentId').value, opponents);
+    if (!selectedOpponent) {
+      errorEl.textContent = 'Choose an opponent or add a new school using the opponent picker.';
+      openOpponentPickerModal();
+      return;
+    }
     const game = {
       teamLevel: getScheduleTeamLevel(document.getElementById('gameTeamLevel').value),
       season: getBaseballSeason('', document.getElementById('gameDate').value),
-      opponentId: selectedOpponent ? selectedOpponent._key : '',
+      opponentId: selectedOpponent._key,
       date: document.getElementById('gameDate').value,
-      opponent: selectedOpponent
-        ? (selectedOpponent.shortName || selectedOpponent.schoolName)
-        : document.getElementById('gameOpponent').value,
+      opponent: getGameOpponentDisplayName(selectedOpponent),
       location: document.getElementById('gameLocation').value,
-      locationAddress: document.getElementById('gameLocationAddress').value || (selectedOpponent ? selectedOpponent.address : ''),
+      locationAddress: document.getElementById('gameLocationAddress').value || selectedOpponent.address || '',
       time: document.getElementById('gameTime').value
     };
     if (document.getElementById('gamePlayoff').checked) game.playoff = true;
@@ -1961,6 +2539,7 @@ function renderAdmin(app) {
         renderGamesPreview();
         form.reset();
         updateGameSeasonHint();
+        updateGameOpponentPickerDisplay();
       }).catch(err => {
         games = previousGames;
         results = previousResults;
@@ -1985,6 +2564,7 @@ function renderAdmin(app) {
         renderGamesPreview();
         form.reset();
         updateGameSeasonHint();
+        updateGameOpponentPickerDisplay();
       }).catch(err => {
         games = previousGames;
         results = previousResults;
