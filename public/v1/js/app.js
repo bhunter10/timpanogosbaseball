@@ -978,7 +978,7 @@ function renderAdmin(app) {
           <h2>Saved Games & Results</h2>
           <ul id="gamesPreview" class="list"></ul>
         </section>
-        <section class="admin-card">
+        <section class="admin-card admin-reseed-section" hidden>
           <h2>Rebuild schedule</h2>
           <p class="muted">Replace every game and result in Firebase with the backup in <code>schedule-seed-data.js</code>. Use this for a clean rebuild.</p>
           <div class="form-row">
@@ -993,11 +993,9 @@ function renderAdmin(app) {
           <h2>Opponents</h2>
           <form id="opponentForm">
             <label>School name:<input type="text" id="opponentSchoolName" required placeholder="Mountain View" /></label>
-            <label>Short name:<input type="text" id="opponentShortName" placeholder="Optional schedule label" /></label>
             <label>Mascot:<input type="text" id="opponentMascot" placeholder="Bruins" /></label>
             <label>Address:<input type="text" id="opponentAddress" placeholder="Full address for calendar sync" /></label>
             <label>Upload logo:<input type="file" id="opponentLogoFile" accept="image/*" /></label>
-            <label>Logo URL:<input type="url" id="opponentLogoUrl" placeholder="Optional pasted logo URL" /></label>
             <div class="form-row">
               <button type="submit" class="btn">Add Opponent</button>
             </div>
@@ -1065,36 +1063,39 @@ function renderAdmin(app) {
     fbSignOut().then(() => navigate());
   });
 
-  document.getElementById('adminReseedScheduleBtn').addEventListener('click', () => {
-    const btn = document.getElementById('adminReseedScheduleBtn');
-    const errorEl = document.getElementById('adminReseedError');
-    const successEl = document.getElementById('adminReseedSuccess');
-    errorEl.textContent = '';
-    successEl.textContent = '';
-    if (!window.confirm('Replace all games and results in Firebase with the backup? This cannot be undone.')) return;
-    if (typeof reseedScheduleDatabase !== 'function') {
-      errorEl.textContent = 'Reseed is not available. Load schedule-seed-data.js before firebase-config.js.';
-      return;
-    }
-    btn.disabled = true;
-    btn.textContent = 'Rebuilding…';
-    reseedScheduleDatabase().then(() => {
-      return Promise.all([fbGet('games'), fbGet('results')]);
-    }).then(vals => {
-      games = fbToArray(vals[0]);
-      results = fbToArray(vals[1]);
-      cachedGames = games.slice();
-      cachedResults = results.slice();
-      syncAdminResults();
-      renderGamesPreview();
-      successEl.textContent = 'Schedule rebuilt from backup.';
-    }).catch(err => {
-      errorEl.textContent = err && err.message ? err.message : 'Rebuild failed.';
-    }).finally(() => {
-      btn.disabled = false;
-      btn.textContent = 'Rebuild games & results';
+  const adminReseedBtn = document.getElementById('adminReseedScheduleBtn');
+  if (adminReseedBtn) {
+    adminReseedBtn.addEventListener('click', () => {
+      const btn = adminReseedBtn;
+      const errorEl = document.getElementById('adminReseedError');
+      const successEl = document.getElementById('adminReseedSuccess');
+      errorEl.textContent = '';
+      successEl.textContent = '';
+      if (!window.confirm('Replace all games and results in Firebase with the backup? This cannot be undone.')) return;
+      if (typeof reseedScheduleDatabase !== 'function') {
+        errorEl.textContent = 'Reseed is not available. Load schedule-seed-data.js before firebase-config.js.';
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = 'Rebuilding…';
+      reseedScheduleDatabase().then(() => {
+        return Promise.all([fbGet('games'), fbGet('results')]);
+      }).then(vals => {
+        games = fbToArray(vals[0]);
+        results = fbToArray(vals[1]);
+        cachedGames = games.slice();
+        cachedResults = results.slice();
+        syncAdminResults();
+        renderGamesPreview();
+        successEl.textContent = 'Schedule rebuilt from backup.';
+      }).catch(err => {
+        errorEl.textContent = err && err.message ? err.message : 'Rebuild failed.';
+      }).finally(() => {
+        btn.disabled = false;
+        btn.textContent = 'Rebuild games & results';
+      });
     });
-  });
+  }
 
   function showAdminPanel(panelName) {
     document.querySelectorAll('.admin-nav-link').forEach(btn => {
@@ -1216,7 +1217,7 @@ function renderAdmin(app) {
     });
 
     return combined.sort((a, b) => {
-      return adminGameDateTimeValue(b.game) - adminGameDateTimeValue(a.game);
+      return adminGameDateTimeValue(a.game) - adminGameDateTimeValue(b.game);
     });
   }
 
@@ -1302,15 +1303,31 @@ function renderAdmin(app) {
       if (!groupedRecords.has(groupKey)) {
         groupedRecords.set(groupKey, {
           label: `${seasonLabel} • ${teamLabel}`,
-          records: []
+          records: [],
+          sortYear: Number(year) || 0,
+          sortSeason: getBaseballSeason(g.season, g.date),
+          sortTeam: getScheduleTeamLevel(g.teamLevel)
         });
         groupedOrder.push(groupKey);
       }
       groupedRecords.get(groupKey).records.push(record);
     });
 
+    groupedOrder.sort(function(keyA, keyB) {
+      const groupA = groupedRecords.get(keyA);
+      const groupB = groupedRecords.get(keyB);
+      if (groupA.sortYear !== groupB.sortYear) return groupB.sortYear - groupA.sortYear;
+      const seasonOrderA = (baseballSeasons.find(function(season) { return season.value === groupA.sortSeason; }) || {}).order || 0;
+      const seasonOrderB = (baseballSeasons.find(function(season) { return season.value === groupB.sortSeason; }) || {}).order || 0;
+      if (seasonOrderA !== seasonOrderB) return seasonOrderB - seasonOrderA;
+      return getScheduleTeamLabel(groupA.sortTeam).localeCompare(getScheduleTeamLabel(groupB.sortTeam));
+    });
+
     groupedOrder.forEach(groupKey => {
       const group = groupedRecords.get(groupKey);
+      group.records.sort(function(a, b) {
+        return adminGameDateTimeValue(a.game) - adminGameDateTimeValue(b.game);
+      });
       const heading = document.createElement('li');
       heading.className = 'game-preview-group-heading';
       heading.textContent = group.label;
@@ -1465,7 +1482,7 @@ function renderAdmin(app) {
         img.loading = 'lazy';
         logo.appendChild(img);
       } else {
-        logo.textContent = (opponent.shortName || opponent.schoolName || 'OP').slice(0, 2).toUpperCase();
+        logo.textContent = (opponent.schoolName || 'OP').slice(0, 2).toUpperCase();
       }
       li.appendChild(logo);
 
@@ -1475,7 +1492,7 @@ function renderAdmin(app) {
       title.className = 'game-preview-opponent';
       title.textContent = opponent.schoolName;
       details.appendChild(title);
-      const meta = [opponent.shortName, opponent.mascot, opponent.address].filter(Boolean);
+      const meta = [opponent.mascot, opponent.address].filter(Boolean);
       if (meta.length) {
         const small = document.createElement('small');
         small.textContent = meta.join(' | ');
@@ -1488,10 +1505,8 @@ function renderAdmin(app) {
       editBtn.className = 'btn small';
       editBtn.addEventListener('click', () => {
         document.getElementById('opponentSchoolName').value = opponent.schoolName || '';
-        document.getElementById('opponentShortName').value = opponent.shortName || '';
         document.getElementById('opponentMascot').value = opponent.mascot || '';
         document.getElementById('opponentAddress').value = opponent.address || '';
-        document.getElementById('opponentLogoUrl').value = opponent.logoUrl || '';
         document.getElementById('opponentLogoFile').value = '';
         editingOpponentIdx = i;
         document.querySelector('#opponentForm button[type="submit"]').textContent = 'Update Opponent';
@@ -1845,10 +1860,10 @@ function renderAdmin(app) {
 
     const opponent = {
       schoolName: document.getElementById('opponentSchoolName').value.trim(),
-      shortName: document.getElementById('opponentShortName').value.trim(),
+      shortName: previousOpponent && previousOpponent.shortName ? previousOpponent.shortName : '',
       mascot: document.getElementById('opponentMascot').value.trim(),
       address: document.getElementById('opponentAddress').value.trim(),
-      logoUrl: document.getElementById('opponentLogoUrl').value.trim(),
+      logoUrl: previousOpponent && previousOpponent.logoUrl ? previousOpponent.logoUrl : '',
       logoStoragePath: previousOpponent && previousOpponent.logoStoragePath ? previousOpponent.logoStoragePath : '',
       sortOrder: wasEditing ? previousOpponent.sortOrder : opponents.length
     };
