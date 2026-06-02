@@ -1598,6 +1598,15 @@ function v2WireHeaderScrollState() {
   syncHeaderState();
 }
 
+function v2GoogleCalendarSubscribeUrl(calendarUrl) {
+  try {
+    return 'https://calendar.google.com/calendar/render?cid=' +
+      encodeURIComponent(window.btoa(calendarUrl));
+  } catch (error) {
+    return 'https://calendar.google.com/calendar/render?cid=' + encodeURIComponent(calendarUrl);
+  }
+}
+
 function v2WireCalendarSyncLinks() {
   var syncEl = document.querySelector('#schedule .v2-season-results-header .v2-calendar-sync');
   if (!syncEl) return;
@@ -1615,10 +1624,10 @@ function v2WireCalendarSyncLinks() {
   var selectedYear = selectedSeasonKey.split('-')[1] || '';
   var seasonLabel = v2GetSeasonName(selectedSeason) + (selectedYear ? ' ' + selectedYear : '');
   var teamLabel = v2GetScheduleTeamLabel(selectedTeam);
-  var params = new URLSearchParams();
-  params.set('team', selectedTeam);
-  if (selectedSeasonKey) params.set('season', selectedSeasonKey);
-  var calendarPath = (window.__SITE_BASE_PATH || '') + '/api/schedule.ics?' + params.toString();
+  var calendarFile = selectedSeasonKey
+    ? 'schedule-' + selectedTeam + '-' + selectedSeasonKey + '.ics'
+    : 'schedule.ics';
+  var calendarPath = (window.__SITE_BASE_PATH || '') + '/api/' + calendarFile;
   var calendarUrl = window.location.origin + calendarPath;
 
   if (labelEl) labelEl.textContent = 'Sync ' + teamLabel + ' ' + seasonLabel;
@@ -1630,12 +1639,13 @@ function v2WireCalendarSyncLinks() {
   }
 
   if (googleLink) {
-    googleLink.href = 'https://calendar.google.com/calendar/render?cid=' + encodeURIComponent(calendarUrl);
+    googleLink.href = v2GoogleCalendarSubscribeUrl(calendarUrl);
     googleLink.textContent = 'Android (' + teamLabel + ')';
   }
 
   if (icsLink) {
     icsLink.href = calendarPath;
+    icsLink.download = 'timpanogos-baseball-' + selectedTeam + '-' + selectedSeasonKey + '.ics';
     icsLink.textContent = 'ICS (' + teamLabel + ')';
   }
 }

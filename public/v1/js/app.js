@@ -1290,107 +1290,134 @@ function renderAdmin(app) {
   function renderGamesPreview() {
     const ul = document.getElementById('gamesPreview');
     ul.innerHTML = '';
+    const groupedRecords = new Map();
+    const groupedOrder = [];
+
     buildCombinedGameResults().forEach(record => {
       const g = record.game;
-      const result = record.result;
-      const details = [];
-      details.push(getScheduleTeamLabel(g.teamLevel));
-      details.push(getBaseballSeasonLabel(g.season, g.date));
-      if (g.playoff) details.push('State Playoff');
-      if (g.location) details.push(g.location);
-      if (g.locationAddress) details.push(g.locationAddress);
-      if (g.time) details.push(g.time);
-      const li = document.createElement('li');
-      li.className = 'game-preview-item';
-      const span = document.createElement('span');
-      span.className = 'game-preview-details';
-      const dateEl = document.createElement('span');
-      dateEl.className = 'game-preview-date';
-      dateEl.textContent = formatDate(g.date, { year:'numeric', month:'long', day:'numeric' });
-      const opponentEl = document.createElement('span');
-      opponentEl.className = 'game-preview-opponent';
-      opponentEl.textContent = g.opponent;
-      span.appendChild(dateEl);
-      span.appendChild(opponentEl);
-      if (g.opponentMascot) {
-        const mascotEl = document.createElement('small');
-        mascotEl.textContent = g.opponentMascot;
-        span.appendChild(mascotEl);
-      }
-      if (details.length) {
-        const metaEl = document.createElement('small');
-        metaEl.textContent = details.join(' | ');
-        span.appendChild(metaEl);
-      }
-      if (result) {
-        const scoreEl = document.createElement('span');
-        const resultClass = result.ourScore > result.theirScore
-          ? 'win'
-          : (result.ourScore < result.theirScore ? 'loss' : 'tie');
-        scoreEl.className = 'game-preview-score ' + resultClass;
-        scoreEl.textContent = `Timpanogos ${result.ourScore}, ${g.opponent} ${result.theirScore}`;
-        span.appendChild(scoreEl);
-      }
-      li.appendChild(span);
-      const editBtn = document.createElement('button');
-      editBtn.textContent = 'Edit'; editBtn.className = 'btn small';
-      editBtn.addEventListener('click', () => {
-        document.getElementById('gameTeamLevel').value = getScheduleTeamLevel(g.teamLevel);
-        document.getElementById('gameDate').value = g.date;
-        updateGameSeasonHint();
-        document.getElementById('gameOpponentId').value = g.opponentId || '';
-        document.getElementById('gameOpponent').value = g.opponent;
-        document.getElementById('gameLocation').value = g.location || '';
-        document.getElementById('gameLocationAddress').value = g.locationAddress || '';
-        document.getElementById('gameTime').value = g.time || '';
-        document.getElementById('gamePlayoff').checked = !!g.playoff;
-        document.getElementById('gameOurScore').value = result ? result.ourScore : '';
-        document.getElementById('gameTheirScore').value = result ? result.theirScore : '';
-        editingGameIdx = record.gameIndex;
-        editingResultIdx = record.resultIndex;
-        if (editingGameIdx < 0 && record.adminResultIndex >= 0) {
-          editingResultIdx = savedResultIndexFromAdminIndex(record.adminResultIndex);
-        }
-        document.querySelector('#gameForm button[type="submit"]').textContent = 'Update';
-        showAdminPanel('dashboard');
-        document.getElementById('gameAdminCard').scrollIntoView({ behavior: 'smooth' });
-      });
-      const delBtn = document.createElement('button');
-      delBtn.textContent = 'Delete'; delBtn.className = 'btn small alt';
-      delBtn.addEventListener('click', () => {
-        const previousGames = games.slice();
-        const previousResults = results.slice();
-        const previousAdminResults = adminResults.slice();
-        const deletes = [];
-        if (record.gameIndex >= 0) {
-          const gameKey = firebaseChildKey(games[record.gameIndex], record.gameIndex);
-          games.splice(record.gameIndex, 1);
-          deletes.push(fbDeleteChild('games', gameKey));
-        }
-        if (record.resultIndex >= 0) {
-          const resultKey = firebaseChildKey(results[record.resultIndex], record.resultIndex);
-          results.splice(record.resultIndex, 1);
-          deletes.push(fbDeleteChild('results', resultKey));
-        }
-        Promise.all(deletes).then(() => {
-          cachedGames = games.slice();
-          cachedResults = results.slice();
-          syncAdminResults();
-          renderGamesPreview();
-        }).catch(err => {
-          games = previousGames;
-          results = previousResults;
-          cachedGames = previousGames.slice();
-          cachedResults = previousResults.slice();
-          adminResults = previousAdminResults;
-          document.getElementById('gameSaveError').textContent = err.message || 'Unable to delete game.';
+      const year = (String(g.date || '').split('-').map(Number)[0]) || '';
+      const seasonLabel = getBaseballSeasonLabel(g.season, g.date);
+      const teamLabel = getScheduleTeamLabel(g.teamLevel);
+      const groupKey = `${year}|${seasonLabel}|${teamLabel}`;
+      if (!groupedRecords.has(groupKey)) {
+        groupedRecords.set(groupKey, {
+          label: `${seasonLabel} • ${teamLabel}`,
+          records: []
         });
+        groupedOrder.push(groupKey);
+      }
+      groupedRecords.get(groupKey).records.push(record);
+    });
+
+    groupedOrder.forEach(groupKey => {
+      const group = groupedRecords.get(groupKey);
+      const heading = document.createElement('li');
+      heading.className = 'game-preview-group-heading';
+      heading.textContent = group.label;
+      ul.appendChild(heading);
+
+      group.records.forEach(record => {
+        const g = record.game;
+        const result = record.result;
+        const details = [];
+        details.push(getScheduleTeamLabel(g.teamLevel));
+        details.push(getBaseballSeasonLabel(g.season, g.date));
+        if (g.playoff) details.push('State Playoff');
+        if (g.location) details.push(g.location);
+        if (g.locationAddress) details.push(g.locationAddress);
+        if (g.time) details.push(g.time);
+        const li = document.createElement('li');
+        li.className = 'game-preview-item';
+        const span = document.createElement('span');
+        span.className = 'game-preview-details';
+        const dateEl = document.createElement('span');
+        dateEl.className = 'game-preview-date';
+        dateEl.textContent = formatDate(g.date, { year:'numeric', month:'long', day:'numeric' });
+        const opponentEl = document.createElement('span');
+        opponentEl.className = 'game-preview-opponent';
+        opponentEl.textContent = g.opponent;
+        span.appendChild(dateEl);
+        span.appendChild(opponentEl);
+        if (g.opponentMascot) {
+          const mascotEl = document.createElement('small');
+          mascotEl.textContent = g.opponentMascot;
+          span.appendChild(mascotEl);
+        }
+        if (details.length) {
+          const metaEl = document.createElement('small');
+          metaEl.textContent = details.join(' | ');
+          span.appendChild(metaEl);
+        }
+        if (result) {
+          const scoreEl = document.createElement('span');
+          const resultClass = result.ourScore > result.theirScore
+            ? 'win'
+            : (result.ourScore < result.theirScore ? 'loss' : 'tie');
+          scoreEl.className = 'game-preview-score ' + resultClass;
+          scoreEl.textContent = `Timpanogos ${result.ourScore}, ${g.opponent} ${result.theirScore}`;
+          span.appendChild(scoreEl);
+        }
+        li.appendChild(span);
+        const editBtn = document.createElement('button');
+        editBtn.textContent = 'Edit'; editBtn.className = 'btn small';
+        editBtn.addEventListener('click', () => {
+          document.getElementById('gameTeamLevel').value = getScheduleTeamLevel(g.teamLevel);
+          document.getElementById('gameDate').value = g.date;
+          updateGameSeasonHint();
+          document.getElementById('gameOpponentId').value = g.opponentId || '';
+          document.getElementById('gameOpponent').value = g.opponent;
+          document.getElementById('gameLocation').value = g.location || '';
+          document.getElementById('gameLocationAddress').value = g.locationAddress || '';
+          document.getElementById('gameTime').value = g.time || '';
+          document.getElementById('gamePlayoff').checked = !!g.playoff;
+          document.getElementById('gameOurScore').value = result ? result.ourScore : '';
+          document.getElementById('gameTheirScore').value = result ? result.theirScore : '';
+          editingGameIdx = record.gameIndex;
+          editingResultIdx = record.resultIndex;
+          if (editingGameIdx < 0 && record.adminResultIndex >= 0) {
+            editingResultIdx = savedResultIndexFromAdminIndex(record.adminResultIndex);
+          }
+          document.querySelector('#gameForm button[type="submit"]').textContent = 'Update';
+          showAdminPanel('dashboard');
+          document.getElementById('gameAdminCard').scrollIntoView({ behavior: 'smooth' });
+        });
+        const delBtn = document.createElement('button');
+        delBtn.textContent = 'Delete'; delBtn.className = 'btn small alt';
+        delBtn.addEventListener('click', () => {
+          const previousGames = games.slice();
+          const previousResults = results.slice();
+          const previousAdminResults = adminResults.slice();
+          const deletes = [];
+          if (record.gameIndex >= 0) {
+            const gameKey = firebaseChildKey(games[record.gameIndex], record.gameIndex);
+            games.splice(record.gameIndex, 1);
+            deletes.push(fbDeleteChild('games', gameKey));
+          }
+          if (record.resultIndex >= 0) {
+            const resultKey = firebaseChildKey(results[record.resultIndex], record.resultIndex);
+            results.splice(record.resultIndex, 1);
+            deletes.push(fbDeleteChild('results', resultKey));
+          }
+          Promise.all(deletes).then(() => {
+            cachedGames = games.slice();
+            cachedResults = results.slice();
+            syncAdminResults();
+            renderGamesPreview();
+          }).catch(err => {
+            games = previousGames;
+            results = previousResults;
+            cachedGames = previousGames.slice();
+            cachedResults = previousResults.slice();
+            adminResults = previousAdminResults;
+            document.getElementById('gameSaveError').textContent = err.message || 'Unable to delete game.';
+          });
+        });
+        const btns = document.createElement('div');
+        btns.className = 'list-actions';
+        btns.appendChild(editBtn); btns.appendChild(delBtn);
+        li.appendChild(btns);
+        ul.appendChild(li);
       });
-      const btns = document.createElement('div');
-      btns.className = 'list-actions';
-      btns.appendChild(editBtn); btns.appendChild(delBtn);
-      li.appendChild(btns);
-      ul.appendChild(li);
     });
   }
 

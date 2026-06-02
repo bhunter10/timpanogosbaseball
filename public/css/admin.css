@@ -275,6 +275,21 @@ body.admin-v2-body.auth-pending #app{
   gap:12px;
 }
 
+.admin-v2-body #gamesPreview .game-preview-group-heading{
+  margin:14px 0 4px;
+  padding:0 2px 6px;
+  list-style:none;
+  color:#1f2937;
+  font-size:.8rem;
+  font-weight:900;
+  letter-spacing:.06em;
+  text-transform:none;
+  background:transparent;
+  border:0;
+  border-bottom:1px solid rgba(15,23,42,.12);
+  box-shadow:none;
+}
+
 .admin-v2-body #gamesPreview .game-preview-item,
 .admin-v2-body .opponent-list-item{
   min-height:0;

@@ -80,12 +80,30 @@ function parseSeasonYear(seasonKey, games) {
   if (match) {
     return { season: match[1], year: Number(match[2]) };
   }
+  var seasonOnly = normalizeSeason(seasonKey);
+  if (seasonOnly) {
+    return { season: seasonOnly, year: null };
+  }
   var fallback = getLatestSeasonKey(games);
   var fallbackMatch = fallback.match(/^(spring|summer|fall)-(\d{4})$/);
   if (fallbackMatch) {
     return { season: fallbackMatch[1], year: Number(fallbackMatch[2]) };
   }
   return { season: 'spring', year: null };
+}
+
+function parseQueryFromRequestUrl(url) {
+  var parsedUrl = new URL(url || '/api/schedule.ics', 'https://timpanogosbaseball.local');
+  var query = {
+    team: parsedUrl.searchParams.get('team') || '',
+    season: parsedUrl.searchParams.get('season') || ''
+  };
+  var fileMatch = parsedUrl.pathname.match(/\/schedule-([a-z]+)-(spring|summer|fall)-(\d{4})\.ics$/i);
+  if (fileMatch) {
+    if (!query.team) query.team = fileMatch[1];
+    if (!query.season) query.season = fileMatch[2].toLowerCase() + '-' + fileMatch[3];
+  }
+  return query;
 }
 
 function filterGames(games, query) {
@@ -100,12 +118,10 @@ function filterGames(games, query) {
 }
 
 function buildCalendarName(games, query) {
-  var filteredGames = filterGames(games, query);
-  var team = normalizeTeam(query.team);
-  var seasonYear = parseSeasonYear(query.season, games);
+  var team = normalizeTeam(query && query.team);
+  var seasonYear = parseSeasonYear(query && query.season, games);
   var seasonLabel = seasonYear.season.charAt(0).toUpperCase() + seasonYear.season.slice(1);
   var yearLabel = seasonYear.year ? ' ' + seasonYear.year : '';
-  if (!filteredGames.length && !seasonYear.year) return DEFAULT_CALENDAR_NAME;
   return 'Timpanogos Baseball ' + TEAM_LABELS[team] + ' ' + seasonLabel + yearLabel + ' Schedule';
 }
 
@@ -206,7 +222,9 @@ function buildGameEvent(game, index, now) {
   var opponent = game.opponent || 'Opponent TBD';
   var location = game.locationAddress || game.address || game.location || '';
   var summary = 'Timpanogos Baseball vs ' + opponent;
-  var description = ['Timpanogos Baseball spring season game.'];
+  var season = getSeasonFromDate(game);
+  var seasonLabel = season.charAt(0).toUpperCase() + season.slice(1);
+  var description = ['Timpanogos Baseball ' + seasonLabel + ' ' + dateParts[0] + ' season game.'];
 
   if (game.time) description.push('First pitch: ' + game.time + '.');
   if (game.playoff) description.push('State playoff game.');
@@ -228,13 +246,16 @@ function buildCalendar(games, query) {
   var now = new Date();
   var filteredGames = filterGames(games, query);
   var calendarName = buildCalendarName(games, query);
+  var calendarDescription = 'Subscribe to ' + calendarName + '.';
   var lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Timpanogos Baseball//Spring Schedule//EN',
+    'PRODID:-//Timpanogos Baseball//Schedule//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
+    'NAME:' + escapeIcsText(calendarName),
     'X-WR-CALNAME:' + escapeIcsText(calendarName),
+    'X-WR-CALDESC:' + escapeIcsText(calendarDescription),
     'X-WR-TIMEZONE:' + TIME_ZONE
   ];
 
@@ -268,22 +289,23 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    var parsedUrl = new URL(req.url || '/api/schedule.ics', 'https://timpanogosbaseball.local');
-    var query = {
-      team: parsedUrl.searchParams.get('team') || '',
-      season: parsedUrl.searchParams.get('season') || ''
-    };
+    var query = parseQueryFromRequestUrl(req.url);
     var response = await fetch(DATABASE_URL + '/games.json');
     if (!response.ok) throw new Error('Firebase responded with ' + response.status);
     var games = fbToArray(await response.json());
     sendCalendar(res, 200, buildCalendar(games, query));
   } catch (error) {
+    var query = parseQueryFromRequestUrl(req.url);
+    var calendarName = buildCalendarName([], query);
     sendCalendar(res, 500, [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//Timpanogos Baseball//Spring Schedule//EN',
-      'X-WR-CALNAME:' + escapeIcsText(DEFAULT_CALENDAR_NAME),
+      'PRODID:-//Timpanogos Baseball//Schedule//EN',
+      'NAME:' + escapeIcsText(calendarName),
+      'X-WR-CALNAME:' + escapeIcsText(calendarName),
       'END:VCALENDAR'
     ].join('\r\n') + '\r\n');
   }
 };
+
+module.exports.buildCalendarName = buildCalendarName;
