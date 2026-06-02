@@ -1844,6 +1844,9 @@ button{font:inherit}
   padding-bottom:14px;
   border-bottom:1px solid rgba(255,255,255,.1);
 }
+#v2ScheduleSeasonTitle:not(.is-ready){
+  visibility:hidden;
+}
 .v2-heading-record{
   display:grid;
   justify-items:end;

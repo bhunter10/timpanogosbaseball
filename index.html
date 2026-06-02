@@ -12,6 +12,7 @@
   <link rel="icon" href="images/twolves-wolf.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="css/flip.min.css" />
   <link rel="stylesheet" href="css/style-v2.css" />
+  <style>#v2ScheduleSeasonTitle:not(.is-ready){visibility:hidden}</style>
 </head>
 <body>
   <header class="v2-header">
@@ -271,13 +272,33 @@
 
     <section class="v2-section v2-reveal" id="schedule">
       <div class="v2-shell">
-        <div class="v2-results-header">
+        <div class="v2-results-header v2-season-results-header" id="v2ScheduleHeader">
           <div class="v2-section-heading">
             <p class="v2-kicker">Schedule and Results</p>
             <div class="v2-heading-row">
-              <h2>2026 Spring Season</h2>
-              <div class="v2-heading-record" id="recordBand"></div>
+              <h2 id="v2ScheduleSeasonTitle" aria-hidden="true"></h2>
+              <script>
+                (function () {
+                  var match = /[?&]season=([^&]+)/.exec(window.location.search || '');
+                  if (!match) return;
+                  var parts = decodeURIComponent(match[1]).split('-');
+                  var labels = { spring: 'Spring', summer: 'Summer', fall: 'Fall' };
+                  var season = (parts[0] || '').toLowerCase();
+                  var year = parts[1] || '';
+                  if (!year || !labels[season]) return;
+                  var h2 = document.getElementById('v2ScheduleSeasonTitle');
+                  if (!h2) return;
+                  h2.textContent = year + ' ' + labels[season] + ' Season';
+                  h2.classList.add('is-ready');
+                  h2.removeAttribute('aria-hidden');
+                })();
+              </script>
+              <div class="v2-heading-record">
+                <span class="v2-heading-record-label">Record</span>
+                <span class="v2-heading-record-value" id="v2ScheduleRecordValue">0-0</span>
+              </div>
             </div>
+            <div class="v2-schedule-controls" id="v2ScheduleControls"></div>
           </div>
         </div>
         <div class="v2-schedule-groups">
