@@ -1427,9 +1427,16 @@ button{font:inherit}
   margin-bottom:0;
 }
 .v2-schedule-controls{
+  margin-top:16px;
+}
+.v2-schedule-controls-layout{
+  display:grid;
+  gap:14px;
+}
+.v2-schedule-controls-main{
   display:grid;
   gap:12px;
-  margin-top:16px;
+  min-width:0;
 }
 .v2-schedule-controls-top{
   display:flex;
@@ -1440,9 +1447,22 @@ button{font:inherit}
 .v2-schedule-controls-top .v2-season-picker-label{
   flex:1 1 240px;
 }
-.v2-schedule-controls-top .v2-calendar-sync{
-  flex:1 1 360px;
-  width:auto;
+.v2-schedule-controls-layout .v2-schedule-tabs{
+  margin-top:0;
+}
+.v2-schedule-controls-layout .v2-calendar-sync{
+  width:100%;
+  max-width:none;
+}
+@media (min-width: 768px){
+  .v2-schedule-controls-layout:has(.v2-calendar-sync){
+    grid-template-columns:minmax(0, 1fr) minmax(280px, 380px);
+    align-items:stretch;
+  }
+  .v2-schedule-controls-layout .v2-calendar-sync{
+    align-self:stretch;
+    height:100%;
+  }
 }
 .v2-season-picker-label{
   display:inline-flex;
@@ -2755,6 +2775,24 @@ body.v2-reveals-ready .v2-filmstrip-band.v2-reveal:not(.v2-visible) .v2-filmstri
   }
   .v2-section{
     padding:72px 0;
+  }
+  #schedule{
+    padding-top:104px;
+  }
+  #schedule .v2-results-header .v2-section-heading{
+    gap:20px;
+  }
+  #schedule .v2-heading-row{
+    gap:18px;
+    padding-bottom:20px;
+    margin-bottom:6px;
+    border-bottom:1px solid rgba(255,255,255,.1);
+  }
+  #schedule .v2-schedule-controls{
+    margin-top:24px;
+  }
+  #schedule .v2-schedule-controls-layout{
+    gap:16px;
   }
   .v2-schedule-groups{
     gap:22px;
