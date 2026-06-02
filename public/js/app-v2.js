@@ -840,12 +840,19 @@ function v2BuildScheduleSeasonSections(allSeasonGames, results, selectedTeam) {
     return Object.assign({}, result, { season: v2GetBaseballSeason(result.season, result.date) });
   });
   var usedResults = [];
+  var isSpringSeason = group.season === 'spring';
+  var regularSeasonGames = teamGames.filter(function(game) { return !game.playoff; });
+  var regularSeasonMarkup = isSpringSeason
+    ? (
+      v2BuildScheduleSubgroup('Region Games', regularSeasonGames.filter(function(game) { return v2RegionTeams.indexOf(game.opponent) !== -1; }), groupResults, usedResults, v2NewestGameFirst) +
+      v2BuildScheduleSubgroup('Non-Region Games', regularSeasonGames.filter(function(game) { return v2RegionTeams.indexOf(game.opponent) === -1; }), groupResults, usedResults, v2NewestGameFirst)
+    )
+    : v2BuildScheduleSubgroup('Games', regularSeasonGames, groupResults, usedResults, v2NewestGameFirst);
   return '<section class="v2-schedule-season">' +
     v2BuildSeasonScheduleHeader(group, groupResults, group.games, seasonTeam, orderedGroups, resolvedSeasonKey) +
     v2BuildSeasonSummaryCards(teamGames, groupResults) +
     v2BuildScheduleSubgroup('State Playoff Games', teamGames.filter(function(game) { return !!game.playoff; }), groupResults, usedResults, v2NewestGameFirst) +
-    v2BuildScheduleSubgroup('Region Games', teamGames.filter(function(game) { return !game.playoff && v2RegionTeams.indexOf(game.opponent) !== -1; }), groupResults, usedResults, v2NewestGameFirst) +
-    v2BuildScheduleSubgroup('Non-Region Games', teamGames.filter(function(game) { return !game.playoff && v2RegionTeams.indexOf(game.opponent) === -1; }), groupResults, usedResults, v2NewestGameFirst) +
+    regularSeasonMarkup +
   '</section>';
 }
 
@@ -924,7 +931,7 @@ function v2BuildSeasonTeamTabs(group, seasonGames, selectedTeam, selectedSeasonK
     if (level.value === 'varsity') url.searchParams.delete('team');
     else url.searchParams.set('team', level.value);
     return '<a href="' + v2EscapeHtml(url.pathname + url.search) + '" class="v2-schedule-tab' + (level.value === selectedTeam ? ' active' : '') + '">' +
-      v2EscapeHtml(level.label) + ' ' + (counts[level.value] || 0) +
+      v2EscapeHtml(level.label) +
     '</a>';
   }).join('') + '</div>';
 }
@@ -983,7 +990,7 @@ function v2RenderScheduleTeamTabs(games, selectedTeam) {
     else url.searchParams.set('team', level.value);
     link.href = url.pathname + url.search;
     link.className = 'v2-schedule-tab' + (level.value === selectedTeam ? ' active' : '');
-    link.textContent = level.label + ' ' + (counts[level.value] || 0);
+    link.textContent = level.label;
     tabs.appendChild(link);
   });
   var heading = section.querySelector('.v2-section-heading');
