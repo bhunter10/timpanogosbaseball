@@ -1717,18 +1717,18 @@ function v2WireCalendarSyncLinks() {
 
   if (appleLink) {
     appleLink.href = calendarUrl.replace(/^https?:\/\//, 'webcal://');
-    appleLink.textContent = 'Apple (' + teamLabel + ')';
+    appleLink.textContent = 'Apple';
   }
 
   if (googleLink) {
     googleLink.href = v2GoogleCalendarSubscribeUrl(calendarUrl);
-    googleLink.textContent = 'Android (' + teamLabel + ')';
+    googleLink.textContent = 'Android';
   }
 
   if (icsLink) {
     icsLink.href = calendarPath;
     icsLink.download = 'timpanogos-baseball-' + selectedTeam + '-' + selectedSeasonKey + '.ics';
-    icsLink.textContent = 'ICS (' + teamLabel + ')';
+    icsLink.textContent = 'ICS';
   }
 }
 
