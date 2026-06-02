@@ -975,9 +975,9 @@ function v2BuildCalendarSyncMarkup() {
         '<p>Subscribe once and get the baseball schedule on your phone each season.</p>' +
       '</div>' +
       '<div class="v2-calendar-sync-actions">' +
-        '<a class="v2-calendar-sync-link v2-calendar-sync-link-apple" href="/api/schedule.ics">Apple</a>' +
-        '<a class="v2-calendar-sync-link v2-calendar-sync-link-google" href="/api/schedule.ics" target="_blank" rel="noopener">Android</a>' +
-        '<a class="v2-calendar-sync-link v2-calendar-sync-link-muted" href="/api/schedule.ics" download="timpanogos-baseball-schedule.ics">ICS</a>' +
+        '<a class="v2-calendar-sync-link v2-calendar-sync-link-muted v2-calendar-sync-link-apple" href="/api/schedule.ics">Apple</a>' +
+        '<a class="v2-calendar-sync-link v2-calendar-sync-link-muted v2-calendar-sync-link-google" href="/api/schedule.ics" target="_blank" rel="noopener">Android</a>' +
+        '<a class="v2-calendar-sync-link v2-calendar-sync-link-muted v2-calendar-sync-link-ics" href="/api/schedule.ics" download="timpanogos-baseball-schedule.ics">ICS</a>' +
       '</div>' +
     '</div>';
 }
@@ -1731,7 +1731,7 @@ function v2WireCalendarSyncLinks() {
   if (!syncEl) return;
   var appleLink = syncEl.querySelector('.v2-calendar-sync-link-apple');
   var googleLink = syncEl.querySelector('.v2-calendar-sync-link-google');
-  var icsLink = syncEl.querySelector('.v2-calendar-sync-link-muted');
+  var icsLink = syncEl.querySelector('.v2-calendar-sync-link-ics');
   var labelEl = syncEl.querySelector('.v2-calendar-sync-label');
   var descriptionEl = syncEl.querySelector('p');
   if (!appleLink && !googleLink && !icsLink) return;
