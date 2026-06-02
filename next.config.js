@@ -13,6 +13,16 @@ const nextConfig = {
   },
   env: {
     NEXT_PUBLIC_BASE_PATH: basePath
+  },
+  async headers() {
+    return [
+      {
+        source: '/api/:path*.ics',
+        headers: [
+          { key: 'Content-Type', value: 'text/calendar; charset=utf-8' }
+        ]
+      }
+    ];
   }
 };
 

@@ -1712,6 +1712,20 @@ function v2GoogleCalendarSubscribeUrl(calendarUrl) {
   }
 }
 
+function v2GetHttpsCalendarUrl(path) {
+  var host = window.location.hostname || '';
+  var isLocal = /^(localhost|127\.0\.0\.1)$/i.test(host);
+  var origin = window.location.origin || '';
+  if (!isLocal && window.location.protocol === 'http:') {
+    origin = 'https://' + window.location.host;
+  }
+  return origin + path;
+}
+
+function v2ToWebcalUrl(httpsUrl) {
+  return String(httpsUrl || '').replace(/^https:\/\//i, 'webcal://');
+}
+
 function v2WireCalendarSyncLinks() {
   var syncEl = document.querySelector('#schedule .v2-season-results-header .v2-calendar-sync');
   if (!syncEl) return;
@@ -1733,13 +1747,13 @@ function v2WireCalendarSyncLinks() {
     ? 'schedule-' + selectedTeam + '-' + selectedSeasonKey + '.ics'
     : 'schedule.ics';
   var calendarPath = (window.__SITE_BASE_PATH || '') + '/api/' + calendarFile;
-  var calendarUrl = window.location.origin + calendarPath;
+  var calendarUrl = v2GetHttpsCalendarUrl(calendarPath);
 
   if (labelEl) labelEl.textContent = 'Sync ' + teamLabel + ' ' + seasonLabel;
   if (descriptionEl) descriptionEl.textContent = 'Subscribe to the ' + teamLabel + ' ' + seasonLabel + ' schedule.';
 
   if (appleLink) {
-    appleLink.href = calendarUrl.replace(/^https?:\/\//, 'webcal://');
+    appleLink.href = v2ToWebcalUrl(calendarUrl);
     appleLink.textContent = 'Apple';
   }
 

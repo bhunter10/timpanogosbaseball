@@ -1503,7 +1503,7 @@ button{font:inherit}
 }
 .v2-season-summary-grid{
   display:grid;
-  grid-template-columns:repeat(3, minmax(0, 1fr));
+  grid-template-columns:minmax(0, 1fr);
   gap:18px;
 }
 .v2-season-summary-grid .v2-panel{
@@ -2541,7 +2541,6 @@ body.v2-reveals-ready .v2-filmstrip-band.v2-reveal:not(.v2-visible) .v2-filmstri
   }
   .v2-summary-grid,
   .v2-schedule-grid,
-  .v2-season-summary-grid,
   .v2-results-feed,
   .v2-roster-grid,
   .v2-news-grid,
@@ -2798,6 +2797,9 @@ body.v2-reveals-ready .v2-filmstrip-band.v2-reveal:not(.v2-visible) .v2-filmstri
     gap:22px;
   }
   .v2-schedule-grid{
+    grid-template-columns:1fr;
+  }
+  .v2-season-summary-grid{
     grid-template-columns:1fr;
   }
   .v2-schedule-block{

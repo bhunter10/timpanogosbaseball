@@ -3,7 +3,10 @@ const path = require('node:path');
 const handler = require('./schedule-ics-handler.js');
 
 const DATABASE_URL = 'https://timpanogos-baseball-default-rtdb.firebaseio.com';
-const OUTPUT_DIR = path.join(process.cwd(), 'out', 'api');
+const OUTPUT_DIRS = [
+  path.join(process.cwd(), 'out', 'api'),
+  path.join(process.cwd(), 'public', 'api')
+];
 const TEAMS = ['varsity', 'jv', 'sophomore'];
 const SEASON_ORDER = { spring: 1, summer: 2, fall: 3 };
 
@@ -84,30 +87,42 @@ function calendarFileName(team, seasonKey) {
   return 'schedule-' + team + '-' + seasonKey + '.ics';
 }
 
-async function generateCalendarFile(team, seasonKey, outputPath) {
+async function generateCalendarBody(team, seasonKey) {
   var response = createResponse();
-  var query = new URLSearchParams({ team: team, season: seasonKey });
+  var fileName = calendarFileName(team, seasonKey);
   await handler({
     method: 'GET',
-    url: 'https://timpanogosbaseball.local/api/schedule.ics?' + query.toString()
+    url: 'https://timpanogosbaseball.local/api/' + fileName
   }, response);
-  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-  fs.writeFileSync(outputPath, response.body);
-  return response.statusCode === 200;
+  return response.statusCode === 200 ? response.body : '';
 }
 
-function writeFallbackCalendar(outputPath, calendarName) {
+function writeCalendarToDirs(fileName, body) {
+  OUTPUT_DIRS.forEach(function(outputDir) {
+    var outputPath = path.join(outputDir, fileName);
+    fs.mkdirSync(outputDir, { recursive: true });
+    fs.writeFileSync(outputPath, body);
+  });
+}
+
+async function generateCalendarFile(team, seasonKey) {
+  var body = await generateCalendarBody(team, seasonKey);
+  if (!body) return false;
+  writeCalendarToDirs(calendarFileName(team, seasonKey), body);
+  return true;
+}
+
+function writeFallbackCalendar(calendarName) {
   var name = calendarName || 'Timpanogos Baseball Schedule';
-  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-  fs.writeFileSync(outputPath, [
+  var body = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
     'PRODID:-//Timpanogos Baseball//Schedule//EN',
-    'NAME:' + name,
     'X-WR-CALNAME:' + name,
     'END:VCALENDAR',
     ''
-  ].join('\r\n'));
+  ].join('\r\n');
+  writeCalendarToDirs('schedule.ics', body);
 }
 
 async function fetchGames() {
@@ -125,30 +140,29 @@ async function main() {
   for (var i = 0; i < combos.length; i++) {
     var combo = combos[i];
     var fileName = calendarFileName(combo.team, combo.season);
-    var outputPath = path.join(OUTPUT_DIR, fileName);
-    var ok = await generateCalendarFile(combo.team, combo.season, outputPath);
+    var ok = await generateCalendarFile(combo.team, combo.season);
     if (ok) {
       generated += 1;
-      console.log('Generated out/api/' + fileName);
+      console.log('Generated api/' + fileName);
     }
   }
 
   if (defaultCombo) {
-    var defaultPath = path.join(OUTPUT_DIR, 'schedule.ics');
-    await generateCalendarFile(defaultCombo.team, defaultCombo.season, defaultPath);
-    console.log('Generated out/api/schedule.ics');
+    var defaultBody = await generateCalendarBody(defaultCombo.team, defaultCombo.season);
+    if (defaultBody) writeCalendarToDirs('schedule.ics', defaultBody);
+    console.log('Generated api/schedule.ics');
   } else {
-    writeFallbackCalendar(path.join(OUTPUT_DIR, 'schedule.ics'));
-    console.log('Generated fallback out/api/schedule.ics');
+    writeFallbackCalendar();
+    console.log('Generated fallback api/schedule.ics');
   }
 
   if (!generated && !defaultCombo) {
-    writeFallbackCalendar(path.join(OUTPUT_DIR, 'schedule.ics'));
+    writeFallbackCalendar();
   }
 }
 
 main().catch(function(error) {
   console.warn('Unable to generate schedule calendars:', error && error.message ? error.message : error);
-  writeFallbackCalendar(path.join(OUTPUT_DIR, 'schedule.ics'));
-  console.log('Generated fallback out/api/schedule.ics');
+  writeFallbackCalendar();
+  console.log('Generated fallback api/schedule.ics');
 });

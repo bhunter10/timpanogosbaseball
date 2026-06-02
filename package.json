@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build && node scripts/generate-schedule-ics.js",
     "build:pages": "node scripts/fetch-news.js && next build && node scripts/generate-schedule-ics.js",
     "fetch-news": "node scripts/fetch-news.js",
     "start": "next start"

@@ -253,7 +253,6 @@ function buildCalendar(games, query) {
     'PRODID:-//Timpanogos Baseball//Schedule//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
-    'NAME:' + escapeIcsText(calendarName),
     'X-WR-CALNAME:' + escapeIcsText(calendarName),
     'X-WR-CALDESC:' + escapeIcsText(calendarDescription),
     'X-WR-TIMEZONE:' + TIME_ZONE
@@ -301,7 +300,6 @@ module.exports = async function handler(req, res) {
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
       'PRODID:-//Timpanogos Baseball//Schedule//EN',
-      'NAME:' + escapeIcsText(calendarName),
       'X-WR-CALNAME:' + escapeIcsText(calendarName),
       'END:VCALENDAR'
     ].join('\r\n') + '\r\n');
