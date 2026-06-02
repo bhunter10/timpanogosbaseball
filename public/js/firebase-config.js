@@ -30,6 +30,16 @@ function fbSignOut() {
   return auth.signOut();
 }
 
+function fbFormatError(err, pathHint) {
+  var code = err && err.code ? String(err.code) : '';
+  var message = err && err.message ? String(err.message) : 'Request failed.';
+  if (code === 'PERMISSION_DENIED' || message.toLowerCase().indexOf('permission denied') !== -1) {
+    return 'Firebase denied this ' + (pathHint ? 'write to ' + pathHint : 'request') +
+      '. Publish the rules in database.rules.json (Realtime Database) and storage.rules (Storage) from the Firebase Console or run: firebase deploy --only database,storage';
+  }
+  return message;
+}
+
 /* Read once from a path, returns a promise */
 function fbGet(path) {
   return db.ref(path).once('value').then(function(snap) {
@@ -96,72 +106,47 @@ function fbToArray(obj) {
   }).filter(Boolean);
 }
 
+function fbHasChildren(value) {
+  return !!(value && typeof value === 'object' && Object.keys(value).length);
+}
+
 /* Seed database if empty (writes require auth — see Realtime Database rules). */
 function seedDatabase() {
   return Promise.all([
     fbGet('games'),
     fbGet('results')
   ]).then(function(vals) {
-    var games = vals[0];
-    var results = vals[1];
-    if (games && results) return Promise.resolve();
+    var hasGames = fbHasChildren(vals[0]);
+    var hasResults = fbHasChildren(vals[1]);
+    if (hasGames && hasResults) return Promise.resolve();
+    if (!auth.currentUser) return Promise.resolve();
 
-    if (!auth.currentUser) {
-      return Promise.resolve();
-    }
+    var seed = window.TimpanogosScheduleSeed;
+    if (!seed) return Promise.resolve();
 
     var promises = [];
-
-    if (!games) {
-      var gamesSeed = [
-        { date:'2026-03-05', opponent:'Crimson Cliffs', location:'Washington, UT', time:'6:30 PM' },
-        { date:'2026-03-06', opponent:'Juab', location:'Washington, UT', time:'3:30 PM' },
-        { date:'2026-03-07', opponent:'Ogden', location:'Washington, UT', time:'8:00 AM' },
-        { date:'2026-03-07', opponent:'Murray', location:'Washington, UT', time:'1:00 PM' },
-        { date:'2026-03-09', opponent:'American Fork', location:'BYU', time:'3:30 PM' },
-        { date:'2026-03-10', opponent:'Viewmont', location:'Away', time:'3:30 PM' },
-        { date:'2026-03-12', opponent:'Fremont', location:'Home', time:'3:30 PM' },
-        { date:'2026-03-17', opponent:'Alta', location:'Home', time:'3:30 PM' },
-        { date:'2026-03-19', opponent:'Salem Hills', location:'Away', time:'3:30 PM' },
-        { date:'2026-03-24', opponent:'Mountain View', location:'Away', time:'3:30 PM' },
-        { date:'2026-03-25', opponent:'Mountain View', location:'Home', time:'3:30 PM' },
-        { date:'2026-03-27', opponent:'Mountain View', location:'Away', time:'3:30 PM' },
-        { date:'2026-03-31', opponent:'Summit Academy', location:'Home', time:'3:30 PM' },
-        { date:'2026-04-03', opponent:'Summit Academy', location:'Away', time:'3:30 PM' },
-        { date:'2026-04-03', opponent:'Summit Academy', location:'Home', time:'3:30 PM' },
-        { date:'2026-04-06', opponent:'Uintah', location:'Away', time:'1:00 PM' },
-        { date:'2026-04-08', opponent:'Uintah', location:'Home', time:'1:00 PM' },
-        { date:'2026-04-08', opponent:'Uintah', location:'Home', time:'3:00 PM' },
-        { date:'2026-04-14', opponent:'Provo', location:'Away', time:'3:30 PM' },
-        { date:'2026-04-15', opponent:'Provo', location:'Home', time:'3:30 PM' },
-        { date:'2026-04-17', opponent:'Provo', location:'Away', time:'3:30 PM' },
-        { date:'2026-04-21', opponent:'Orem', location:'Away', time:'3:30 PM' },
-        { date:'2026-04-22', opponent:'Orem', location:'Home', time:'3:30 PM' },
-        { date:'2026-04-24', opponent:'Orem', location:'Away', time:'3:30 PM' },
-        { date:'2026-05-04', opponent:'TBD', location:'Home', time:'3:30 PM', playoff:true }
-      ];
-      promises.push(fbSet('games', gamesSeed));
+    if (!hasGames && seed.games && seed.games.length) {
+      promises.push(fbSet('games', seed.games));
     }
-
-    if (!results) {
-      var resultsSeed = [
-        { date:'2025-09-02', opponent:'Spanish Fork', ourScore:7, theirScore:0 },
-        { date:'2025-09-11', opponent:'Skyridge', ourScore:4, theirScore:2 },
-        { date:'2025-09-16', opponent:'Brighton', ourScore:7, theirScore:0 },
-        { date:'2025-09-17', opponent:'Spanish Fork', ourScore:4, theirScore:6 },
-        { date:'2025-09-24', opponent:'Viewmont', ourScore:4, theirScore:3 },
-        { date:'2025-09-25', opponent:'Pleasant Grove', ourScore:5, theirScore:8 },
-        { date:'2025-10-01', opponent:'American Fork', ourScore:5, theirScore:2 },
-        { date:'2025-10-24', opponent:'Rawlings Tigers Black', ourScore:5, theirScore:1 },
-        { date:'2025-10-24', opponent:'Virgin Valley Dawgs', ourScore:13, theirScore:1 },
-        { date:'2025-10-25', opponent:'SoIda Chivos', ourScore:9, theirScore:8 },
-        { date:'2025-10-25', opponent:'CBA Warriors Navy', ourScore:4, theirScore:0 },
-        { date:'2025-10-25', opponent:'Southern Utah Storm', ourScore:2, theirScore:4 }
-      ];
-      promises.push(fbSet('results', resultsSeed));
+    if (!hasResults && seed.results && seed.results.length) {
+      promises.push(fbSet('results', seed.results));
     }
-
     if (!promises.length) return Promise.resolve();
     return Promise.all(promises);
   });
+}
+
+/* Replace games/results with schedule backup (admin rebuild). */
+function reseedScheduleDatabase() {
+  if (!auth.currentUser) {
+    return Promise.reject(new Error('Sign in to reseed the schedule.'));
+  }
+  var seed = window.TimpanogosScheduleSeed;
+  if (!seed || !seed.games || !seed.results) {
+    return Promise.reject(new Error('Schedule seed data is not loaded.'));
+  }
+  return Promise.all([
+    fbSet('games', seed.games),
+    fbSet('results', seed.results)
+  ]);
 }

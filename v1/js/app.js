@@ -2,7 +2,18 @@
 var cachedGames = null;
 var cachedResults = null;
 var cachedCarouselPhotos = null;
+var cachedOpponents = null;
 var carouselRefreshStorageKey = 'timpanogosCarouselPhotosUpdatedAt';
+var scheduleTeamLevels = [
+  { value: 'varsity', label: 'Varsity' },
+  { value: 'jv', label: 'JV' },
+  { value: 'sophomore', label: 'Sophomores' }
+];
+var baseballSeasons = [
+  { value: 'spring', label: 'Spring', order: 1 },
+  { value: 'summer', label: 'Summer', order: 2 },
+  { value: 'fall', label: 'Fall', order: 3 }
+];
 
 function fbSave(key, data) {
   if (Array.isArray(data)) {
@@ -13,6 +24,7 @@ function fbSave(key, data) {
     if (key === 'games') cachedGames = data;
     if (key === 'results') cachedResults = data;
     if (key === 'carouselPhotos') cachedCarouselPhotos = data;
+    if (key === 'opponents') cachedOpponents = data;
     return data;
   });
 }
@@ -46,8 +58,122 @@ function fbDeleteChild(collection, childKey) {
   return fbRemove(collection + '/' + childKey);
 }
 
+function fbGetOptional(path, fallback) {
+  return fbGet(path).catch(function(err) {
+    var message = err && (err.message || err.code) ? (err.message || err.code) : '';
+    if (String(message).indexOf('permission_denied') === -1) {
+      console.warn('Optional Firebase path failed:', path, message || err);
+    }
+    return fallback;
+  });
+}
+
 function getGames() { return cachedGames || []; }
 function getResults() { return cachedResults || []; }
+function getOpponents() { return cachedOpponents || []; }
+function getScheduleTeamLevel(value) {
+  value = String(value || '').trim().toLowerCase();
+  return scheduleTeamLevels.some(function(level) { return level.value === value; }) ? value : 'varsity';
+}
+function getScheduleTeamLabel(value) {
+  var teamLevel = getScheduleTeamLevel(value);
+  var match = scheduleTeamLevels.find(function(level) { return level.value === teamLevel; });
+  return match ? match.label : 'Varsity';
+}
+function getDateParts(iso) {
+  var parts = String(iso || '').split('-').map(function(part) { return +part; });
+  if (parts.length !== 3 || parts.some(function(part) { return !Number.isFinite(part); })) return null;
+  return { year: parts[0], month: parts[1], day: parts[2] };
+}
+function getBaseballSeason(value, date) {
+  value = String(value || '').trim().toLowerCase();
+  var parts = getDateParts(date);
+  if (parts) {
+    if (parts.month >= 6 && parts.month <= 8) return 'summer';
+    if (parts.month >= 9 && parts.month <= 11) return 'fall';
+    return 'spring';
+  }
+  if (baseballSeasons.some(function(season) { return season.value === value; })) return value;
+  return 'spring';
+}
+function getBaseballSeasonLabel(value, date) {
+  var season = getBaseballSeason(value, date);
+  var parts = getDateParts(date);
+  var match = baseballSeasons.find(function(item) { return item.value === season; });
+  return (match ? match.label : 'Spring') + (parts ? ' ' + parts.year : '');
+}
+function updateGameSeasonHint() {
+  var hint = document.getElementById('gameSeasonHint');
+  var dateInput = document.getElementById('gameDate');
+  if (!hint || !dateInput) return;
+  hint.textContent = dateInput.value
+    ? getBaseballSeasonLabel('', dateInput.value)
+    : 'Season is set from the game date.';
+}
+function normalizeOpponent(opponent, index) {
+  return {
+    schoolName: opponent && opponent.schoolName ? opponent.schoolName : '',
+    shortName: opponent && opponent.shortName ? opponent.shortName : '',
+    mascot: opponent && opponent.mascot ? opponent.mascot : '',
+    address: opponent && opponent.address ? opponent.address : '',
+    logoUrl: opponent && opponent.logoUrl ? opponent.logoUrl : '',
+    logoStoragePath: opponent && opponent.logoStoragePath ? opponent.logoStoragePath : '',
+    sortOrder: opponent && opponent.sortOrder != null ? +opponent.sortOrder : index,
+    _key: opponent && opponent._key != null ? opponent._key : String(index)
+  };
+}
+function normalizeOpponentList(opponents) {
+  return (opponents || []).map(normalizeOpponent)
+    .filter(function(opponent) { return opponent.schoolName; })
+    .sort(function(a, b) {
+      if ((+a.sortOrder || 0) !== (+b.sortOrder || 0)) return (+a.sortOrder || 0) - (+b.sortOrder || 0);
+      return a.schoolName.localeCompare(b.schoolName);
+    });
+}
+function findOpponentById(opponentId, opponents) {
+  if (!opponentId) return null;
+  return (opponents || getOpponents()).find(function(opponent) {
+    return opponent && opponent._key === opponentId;
+  }) || null;
+}
+function opponentsMatch(a, b) {
+  if (!a || !b) return false;
+  if (a.opponentId && b.opponentId && a.opponentId === b.opponentId) return true;
+  var aName = String(a.opponent || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  var bName = String(b.opponent || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  if (aName && bName) {
+    if (aName === bName) return true;
+    var shorter = aName.length <= bName.length ? aName : bName;
+    var longer = aName.length > bName.length ? aName : bName;
+    if (longer === shorter || longer.indexOf(shorter + ' ') === 0) return true;
+  }
+  return a.opponent === b.opponent;
+}
+function resultsSameContest(a, b) {
+  if (!a || !b || a.date !== b.date) return false;
+  if (getScheduleTeamLevel(a.teamLevel) !== getScheduleTeamLevel(b.teamLevel)) return false;
+  if (getBaseballSeason(a.season, a.date) !== getBaseballSeason(b.season, b.date)) return false;
+  if (!opponentsMatch(a, b)) return false;
+  return !a.time || !b.time || a.time === b.time;
+}
+function enrichGameWithOpponent(game, opponents) {
+  var enriched = Object.assign({}, game);
+  enriched.teamLevel = getScheduleTeamLevel(enriched.teamLevel);
+  enriched.season = getBaseballSeason(enriched.season, enriched.date);
+  var opponent = findOpponentById(enriched.opponentId, opponents);
+  if (opponent) {
+    enriched.opponent = opponent.shortName || opponent.schoolName || enriched.opponent;
+    enriched.opponentMascot = opponent.mascot || '';
+    enriched.opponentLogoUrl = opponent.logoUrl || '';
+    enriched.locationAddress = enriched.locationAddress || opponent.address || '';
+  }
+  return enriched;
+}
+function enrichGamesWithOpponents(games, opponents) {
+  return (games || []).map(function(game) {
+    return enrichGameWithOpponent(game, opponents);
+  });
+}
 function normalizeCarouselPhoto(photo, index) {
   if (typeof photo === 'string') return { src: photo, alt: 'Team photo', sortOrder: index, _key: String(index) };
   return {
@@ -814,6 +940,7 @@ function renderAdmin(app) {
   app.innerHTML = `
     <aside class="admin-card admin-sidebar">
       <button type="button" class="admin-nav-link active" data-admin-panel="dashboard">Dashboard</button>
+      <button type="button" class="admin-nav-link" data-admin-panel="opponents">Opponents</button>
       <button type="button" class="admin-nav-link" data-admin-panel="carousel">Carousel photos</button>
       <button type="button" class="admin-nav-link" data-admin-panel="news">Utah News</button>
     </aside>
@@ -830,10 +957,12 @@ function renderAdmin(app) {
           <section class="admin-card" id="gameAdminCard">
             <h2>Add Game / Result</h2>
             <form id="gameForm">
-              <label>Date (MM-DD-YYYY):<input type="date" id="gameDate" required /></label>
-              <label>Opponent:<input type="text" id="gameOpponent" required /></label>
+              <label>Schedule:<select id="gameTeamLevel">${scheduleTeamLevels.map(level => `<option value="${level.value}">${level.label}</option>`).join('')}</select></label>
+              <label class="admin-date-field">Date (MM-DD-YYYY):<input type="date" id="gameDate" required /><span class="admin-season-hint muted" id="gameSeasonHint" aria-live="polite"></span></label>
+              <label>Opponent from list:<select id="gameOpponentId"><option value="">Choose opponent</option></select></label>
+              <label>Opponent name:<input type="text" id="gameOpponent" required placeholder="Used if no opponent is selected" /></label>
               <label>Location:<input type="text" id="gameLocation" required placeholder="Home/Away" /></label>
-              <label>Location Address:<input type="text" id="gameLocationAddress" placeholder="Optional full address for calendar sync" /></label>
+              <label>Location Address:<input type="text" id="gameLocationAddress" placeholder="Auto-filled from opponent when available" /></label>
               <label>Time:<input type="text" id="gameTime" required placeholder="4:00 PM" /></label>
               <label>Our Score:<input id="gameOurScore" type="number" placeholder="Optional" /></label>
               <label>Their Score:<input id="gameTheirScore" type="number" placeholder="Optional" /></label>
@@ -848,6 +977,37 @@ function renderAdmin(app) {
         <section class="admin-card">
           <h2>Saved Games & Results</h2>
           <ul id="gamesPreview" class="list"></ul>
+        </section>
+        <section class="admin-card">
+          <h2>Rebuild schedule</h2>
+          <p class="muted">Replace every game and result in Firebase with the backup in <code>schedule-seed-data.js</code>. Use this for a clean rebuild.</p>
+          <div class="form-row">
+            <button type="button" class="btn alt" id="adminReseedScheduleBtn">Rebuild games &amp; results</button>
+          </div>
+          <p class="auth-error" id="adminReseedError"></p>
+          <p class="save-success" id="adminReseedSuccess"></p>
+        </section>
+      </div>
+      <div class="admin-panel" data-admin-panel-view="opponents">
+        <section class="admin-card" id="opponentAdminCard">
+          <h2>Opponents</h2>
+          <form id="opponentForm">
+            <label>School name:<input type="text" id="opponentSchoolName" required placeholder="Mountain View" /></label>
+            <label>Short name:<input type="text" id="opponentShortName" placeholder="Optional schedule label" /></label>
+            <label>Mascot:<input type="text" id="opponentMascot" placeholder="Bruins" /></label>
+            <label>Address:<input type="text" id="opponentAddress" placeholder="Full address for calendar sync" /></label>
+            <label>Upload logo:<input type="file" id="opponentLogoFile" accept="image/*" /></label>
+            <label>Logo URL:<input type="url" id="opponentLogoUrl" placeholder="Optional pasted logo URL" /></label>
+            <div class="form-row">
+              <button type="submit" class="btn">Add Opponent</button>
+            </div>
+            <p class="auth-error" id="opponentSaveError"></p>
+            <p class="save-success" id="opponentSaveSuccess"></p>
+          </form>
+        </section>
+        <section class="admin-card">
+          <h2>Saved Opponents</h2>
+          <ul id="opponentsPreview" class="list opponent-list"></ul>
         </section>
       </div>
       <div class="admin-panel" data-admin-panel-view="carousel">
@@ -905,6 +1065,37 @@ function renderAdmin(app) {
     fbSignOut().then(() => navigate());
   });
 
+  document.getElementById('adminReseedScheduleBtn').addEventListener('click', () => {
+    const btn = document.getElementById('adminReseedScheduleBtn');
+    const errorEl = document.getElementById('adminReseedError');
+    const successEl = document.getElementById('adminReseedSuccess');
+    errorEl.textContent = '';
+    successEl.textContent = '';
+    if (!window.confirm('Replace all games and results in Firebase with the backup? This cannot be undone.')) return;
+    if (typeof reseedScheduleDatabase !== 'function') {
+      errorEl.textContent = 'Reseed is not available. Load schedule-seed-data.js before firebase-config.js.';
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Rebuilding…';
+    reseedScheduleDatabase().then(() => {
+      return Promise.all([fbGet('games'), fbGet('results')]);
+    }).then(vals => {
+      games = fbToArray(vals[0]);
+      results = fbToArray(vals[1]);
+      cachedGames = games.slice();
+      cachedResults = results.slice();
+      syncAdminResults();
+      renderGamesPreview();
+      successEl.textContent = 'Schedule rebuilt from backup.';
+    }).catch(err => {
+      errorEl.textContent = err && err.message ? err.message : 'Rebuild failed.';
+    }).finally(() => {
+      btn.disabled = false;
+      btn.textContent = 'Rebuild games & results';
+    });
+  });
+
   function showAdminPanel(panelName) {
     document.querySelectorAll('.admin-nav-link').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.adminPanel === panelName);
@@ -928,18 +1119,11 @@ function renderAdmin(app) {
   let results = getResults().slice();
   let adminResults = [];
   let carouselPhotos = getCarouselPhotos();
+  let opponents = normalizeOpponentList(getOpponents());
+  let editingOpponentIdx = -1;
 
   function syncAdminResults() {
     adminResults = results.slice();
-    spring2026Results().concat(summer2025Results(), historical2025Results()).forEach(r => {
-      const exists = adminResults.some(saved =>
-        saved.date === r.date &&
-        saved.opponent === r.opponent &&
-        +saved.ourScore === +r.ourScore &&
-        +saved.theirScore === +r.theirScore
-      );
-      if (!exists) adminResults.push(Object.assign({ _staticResult: true }, r));
-    });
   }
 
   syncAdminResults();
@@ -959,26 +1143,19 @@ function renderAdmin(app) {
   }
 
   function findResultIndexForGame(game) {
-    return results.findIndex(result =>
-      result.date === game.date &&
-      result.opponent === game.opponent
-    );
+    return results.findIndex(result => resultsSameContest(result, game));
   }
 
   function findGameIndexForResult(result) {
-    return games.findIndex(game =>
-      game.date === result.date &&
-      game.opponent === result.opponent
-    );
+    return games.findIndex(game => resultsSameContest(result, game));
   }
 
   function savedResultIndexFromAdminIndex(adminResultIndex) {
     if (adminResultIndex < 0 || !adminResults[adminResultIndex]) return -1;
     const result = adminResults[adminResultIndex];
-    if (result._staticResult) return -1;
     return results.findIndex(saved => {
       if (result._key != null && saved._key === result._key) return true;
-      return saved.date === result.date && saved.opponent === result.opponent;
+      return resultsSameContest(saved, result);
     });
   }
 
@@ -1003,26 +1180,15 @@ function renderAdmin(app) {
 
   function buildCombinedGameResults() {
     const usedResultIndexes = [];
-    const combinedGames = games.slice();
-    const gameKeys = {};
-
-    combinedGames.forEach(game => {
-      gameKeys[(game.date || '') + '|' + (game.opponent || '') + '|' + (game.time || '')] = true;
-    });
-
-    spring2026ScheduleGames().forEach(game => {
-      const key = (game.date || '') + '|' + (game.opponent || '') + '|' + (game.time || '');
-      if (gameKeys[key]) return;
-      gameKeys[key] = true;
-      combinedGames.push(Object.assign({ _staticGame: true }, game));
+    const combinedGames = games.map(function(game, index) {
+      return Object.assign({ _adminGameIndex: index }, enrichGameWithOpponent(game, opponents));
     });
 
     const combined = combinedGames.map((game) => {
-      const gameIndex = game._staticGame ? -1 : games.indexOf(game);
+      const gameIndex = game._adminGameIndex;
       const resultIndex = adminResults.findIndex((result, index) =>
         usedResultIndexes.indexOf(index) === -1 &&
-        result.date === game.date &&
-        result.opponent === game.opponent
+        resultsSameContest(result, game)
       );
       const result = resultIndex >= 0 ? adminResults[resultIndex] : null;
       if (resultIndex >= 0) usedResultIndexes.push(resultIndex);
@@ -1035,6 +1201,8 @@ function renderAdmin(app) {
         game: {
           date: result.date,
           opponent: result.opponent,
+          teamLevel: getScheduleTeamLevel(result.teamLevel),
+          season: getBaseballSeason(result.season, result.date),
           location: result.location || '',
           locationAddress: result.locationAddress || '',
           time: result.time || '',
@@ -1062,6 +1230,9 @@ function renderAdmin(app) {
     return {
       date: game.date,
       opponent: game.opponent,
+      teamLevel: getScheduleTeamLevel(game.teamLevel),
+      season: getBaseballSeason(game.season, game.date),
+      opponentId: game.opponentId || '',
       location: game.location,
       locationAddress: game.locationAddress || '',
       time: game.time,
@@ -1113,7 +1284,7 @@ function renderAdmin(app) {
     if (game.time) details.push(game.time);
     const detailText = details.length ? ' (' + details.join(' | ') + ')' : '';
     const score = result ? ` | Timpanogos ${result.ourScore}, ${game.opponent} ${result.theirScore}` : '';
-    return `${formatDate(game.date, { year:'numeric', month:'long', day:'numeric' })} - ${game.opponent}${detailText}${score}`;
+    return `${getScheduleTeamLabel(game.teamLevel)} | ${getBaseballSeasonLabel(game.season, game.date)} | ${formatDate(game.date, { year:'numeric', month:'long', day:'numeric' })} - ${game.opponent}${detailText}${score}`;
   }
 
   function renderGamesPreview() {
@@ -1123,6 +1294,8 @@ function renderAdmin(app) {
       const g = record.game;
       const result = record.result;
       const details = [];
+      details.push(getScheduleTeamLabel(g.teamLevel));
+      details.push(getBaseballSeasonLabel(g.season, g.date));
       if (g.playoff) details.push('State Playoff');
       if (g.location) details.push(g.location);
       if (g.locationAddress) details.push(g.locationAddress);
@@ -1139,6 +1312,11 @@ function renderAdmin(app) {
       opponentEl.textContent = g.opponent;
       span.appendChild(dateEl);
       span.appendChild(opponentEl);
+      if (g.opponentMascot) {
+        const mascotEl = document.createElement('small');
+        mascotEl.textContent = g.opponentMascot;
+        span.appendChild(mascotEl);
+      }
       if (details.length) {
         const metaEl = document.createElement('small');
         metaEl.textContent = details.join(' | ');
@@ -1157,7 +1335,10 @@ function renderAdmin(app) {
       const editBtn = document.createElement('button');
       editBtn.textContent = 'Edit'; editBtn.className = 'btn small';
       editBtn.addEventListener('click', () => {
+        document.getElementById('gameTeamLevel').value = getScheduleTeamLevel(g.teamLevel);
         document.getElementById('gameDate').value = g.date;
+        updateGameSeasonHint();
+        document.getElementById('gameOpponentId').value = g.opponentId || '';
         document.getElementById('gameOpponent').value = g.opponent;
         document.getElementById('gameLocation').value = g.location || '';
         document.getElementById('gameLocationAddress').value = g.locationAddress || '';
@@ -1210,6 +1391,131 @@ function renderAdmin(app) {
       btns.appendChild(editBtn); btns.appendChild(delBtn);
       li.appendChild(btns);
       ul.appendChild(li);
+    });
+  }
+
+  function renderOpponentOptions(selectedId) {
+    const select = document.getElementById('gameOpponentId');
+    if (!select) return;
+    select.innerHTML = '<option value="">Choose opponent</option>' + opponents.map(function(opponent) {
+      return '<option value="' + opponent._key + '">' + opponent.schoolName + (opponent.mascot ? ' ' + opponent.mascot : '') + '</option>';
+    }).join('');
+    select.value = selectedId || '';
+  }
+
+  function applySelectedOpponentToGameForm() {
+    const opponent = findOpponentById(document.getElementById('gameOpponentId').value, opponents);
+    if (!opponent) return;
+    document.getElementById('gameOpponent').value = opponent.shortName || opponent.schoolName;
+    if (opponent.address && !document.getElementById('gameLocationAddress').value) {
+      document.getElementById('gameLocationAddress').value = opponent.address;
+    }
+  }
+
+  function showOpponentMessage(message) {
+    const successEl = document.getElementById('opponentSaveSuccess');
+    if (successEl) successEl.textContent = message;
+    clearTimeout(showOpponentMessage.timer);
+    showOpponentMessage.timer = setTimeout(() => {
+      if (successEl) successEl.textContent = '';
+    }, 4500);
+  }
+
+  function renderOpponentsPreview() {
+    const ul = document.getElementById('opponentsPreview');
+    if (!ul) return;
+    ul.innerHTML = '';
+    opponents.forEach((opponent, i) => {
+      const li = document.createElement('li');
+      li.className = 'opponent-list-item';
+
+      const logo = document.createElement('span');
+      logo.className = 'opponent-logo-preview';
+      if (opponent.logoUrl) {
+        const img = document.createElement('img');
+        img.src = opponent.logoUrl;
+        img.alt = '';
+        img.loading = 'lazy';
+        logo.appendChild(img);
+      } else {
+        logo.textContent = (opponent.shortName || opponent.schoolName || 'OP').slice(0, 2).toUpperCase();
+      }
+      li.appendChild(logo);
+
+      const details = document.createElement('span');
+      details.className = 'game-preview-details';
+      const title = document.createElement('span');
+      title.className = 'game-preview-opponent';
+      title.textContent = opponent.schoolName;
+      details.appendChild(title);
+      const meta = [opponent.shortName, opponent.mascot, opponent.address].filter(Boolean);
+      if (meta.length) {
+        const small = document.createElement('small');
+        small.textContent = meta.join(' | ');
+        details.appendChild(small);
+      }
+      li.appendChild(details);
+
+      const editBtn = document.createElement('button');
+      editBtn.textContent = 'Edit';
+      editBtn.className = 'btn small';
+      editBtn.addEventListener('click', () => {
+        document.getElementById('opponentSchoolName').value = opponent.schoolName || '';
+        document.getElementById('opponentShortName').value = opponent.shortName || '';
+        document.getElementById('opponentMascot').value = opponent.mascot || '';
+        document.getElementById('opponentAddress').value = opponent.address || '';
+        document.getElementById('opponentLogoUrl').value = opponent.logoUrl || '';
+        document.getElementById('opponentLogoFile').value = '';
+        editingOpponentIdx = i;
+        document.querySelector('#opponentForm button[type="submit"]').textContent = 'Update Opponent';
+        showAdminPanel('opponents');
+        document.getElementById('opponentAdminCard').scrollIntoView({ behavior: 'smooth' });
+      });
+
+      const delBtn = document.createElement('button');
+      delBtn.textContent = 'Delete';
+      delBtn.className = 'btn small alt';
+      delBtn.addEventListener('click', () => {
+        const previousOpponents = opponents.slice();
+        const opponentKey = firebaseChildKey(opponents[i], i);
+        opponents.splice(i, 1);
+        fbDeleteChild('opponents', opponentKey).then(() => {
+          cachedOpponents = opponents.slice();
+          renderOpponentOptions();
+          renderOpponentsPreview();
+          renderGamesPreview();
+          showOpponentMessage('Opponent deleted.');
+          if (previousOpponents[i] && previousOpponents[i].logoStoragePath) {
+            fbDeleteFile(previousOpponents[i].logoStoragePath).catch(err => console.warn('Opponent logo file delete failed:', err));
+          }
+        }).catch(err => {
+          opponents = previousOpponents;
+          document.getElementById('opponentSaveError').textContent = err.message || 'Unable to delete opponent.';
+          renderOpponentsPreview();
+        });
+      });
+
+      const btns = document.createElement('div');
+      btns.className = 'list-actions';
+      btns.appendChild(editBtn);
+      btns.appendChild(delBtn);
+      li.appendChild(btns);
+      ul.appendChild(li);
+    });
+  }
+
+  function uploadOpponentLogoIfNeeded(opponent, file, previousOpponent) {
+    if (!file) return Promise.resolve(opponent);
+    const safeName = (opponent.schoolName || 'opponent').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'opponent';
+    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+    const storagePath = 'opponents/' + safeName + '-' + Date.now() + '.' + ext;
+    return fbUploadFile(storagePath, file, { contentType: file.type || 'image/jpeg' }).then(uploaded => {
+      opponent.logoUrl = uploaded.url;
+      opponent.logoStoragePath = uploaded.storagePath;
+      if (previousOpponent && previousOpponent.logoStoragePath && previousOpponent.logoStoragePath !== uploaded.storagePath) {
+        fbDeleteFile(previousOpponent.logoStoragePath).catch(err => console.warn('Old opponent logo delete failed:', err));
+      }
+      return opponent;
     });
   }
 
@@ -1493,6 +1799,69 @@ function renderAdmin(app) {
     ctx.putImageData(imageData, 0, 0);
   }
 
+  renderOpponentOptions();
+  renderOpponentsPreview();
+  document.getElementById('gameOpponentId').addEventListener('change', applySelectedOpponentToGameForm);
+  document.getElementById('gameDate').addEventListener('change', updateGameSeasonHint);
+  updateGameSeasonHint();
+
+  document.getElementById('opponentForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const errorEl = document.getElementById('opponentSaveError');
+    const previousOpponents = opponents.slice();
+    const wasEditing = editingOpponentIdx >= 0;
+    const previousOpponent = wasEditing ? previousOpponents[editingOpponentIdx] : null;
+    const savedButtonText = submitBtn.textContent;
+    errorEl.textContent = '';
+
+    const opponent = {
+      schoolName: document.getElementById('opponentSchoolName').value.trim(),
+      shortName: document.getElementById('opponentShortName').value.trim(),
+      mascot: document.getElementById('opponentMascot').value.trim(),
+      address: document.getElementById('opponentAddress').value.trim(),
+      logoUrl: document.getElementById('opponentLogoUrl').value.trim(),
+      logoStoragePath: previousOpponent && previousOpponent.logoStoragePath ? previousOpponent.logoStoragePath : '',
+      sortOrder: wasEditing ? previousOpponent.sortOrder : opponents.length
+    };
+    const file = document.getElementById('opponentLogoFile').files[0];
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = wasEditing ? 'Saving...' : 'Adding...';
+
+    uploadOpponentLogoIfNeeded(opponent, file, previousOpponent).then(finalOpponent => {
+      if (wasEditing) {
+        const opponentKey = firebaseChildKey(opponents[editingOpponentIdx], editingOpponentIdx);
+        return fbSaveChild('opponents', opponentKey, finalOpponent).then(savedOpponent => {
+          opponents[editingOpponentIdx] = normalizeOpponent(savedOpponent, editingOpponentIdx);
+        });
+      }
+      return fbAddChild('opponents', finalOpponent).then(savedOpponent => {
+        opponents = previousOpponents.concat(normalizeOpponent(savedOpponent, previousOpponents.length));
+      });
+    }).then(() => {
+      opponents = normalizeOpponentList(opponents);
+      cachedOpponents = opponents.slice();
+      editingOpponentIdx = -1;
+      form.reset();
+      submitBtn.textContent = 'Add Opponent';
+      renderOpponentOptions();
+      renderOpponentsPreview();
+      renderGamesPreview();
+      showOpponentMessage(wasEditing ? 'Opponent updated.' : 'Opponent added.');
+    }).catch(err => {
+      opponents = previousOpponents;
+      cachedOpponents = previousOpponents.slice();
+      errorEl.textContent = typeof fbFormatError === 'function'
+        ? fbFormatError(err, 'opponents')
+        : (err.message || 'Unable to save opponent.');
+      submitBtn.textContent = savedButtonText;
+    }).finally(() => {
+      submitBtn.disabled = false;
+    });
+  });
+
   document.getElementById('gameForm').addEventListener('submit', e => {
     e.preventDefault();
     const form = e.currentTarget;
@@ -1505,11 +1874,17 @@ function renderAdmin(app) {
     const wasEditingRecord = editingGameIdx >= 0 || editingResultIdx >= 0;
     const savedButtonText = submitBtn.textContent;
     errorEl.textContent = '';
+    const selectedOpponent = findOpponentById(document.getElementById('gameOpponentId').value, opponents);
     const game = {
+      teamLevel: getScheduleTeamLevel(document.getElementById('gameTeamLevel').value),
+      season: getBaseballSeason('', document.getElementById('gameDate').value),
+      opponentId: selectedOpponent ? selectedOpponent._key : '',
       date: document.getElementById('gameDate').value,
-      opponent: document.getElementById('gameOpponent').value,
+      opponent: selectedOpponent
+        ? (selectedOpponent.shortName || selectedOpponent.schoolName)
+        : document.getElementById('gameOpponent').value,
       location: document.getElementById('gameLocation').value,
-      locationAddress: document.getElementById('gameLocationAddress').value,
+      locationAddress: document.getElementById('gameLocationAddress').value || (selectedOpponent ? selectedOpponent.address : ''),
       time: document.getElementById('gameTime').value
     };
     if (document.getElementById('gamePlayoff').checked) game.playoff = true;
@@ -1543,6 +1918,7 @@ function renderAdmin(app) {
         submitBtn.textContent = 'Add Game';
         renderGamesPreview();
         form.reset();
+        updateGameSeasonHint();
       }).catch(err => {
         games = previousGames;
         results = previousResults;
@@ -1566,6 +1942,7 @@ function renderAdmin(app) {
         submitBtn.textContent = 'Add Game';
         renderGamesPreview();
         form.reset();
+        updateGameSeasonHint();
       }).catch(err => {
         games = previousGames;
         results = previousResults;
@@ -1878,12 +2255,18 @@ document.addEventListener('adminauthchange', () => {
 });
 function v1BootstrapFirebaseAndNavigate() {
   seedDatabase().then(function() {
-    return Promise.all([fbGet('games'), fbGet('results'), fbGet('carouselPhotos')]);
+    return Promise.all([
+      fbGet('games'),
+      fbGet('results'),
+      fbGetOptional('carouselPhotos', null),
+      fbGetOptional('opponents', null)
+    ]);
   }).then(function(vals) {
-    var games = vals[0], results = vals[1], carouselPhotos = vals[2];
+    var games = vals[0], results = vals[1], carouselPhotos = vals[2], opponents = vals[3];
     cachedGames = fbToArray(games);
     cachedResults = fbToArray(results);
     cachedCarouselPhotos = carouselPhotos ? fbToArray(carouselPhotos) : null;
+    cachedOpponents = normalizeOpponentList(fbToArray(opponents));
     navigate();
   }).catch(function(err) {
     console.error('Firebase load failed:', err);

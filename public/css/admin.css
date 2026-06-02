@@ -219,15 +219,29 @@ body.admin-v2-body.auth-pending #app{
   border-left-color:var(--admin-v2-green);
 }
 
-.admin-v2-body input{
+.admin-v2-body input,
+.admin-v2-body select{
   background:#ffffff;
   border-color:rgba(15,23,42,.12);
   color:var(--admin-v2-text);
 }
 
-.admin-v2-body input:focus{
+.admin-v2-body input:focus,
+.admin-v2-body select:focus{
   border-color:var(--admin-v2-green);
   box-shadow:0 0 0 3px rgba(91,205,39,.14);
+}
+
+.admin-v2-body .admin-date-field{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.admin-v2-body .admin-season-hint{
+  font-size:.9rem;
+  font-weight:600;
+  color:var(--admin-v2-text);
 }
 
 .admin-v2-body .btn{
@@ -261,7 +275,8 @@ body.admin-v2-body.auth-pending #app{
   gap:12px;
 }
 
-.admin-v2-body #gamesPreview .game-preview-item{
+.admin-v2-body #gamesPreview .game-preview-item,
+.admin-v2-body .opponent-list-item{
   min-height:0;
   height:auto;
   margin:0;
@@ -332,6 +347,35 @@ body.admin-v2-body.auth-pending #app{
 
 .admin-v2-body #gamesPreview .list-actions{
   align-self:center;
+}
+
+.admin-v2-body .opponent-list{
+  display:grid;
+  gap:12px;
+}
+
+.admin-v2-body .opponent-list-item{
+  display:flex;
+}
+
+.admin-v2-body .opponent-logo-preview{
+  width:48px;
+  height:48px;
+  flex:0 0 48px;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+  border-radius:8px;
+  background:#e9eef5;
+  color:var(--admin-v2-text);
+  font-size:.82rem;
+  font-weight:900;
+}
+
+.admin-v2-body .opponent-logo-preview img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
 }
 
 .admin-v2-body .save-success{

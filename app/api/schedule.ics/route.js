@@ -1,9 +1,10 @@
 const DATABASE_URL = 'https://timpanogos-baseball-default-rtdb.firebaseio.com';
-const DEFAULT_CALENDAR_NAME = 'Timpanogos Baseball Spring Schedule';
+const DEFAULT_CALENDAR_NAME = 'Timpanogos Baseball Schedule';
 const TIME_ZONE = 'America/Denver';
 const DEFAULT_DURATION_MINUTES = 150;
+const SCHEDULE_TEAM_LEVELS = new Set(['varsity', 'jv', 'sophomore']);
 
-export const dynamic = 'force-static';
+export const dynamic = 'force-dynamic';
 
 function calendarResponse(body, status = 200, extraHeaders = {}) {
   return new Response(body, {
@@ -26,14 +27,54 @@ function fbToArray(value) {
     if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
     return a.localeCompare(b);
   }).map(function(key) {
-    return value[key];
+    const item = value[key];
+    if (item && typeof item === 'object') item._key = key;
+    return item;
   }).filter(Boolean);
 }
 
-function isSpringGame(game) {
+function getScheduleTeamLevel(value) {
+  const teamLevel = String(value || '').trim().toLowerCase();
+  return SCHEDULE_TEAM_LEVELS.has(teamLevel) ? teamLevel : 'varsity';
+}
+
+function getScheduleTeamLabel(value) {
+  const teamLevel = getScheduleTeamLevel(value);
+  if (teamLevel === 'jv') return 'JV';
+  if (teamLevel === 'sophomore') return 'Sophomores';
+  return 'Varsity';
+}
+
+function getBaseballSeason(value, date) {
+  const season = String(value || '').trim().toLowerCase();
+  const month = Number(String(date || '').split('-')[1]);
+  if (Number.isFinite(month)) {
+    if (month >= 6 && month <= 8) return 'summer';
+    if (month >= 9 && month <= 11) return 'fall';
+    return 'spring';
+  }
+  if (season === 'spring' || season === 'summer' || season === 'fall') return season;
+  return 'spring';
+}
+
+function enrichGamesWithOpponents(games, opponents) {
+  const opponentMap = new Map(opponents.map((opponent) => [opponent._key, opponent]));
+  return games.map((game) => {
+    const enriched = { ...game, teamLevel: getScheduleTeamLevel(game.teamLevel) };
+    enriched.season = getBaseballSeason(enriched.season, enriched.date);
+    const opponent = enriched.opponentId ? opponentMap.get(enriched.opponentId) : null;
+    if (opponent) {
+      enriched.opponent = opponent.shortName || opponent.schoolName || enriched.opponent;
+      enriched.locationAddress = enriched.locationAddress || opponent.address || '';
+    }
+    return enriched;
+  });
+}
+
+function isBaseballSeasonGame(game) {
   if (!game || !game.date) return false;
   const month = Number(String(game.date).split('-')[1]);
-  return month >= 2 && month <= 6;
+  return month >= 1 && month <= 11;
 }
 
 function getGameYear(game) {
@@ -41,14 +82,16 @@ function getGameYear(game) {
   return Number.isFinite(year) ? year : null;
 }
 
-function buildCalendarName(games) {
+function buildCalendarName(games, teamLevel) {
   const years = games.map(getGameYear).filter(function(year) {
     return year !== null;
   });
 
-  if (!years.length) return DEFAULT_CALENDAR_NAME;
+  const teamLabel = getScheduleTeamLabel(teamLevel);
 
-  return 'Timpanogos Baseball Spring ' + Math.max.apply(Math, years) + ' Schedule';
+  if (!years.length) return 'Timpanogos Baseball ' + teamLabel + ' Schedule';
+
+  return 'Timpanogos Baseball ' + teamLabel + ' ' + Math.max.apply(Math, years) + ' Schedule';
 }
 
 function parseGameTime(time) {
@@ -147,15 +190,16 @@ function buildGameEvent(game, index, now) {
   const endsAt = new Date(startsAt.getTime() + DEFAULT_DURATION_MINUTES * 60000);
   const opponent = game.opponent || 'Opponent TBD';
   const location = game.locationAddress || game.address || game.location || '';
-  const summary = 'Timpanogos Baseball vs ' + opponent;
-  const description = ['Timpanogos Baseball spring season game.'];
+  const teamLabel = getScheduleTeamLabel(game.teamLevel);
+  const summary = 'Timpanogos ' + teamLabel + ' Baseball vs ' + opponent;
+  const description = ['Timpanogos ' + teamLabel + ' Baseball ' + getBaseballSeason(game.season, game.date) + ' season game.'];
 
   if (game.time) description.push('First pitch: ' + game.time + '.');
   if (game.playoff) description.push('State playoff game.');
 
   return [
     'BEGIN:VEVENT',
-    'UID:' + normalizeUidPart(game.date) + '-' + normalizeUidPart(game.time) + '-' + normalizeUidPart(opponent) + '-' + index + '@timpanogosbaseball',
+    'UID:' + normalizeUidPart(game.teamLevel) + '-' + normalizeUidPart(game.date) + '-' + normalizeUidPart(game.time) + '-' + normalizeUidPart(opponent) + '-' + index + '@timpanogosbaseball',
     'DTSTAMP:' + formatIcsDate(now),
     'DTSTART:' + formatIcsDate(startsAt),
     'DTEND:' + formatIcsDate(endsAt),
@@ -166,21 +210,21 @@ function buildGameEvent(game, index, now) {
   ].filter(Boolean);
 }
 
-function buildCalendar(games) {
+function buildCalendar(games, teamLevel) {
   const now = new Date();
-  const springGames = games.filter(isSpringGame);
-  const calendarName = buildCalendarName(springGames);
+  const seasonGames = games.filter((game) => getScheduleTeamLevel(game.teamLevel) === teamLevel).filter(isBaseballSeasonGame);
+  const calendarName = buildCalendarName(seasonGames, teamLevel);
   let lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Timpanogos Baseball//Spring Schedule//EN',
+    'PRODID:-//Timpanogos Baseball//Schedule//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     'X-WR-CALNAME:' + escapeIcsText(calendarName),
     'X-WR-TIMEZONE:' + TIME_ZONE
   ];
 
-  springGames
+  seasonGames
     .sort(function(a, b) {
       return String(a.date || '').localeCompare(String(b.date || '')) || String(a.time || '').localeCompare(String(b.time || ''));
     })
@@ -203,17 +247,22 @@ export async function OPTIONS() {
   });
 }
 
-export async function GET() {
+export async function GET(request) {
   try {
-    const response = await fetch(DATABASE_URL + '/games.json', { cache: 'force-cache' });
-    if (!response.ok) throw new Error('Firebase responded with ' + response.status);
-    const games = fbToArray(await response.json());
-    return calendarResponse(buildCalendar(games));
+    const selectedTeam = getScheduleTeamLevel(new URL(request.url).searchParams.get('team'));
+    const [gamesResponse, opponentsResponse] = await Promise.all([
+      fetch(DATABASE_URL + '/games.json', { cache: 'no-store' }),
+      fetch(DATABASE_URL + '/opponents.json', { cache: 'no-store' })
+    ]);
+    if (!gamesResponse.ok) throw new Error('Firebase responded with ' + gamesResponse.status);
+    const games = fbToArray(await gamesResponse.json());
+    const opponents = opponentsResponse.ok ? fbToArray(await opponentsResponse.json()) : [];
+    return calendarResponse(buildCalendar(enrichGamesWithOpponents(games, opponents), selectedTeam));
   } catch (error) {
     return calendarResponse([
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//Timpanogos Baseball//Spring Schedule//EN',
+      'PRODID:-//Timpanogos Baseball//Schedule//EN',
       'X-WR-CALNAME:' + escapeIcsText(DEFAULT_CALENDAR_NAME),
       'END:VCALENDAR'
     ].join('\r\n') + '\r\n', 500);

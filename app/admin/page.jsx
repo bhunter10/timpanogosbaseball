@@ -16,6 +16,7 @@ export default async function AdminPage() {
       <link rel="stylesheet" href={withBasePath('/v1/css/style.css')} />
       <link rel="stylesheet" href={withBasePath('/css/admin.css')} />
       <div dangerouslySetInnerHTML={{ __html: body }} />
+      <Script src={withBasePath('/js/schedule-seed-data.js')} strategy="afterInteractive" />
       <Script src={withBasePath('/js/firebase-config.js')} strategy="afterInteractive" />
       <Script src={withBasePath('/js/flip.min.js')} strategy="afterInteractive" />
       <Script src={withBasePath('/v1/js/carousel.js')} strategy="afterInteractive" />

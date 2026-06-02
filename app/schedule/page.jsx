@@ -5,5 +5,5 @@ export const metadata = {
 };
 
 export default async function SchedulePage() {
-  return <LegacyPage sections={['info', 'v2CountdownSection', 'schedule']} />;
+  return <LegacyPage sections={['v2CountdownSection', 'schedule']} />;
 }

@@ -1388,9 +1388,158 @@ button{font:inherit}
   display:grid;
   gap:30px;
 }
+.v2-schedule-tabs{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin:18px 0 0;
+}
+.v2-schedule-tab{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:40px;
+  padding:9px 14px;
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:8px;
+  color:#f8fafc;
+  text-decoration:none;
+  font-size:.82rem;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  background:rgba(255,255,255,.08);
+}
+.v2-schedule-tab.active{
+  background:var(--green);
+  border-color:var(--green);
+  color:#07130a;
+}
 .v2-schedule-block{
   display:grid;
   gap:18px;
+}
+.v2-schedule-season{
+  display:grid;
+  gap:24px;
+}
+.v2-season-results-header{
+  margin-bottom:0;
+}
+.v2-season-summary-grid{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:18px;
+}
+.v2-season-summary-grid .v2-panel{
+  min-height:150px;
+}
+.v2-season-results-card,
+.v2-season-record-card{
+  background:linear-gradient(180deg, rgba(10,22,48,.94), rgba(5,12,27,.94));
+}
+.v2-season-results-list{
+  display:grid;
+  gap:10px;
+}
+.v2-season-result-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  padding:10px 0;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.v2-season-result-row:last-child{
+  border-bottom:0;
+  padding-bottom:0;
+}
+.v2-season-result-team{
+  display:grid;
+  gap:3px;
+  min-width:0;
+}
+.v2-season-result-team strong{
+  color:var(--text);
+  font-size:.98rem;
+  line-height:1.2;
+}
+.v2-season-result-team small{
+  color:var(--muted);
+  font-size:.78rem;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.v2-season-result-pill{
+  min-width:76px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  padding:7px 10px;
+  border-radius:999px;
+  background:rgba(148,163,184,.14);
+  color:#dbe7f5;
+  font-size:.82rem;
+  font-weight:900;
+  white-space:nowrap;
+}
+.v2-season-result-pill span{
+  display:inline-grid;
+  place-items:center;
+  width:20px;
+  height:20px;
+  border-radius:999px;
+  background:rgba(255,255,255,.12);
+}
+.v2-season-result-pill.win{
+  background:rgba(91,255,24,.14);
+  color:#d9ffcf;
+}
+.v2-season-result-pill.win span{
+  background:rgba(91,255,24,.24);
+}
+.v2-season-result-pill.loss{
+  background:rgba(239,68,68,.15);
+  color:#ffd6d6;
+}
+.v2-season-result-pill.loss span{
+  background:rgba(239,68,68,.24);
+}
+.v2-season-result-pill.tie{
+  background:rgba(148,163,184,.16);
+  color:#e2e8f0;
+}
+.v2-season-record-card{
+  position:relative;
+  overflow:hidden;
+}
+.v2-season-record-card::after{
+  content:"";
+  position:absolute;
+  inset:auto -20px -46px auto;
+  width:130px;
+  height:130px;
+  border-radius:50%;
+  background:rgba(91,255,24,.09);
+  pointer-events:none;
+}
+.v2-season-record-value{
+  display:flex;
+  align-items:baseline;
+  gap:10px;
+  margin:4px 0 2px;
+  color:var(--text);
+  font-family:"Bebas Neue",sans-serif;
+  font-size:clamp(3rem, 6vw, 4.4rem);
+  line-height:.9;
+  letter-spacing:.02em;
+}
+.v2-season-record-value em{
+  color:var(--green);
+  font-style:normal;
+  opacity:.8;
 }
 #schedule.v2-reveal .v2-schedule-block{
   opacity:0;
@@ -1448,6 +1597,21 @@ button{font:inherit}
   align-items:flex-start;
   justify-content:space-between;
   gap:18px;
+}
+.v2-game-logo{
+  width:52px;
+  height:52px;
+  flex:0 0 52px;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+  border-radius:8px;
+  background:#ffffff;
+}
+.v2-game-logo img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
 }
 .v2-game-card-copy{
   min-width:0;
@@ -2267,6 +2431,7 @@ body.v2-reveals-ready .v2-filmstrip-band.v2-reveal:not(.v2-visible) .v2-filmstri
   }
   .v2-summary-grid,
   .v2-schedule-grid,
+  .v2-season-summary-grid,
   .v2-results-feed,
   .v2-roster-grid,
   .v2-news-grid,
