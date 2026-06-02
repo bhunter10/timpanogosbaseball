@@ -2,6 +2,12 @@ var DATABASE_URL = 'https://timpanogos-baseball-default-rtdb.firebaseio.com';
 var DEFAULT_CALENDAR_NAME = 'Timpanogos Baseball Spring Schedule';
 var TIME_ZONE = 'America/Denver';
 var DEFAULT_DURATION_MINUTES = 150;
+var TEAM_LABELS = {
+  varsity: 'Varsity',
+  jv: 'JV',
+  sophomore: 'Sophomores'
+};
+var SEASON_ORDER = { spring: 1, summer: 2, fall: 3 };
 
 function sendCalendar(res, statusCode, body) {
   res.statusCode = statusCode;
@@ -24,25 +30,83 @@ function fbToArray(value) {
   }).filter(Boolean);
 }
 
-function isSpringGame(game) {
-  if (!game || !game.date) return false;
-  var month = Number(String(game.date).split('-')[1]);
-  return month >= 2 && month <= 6;
+function getDateParts(value) {
+  var parts = String(value || '').split('-').map(Number);
+  if (parts.length !== 3 || parts.some(function(part) { return !Number.isFinite(part); })) return null;
+  return { year: parts[0], month: parts[1], day: parts[2] };
+}
+
+function getSeasonFromDate(game) {
+  var parts = getDateParts(game && game.date);
+  if (!parts) return 'spring';
+  if (parts.month >= 6 && parts.month <= 8) return 'summer';
+  if (parts.month >= 9 && parts.month <= 11) return 'fall';
+  return 'spring';
 }
 
 function getGameYear(game) {
-  var year = Number(String((game && game.date) || '').split('-')[0]);
-  return Number.isFinite(year) ? year : null;
+  var parts = getDateParts(game && game.date);
+  return parts ? parts.year : null;
 }
 
-function buildCalendarName(games) {
-  var years = games.map(getGameYear).filter(function(year) {
-    return year !== null;
+function normalizeTeam(value) {
+  var team = String(value || '').trim().toLowerCase();
+  return TEAM_LABELS[team] ? team : 'varsity';
+}
+
+function normalizeSeason(value) {
+  var season = String(value || '').trim().toLowerCase();
+  return SEASON_ORDER[season] ? season : '';
+}
+
+function getLatestSeasonKey(games) {
+  var latest = '';
+  var best = null;
+  (games || []).forEach(function(game) {
+    var year = getGameYear(game);
+    if (!year) return;
+    var season = getSeasonFromDate(game);
+    var rank = { year: year, seasonOrder: SEASON_ORDER[season] || 0 };
+    if (!best || rank.year > best.year || (rank.year === best.year && rank.seasonOrder > best.seasonOrder)) {
+      best = rank;
+      latest = season + '-' + year;
+    }
   });
+  return latest;
+}
 
-  if (!years.length) return DEFAULT_CALENDAR_NAME;
+function parseSeasonYear(seasonKey, games) {
+  var match = String(seasonKey || '').match(/^(spring|summer|fall)-(\d{4})$/);
+  if (match) {
+    return { season: match[1], year: Number(match[2]) };
+  }
+  var fallback = getLatestSeasonKey(games);
+  var fallbackMatch = fallback.match(/^(spring|summer|fall)-(\d{4})$/);
+  if (fallbackMatch) {
+    return { season: fallbackMatch[1], year: Number(fallbackMatch[2]) };
+  }
+  return { season: 'spring', year: null };
+}
 
-  return 'Timpanogos Baseball Spring ' + Math.max.apply(Math, years) + ' Schedule';
+function filterGames(games, query) {
+  var team = normalizeTeam(query.team);
+  var seasonYear = parseSeasonYear(query.season, games);
+  return (games || []).filter(function(game) {
+    var gameTeam = normalizeTeam(game && game.teamLevel);
+    if (gameTeam !== team) return false;
+    if (!seasonYear.year) return getSeasonFromDate(game) === seasonYear.season;
+    return getSeasonFromDate(game) === seasonYear.season && getGameYear(game) === seasonYear.year;
+  });
+}
+
+function buildCalendarName(games, query) {
+  var filteredGames = filterGames(games, query);
+  var team = normalizeTeam(query.team);
+  var seasonYear = parseSeasonYear(query.season, games);
+  var seasonLabel = seasonYear.season.charAt(0).toUpperCase() + seasonYear.season.slice(1);
+  var yearLabel = seasonYear.year ? ' ' + seasonYear.year : '';
+  if (!filteredGames.length && !seasonYear.year) return DEFAULT_CALENDAR_NAME;
+  return 'Timpanogos Baseball ' + TEAM_LABELS[team] + ' ' + seasonLabel + yearLabel + ' Schedule';
 }
 
 function parseGameTime(time) {
@@ -160,10 +224,10 @@ function buildGameEvent(game, index, now) {
   ].filter(Boolean);
 }
 
-function buildCalendar(games) {
+function buildCalendar(games, query) {
   var now = new Date();
-  var springGames = games.filter(isSpringGame);
-  var calendarName = buildCalendarName(springGames);
+  var filteredGames = filterGames(games, query);
+  var calendarName = buildCalendarName(games, query);
   var lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
@@ -174,7 +238,7 @@ function buildCalendar(games) {
     'X-WR-TIMEZONE:' + TIME_ZONE
   ];
 
-  springGames
+  filteredGames
     .sort(function(a, b) {
       return String(a.date || '').localeCompare(String(b.date || '')) || String(a.time || '').localeCompare(String(b.time || ''));
     })
@@ -204,10 +268,15 @@ module.exports = async function handler(req, res) {
   }
 
   try {
+    var parsedUrl = new URL(req.url || '/api/schedule.ics', 'https://timpanogosbaseball.local');
+    var query = {
+      team: parsedUrl.searchParams.get('team') || '',
+      season: parsedUrl.searchParams.get('season') || ''
+    };
     var response = await fetch(DATABASE_URL + '/games.json');
     if (!response.ok) throw new Error('Firebase responded with ' + response.status);
     var games = fbToArray(await response.json());
-    sendCalendar(res, 200, buildCalendar(games));
+    sendCalendar(res, 200, buildCalendar(games, query));
   } catch (error) {
     sendCalendar(res, 500, [
       'BEGIN:VCALENDAR',

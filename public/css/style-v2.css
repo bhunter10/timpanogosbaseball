@@ -1224,6 +1224,13 @@ button{font:inherit}
   padding:96px 0 72px;
   background:#000;
 }
+.v2-countdown-section.is-embedded{
+  padding:8px 0 0;
+  background:transparent;
+}
+.v2-countdown-section.is-embedded .v2-shell{
+  padding:0;
+}
 .v2-countdown-card{
   padding:0;
   border-radius:0;
@@ -1231,6 +1238,12 @@ button{font:inherit}
   border:0;
   box-shadow:none;
   text-align:center;
+}
+.v2-countdown-section.is-embedded .v2-countdown-card{
+  text-align:left;
+}
+.v2-countdown-section.is-embedded .v2-tick-clock{
+  justify-content:flex-start;
 }
 .v2-countdown-label{
   margin-bottom:14px;
@@ -1280,25 +1293,12 @@ button{font:inherit}
   color:#0f1115;
   background-color:rgba(206,211,219,.82);
 }
-.v2-countdown-opponent{
-  margin-top:18px;
-  color:rgba(255,255,255,.76);
-  font-size:1rem;
-  line-height:1.7;
-}
 .v2-countdown-section.playoff-countdown .v2-countdown-label{
   color:var(--green);
 }
 .v2-countdown-section.playoff-countdown .v2-tick-clock .tick-flip-panel{
   color:#0f1115;
   background-color:rgba(206,211,219,.82);
-}
-.v2-countdown-section.playoff-countdown .v2-countdown-opponent{
-  color:var(--text);
-  text-transform: uppercase;
-  font-size:1.1rem;
-  font-weight: 800;
-  letter-spacing: .16em;
 }
 .v2-summary-grid{
   display:grid;
@@ -1425,6 +1425,50 @@ button{font:inherit}
 }
 .v2-season-results-header{
   margin-bottom:0;
+}
+.v2-schedule-controls{
+  display:grid;
+  gap:12px;
+  margin-top:16px;
+}
+.v2-schedule-controls-top{
+  display:flex;
+  align-items:stretch;
+  gap:14px;
+  flex-wrap:wrap;
+}
+.v2-schedule-controls-top .v2-season-picker-label{
+  flex:1 1 240px;
+}
+.v2-schedule-controls-top .v2-calendar-sync{
+  flex:1 1 360px;
+  width:auto;
+}
+.v2-season-picker-label{
+  display:inline-flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:8px;
+  color:var(--green-soft);
+  font-size:.72rem;
+  font-weight:800;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+}
+.v2-season-picker{
+  min-height:42px;
+  min-width:220px;
+  padding:10px 12px;
+  border:1px solid rgba(255,255,255,.24);
+  border-radius:8px;
+  background:#09152b;
+  color:#f8fafc;
+  font-size:.92rem;
+  font-weight:700;
+}
+.v2-season-picker:focus{
+  outline:2px solid var(--green);
+  outline-offset:1px;
 }
 .v2-season-summary-grid{
   display:grid;
@@ -1733,6 +1777,7 @@ button{font:inherit}
   display:grid;
   gap:14px;
   flex:0 0 min(100%, 360px);
+  width:min(100%, 50%);
   padding:18px;
   border:1px solid var(--line);
   border-radius:20px;

@@ -20,6 +20,13 @@ var v2CarouselPhotoSignature = '';
 var v2CarouselPhotoListenerWired = false;
 var v2CarouselRefreshStorageKey = 'timpanogosCarouselPhotosUpdatedAt';
 var v2LastCarouselRefreshStamp = '';
+var v2CountdownSectionEl = null;
+
+function v2GetCountdownSection() {
+  if (v2CountdownSectionEl && v2CountdownSectionEl.nodeType === 1) return v2CountdownSectionEl;
+  v2CountdownSectionEl = document.getElementById('v2CountdownSection');
+  return v2CountdownSectionEl;
+}
 
 function v2DefaultCarouselPhotos() {
   var basePath = window.__SITE_BASE_PATH || '';
@@ -219,12 +226,48 @@ function v2GetSeasonLabel(season, date) {
 function v2GetSeasonGroupKey(item) {
   var season = v2GetBaseballSeason(item && item.season, item && item.date);
   var parts = v2GetDateParts(item && item.date);
-  return season + '-' + (parts ? parts.year : 'unknown');
+  var year = parts ? parts.year : (item && Number.isFinite(+item.year) ? +item.year : null);
+  return season + '-' + (year != null ? year : 'unknown');
 }
 
 function v2GetSelectedScheduleTeam() {
   var params = new URLSearchParams(window.location.search || '');
   return v2GetScheduleTeamLevel(params.get('team') || 'varsity');
+}
+
+function v2GetSelectedScheduleSeasonKey() {
+  var params = new URLSearchParams(window.location.search || '');
+  return (params.get('season') || '').trim();
+}
+
+function v2GetOrderedSeasonGroupsFromGames(games) {
+  var groups = {};
+  (games || []).forEach(function(game) {
+    var season = v2GetBaseballSeason(game.season, game.date);
+    var year = (v2GetDateParts(game.date) || {}).year || 0;
+    var key = season + '-' + year;
+    if (!groups[key]) {
+      groups[key] = {
+        season: season,
+        year: year,
+        latest: 0
+      };
+    }
+    groups[key].latest = Math.max(groups[key].latest, v2GameDateTimeValue(game) || 0);
+  });
+  return Object.keys(groups).map(function(key) { return groups[key]; }).sort(function(a, b) {
+    if (a.latest !== b.latest) return b.latest - a.latest;
+    if (a.year !== b.year) return b.year - a.year;
+    return v2GetSeasonOrder(b.season) - v2GetSeasonOrder(a.season);
+  });
+}
+
+function v2ResolveSelectedSeasonKey(games) {
+  var selectedKey = v2GetSelectedScheduleSeasonKey();
+  var groups = v2GetOrderedSeasonGroupsFromGames(games);
+  if (!groups.length) return selectedKey || '';
+  if (groups.some(function(group) { return v2GetSeasonGroupKey(group) === selectedKey; })) return selectedKey;
+  return v2GetSeasonGroupKey(groups[0]);
 }
 
 function v2NormalizeOpponent(opponent, index) {
@@ -263,6 +306,16 @@ function v2EnrichGamesWithOpponents(games, opponents) {
   return (games || []).map(function(game) {
     return v2EnrichGameWithOpponent(game, opponents || []);
   });
+}
+
+function v2EnrichResultsWithOpponents(results, opponents) {
+  return (results || []).map(function(result) {
+    return v2EnrichGameWithOpponent(result, opponents || []);
+  });
+}
+
+function v2HasContestIdentity(entry) {
+  return !!(entry && entry.date && (entry.opponent || entry.opponentId));
 }
 
 var v2RosterData = [
@@ -307,7 +360,14 @@ function v2RenderNextGamePanel(games) {
   titleEl.textContent = next ? next.opponent : 'Season Complete';
   metaEl.textContent = next
     ? v2FormatDate(next.date) + ' | ' + next.location + ' | ' + next.time
-    : 'No future games scheduled right now.';
+    : '';
+}
+
+function v2GetGamesForSelectedTeam(games) {
+  var selectedTeam = v2GetSelectedScheduleTeam();
+  return (games || []).filter(function(game) {
+    return v2GetScheduleTeamLevel(game.teamLevel) === selectedTeam;
+  });
 }
 
 function v2RenderSummary(games, results) {
@@ -450,9 +510,19 @@ function v2HandleCarouselRefreshStamp(stamp) {
 
 var v2ScheduleDataListenerWired = false;
 
+function v2RefreshSiteFromCache() {
+  if (!window.__v2Booted) return;
+  var games = v2GetScheduleGames();
+  var selectedTeamGames = v2GetGamesForSelectedTeam(games);
+  var results = v2NormalizeFirebaseResults(v2CachedResults || []);
+  v2RenderSummary(selectedTeamGames.length ? selectedTeamGames : games, results);
+  v2RenderSchedule(games, results);
+  v2WireCalendarSyncLinks();
+}
+
 function v2RefreshScheduleFromCache() {
   if (!window.__v2Booted) return;
-  var games = v2EnrichGamesWithOpponents(v2GetScheduleGames(), v2CachedOpponents || []);
+  var games = v2GetScheduleGames();
   var results = v2NormalizeFirebaseResults(v2CachedResults || []);
   v2RenderSchedule(games, results);
 }
@@ -463,16 +533,23 @@ function v2WireScheduleDataListener() {
 
   db.ref('results').on('value', function(snapshot) {
     v2CachedResults = fbToArray(snapshot.val());
-    v2RefreshScheduleFromCache();
+    v2RefreshSiteFromCache();
   }, function(error) {
     console.error('Results refresh failed:', error);
   });
 
   db.ref('games').on('value', function(snapshot) {
     v2CachedGames = fbToArray(snapshot.val());
-    v2RefreshScheduleFromCache();
+    v2RefreshSiteFromCache();
   }, function(error) {
     console.error('Games refresh failed:', error);
+  });
+
+  db.ref('opponents').on('value', function(snapshot) {
+    v2CachedOpponents = fbToArray(snapshot.val()).map(v2NormalizeOpponent);
+    v2RefreshSiteFromCache();
+  }, function(error) {
+    console.error('Opponents refresh failed:', error);
   });
 }
 
@@ -503,11 +580,11 @@ function v2FbGetOptional(path, fallback) {
   });
 }
 
-function v2RenderCountdown(games) {
-  var section = document.getElementById('v2CountdownSection');
-  var oppEl = document.getElementById('v2CountdownOpponent');
-  var tickEl = document.getElementById('v2TickClock');
-  if (!section || !oppEl || !tickEl) return;
+function v2RenderCountdown(games, teamLevel) {
+  var section = v2GetCountdownSection();
+  var labelEl = section ? section.querySelector('.v2-countdown-label') : null;
+  var tickEl = section ? section.querySelector('#v2TickClock') : null;
+  if (!section || !labelEl || !tickEl) return;
 
   if (v2CountdownTimer) {
     clearInterval(v2CountdownTimer);
@@ -516,6 +593,8 @@ function v2RenderCountdown(games) {
 
   section.style.display = 'none';
   section.classList.remove('playoff-countdown');
+  var teamLabel = v2GetScheduleTeamLabel(teamLevel || v2GetSelectedScheduleTeam());
+  labelEl.textContent = 'Next ' + teamLabel + ' game in';
 
   var futureGames = games.slice().filter(function(game) {
     return v2GameDateTimeValue(game) >= Date.now();
@@ -527,9 +606,6 @@ function v2RenderCountdown(games) {
   if (!next) return;
 
   section.style.display = '';
-  oppEl.innerHTML = next.playoff
-    ? 'Playoffs vs ' + next.opponent + '<br>' + v2FormatDate(next.date) + ' @ ' + next.time
-    : 'vs ' + next.opponent + ' - ' + v2FormatDate(next.date) + ' @ ' + next.time;
   if (next.playoff) section.classList.add('playoff-countdown');
 
   if (!tickEl._tickInit && typeof Tick !== 'undefined') {
@@ -595,7 +671,7 @@ function v2ResultIsPreferred(candidate, current) {
 function v2DedupeContestResults(results) {
   var deduped = [];
   (results || []).forEach(function(result) {
-    if (!result || !result.date || !result.opponent) return;
+    if (!v2HasContestIdentity(result)) return;
     var existingIndex = deduped.findIndex(function(entry) {
       return v2ResultsSameContest(entry, result);
     });
@@ -621,7 +697,7 @@ function v2GamesAreDuplicate(a, b) {
 function v2DedupeContestGames(games) {
   var deduped = [];
   (games || []).forEach(function(game) {
-    if (!game || !game.date || !game.opponent) return;
+    if (!v2HasContestIdentity(game)) return;
     var existingIndex = deduped.findIndex(function(entry) {
       return v2GamesAreDuplicate(entry, game);
     });
@@ -637,13 +713,12 @@ function v2DedupeContestGames(games) {
 }
 
 function v2GetScheduleGames() {
-  return v2DedupeContestGames(v2CachedGames || []);
+  return v2DedupeContestGames(v2EnrichGamesWithOpponents(v2CachedGames || [], v2CachedOpponents || []));
 }
 
 function v2NormalizeFirebaseResults(results) {
-  return v2DedupeContestResults((results || []).filter(function(result) {
-    return result && result.date && result.opponent;
-  })).filter(v2ResultHasScore);
+  return v2DedupeContestResults(v2EnrichResultsWithOpponents(results, v2CachedOpponents || []))
+    .filter(v2ResultHasScore);
 }
 
 function v2ResultsSameContest(a, b) {
@@ -674,7 +749,7 @@ function v2UpdateCountdownTick(tickEl, next, games) {
   if (remaining <= 0) {
     v2RenderNextGamePanel(games);
     setTimeout(function() {
-      v2RenderCountdown(games);
+      v2RenderCountdown(games, v2GetSelectedScheduleTeam());
     }, 250);
     return;
   }
@@ -691,30 +766,33 @@ function v2UpdateCountdownTick(tickEl, next, games) {
   tickEl._v2Tick.value = [days, hours, minutes, seconds];
 }
 
-function v2RenderSchedule(games, results2026) {
-  var staticHeader = document.querySelector('#schedule .v2-results-header');
+function v2RenderSchedule(games, results) {
+  var staticHeader = document.querySelector('#schedule > .v2-shell > .v2-results-header');
   var groupsContainer = document.querySelector('#schedule .v2-schedule-groups');
   if (!groupsContainer) return;
 
-  games = v2EnrichGamesWithOpponents(games, v2CachedOpponents || []);
   var selectedTeam = v2GetSelectedScheduleTeam();
-  var selectedGames = games.filter(function(game) { return v2GetScheduleTeamLevel(game.teamLevel) === selectedTeam; });
-  var selectedResults = results2026.filter(function(result) { return v2GetScheduleTeamLevel(result.teamLevel) === selectedTeam; }).map(function(result) {
-    return Object.assign({}, result, { season: v2GetBaseballSeason(result.season, result.date) });
-  });
-  var seasonGames = v2BuildSeasonGames(selectedGames, selectedResults);
-  var usedResults = [];
+  var seasonGames = v2BuildSeasonGames(games, results);
 
   if (staticHeader) staticHeader.style.display = 'none';
 
-  groupsContainer.innerHTML = v2BuildScheduleSeasonSections(seasonGames, selectedResults, usedResults, games, selectedTeam);
+  groupsContainer.innerHTML = v2BuildScheduleSeasonSections(seasonGames, results, selectedTeam);
   v2ApplyStagger('#schedule', '.v2-game-card', 80);
   v2RestartAnimations('#schedule');
 }
 
-function v2BuildScheduleSeasonSections(games, results, usedResults, allGames, selectedTeam) {
+function v2PlaceCountdownBelowScheduleTabs() {
+  var section = v2GetCountdownSection();
+  var controls = document.querySelector('#schedule .v2-schedule-controls');
+  if (!section || !controls) return;
+  section.classList.add('is-embedded');
+  section.classList.add('v2-visible');
+  controls.appendChild(section);
+}
+
+function v2BuildScheduleSeasonSections(allSeasonGames, results, selectedTeam) {
   var groups = {};
-  games.forEach(function(game) {
+  allSeasonGames.forEach(function(game) {
     game.season = v2GetBaseballSeason(game.season, game.date);
     var key = v2GetSeasonGroupKey(game);
     if (!groups[key]) {
@@ -740,22 +818,38 @@ function v2BuildScheduleSeasonSections(games, results, usedResults, allGames, se
     return '<section class="v2-schedule-block"><div class="v2-schedule-label">Schedule Coming Soon</div></section>';
   }
 
-  return orderedGroups.map(function(group) {
-    var groupResults = results.filter(function(result) {
-      return v2GetBaseballSeason(result.season, result.date) === group.season &&
-        ((v2GetDateParts(result.date) || {}).year || 0) === group.year;
-    });
-    return '<section class="v2-schedule-season">' +
-      v2BuildSeasonScheduleHeader(group, groupResults, allGames || [], selectedTeam) +
-      v2BuildSeasonSummaryCards(group.games, groupResults) +
-      v2BuildScheduleSubgroup('State Playoff Games', group.games.filter(function(game) { return !!game.playoff; }), results, usedResults, v2NewestGameFirst) +
-      v2BuildScheduleSubgroup('Region Games', group.games.filter(function(game) { return !game.playoff && v2RegionTeams.indexOf(game.opponent) !== -1; }), results, usedResults, v2NewestGameFirst) +
-      v2BuildScheduleSubgroup('Non-Region Games', group.games.filter(function(game) { return !game.playoff && v2RegionTeams.indexOf(game.opponent) === -1; }), results, usedResults, v2NewestGameFirst) +
-    '</section>';
-  }).join('');
+  var selectedSeasonKey = v2GetSelectedScheduleSeasonKey();
+  var group = orderedGroups.find(function(entry) { return v2GetSeasonGroupKey(entry) === selectedSeasonKey; }) || orderedGroups[0];
+  var resolvedSeasonKey = v2GetSeasonGroupKey(group);
+  var counts = {};
+  group.games.forEach(function(game) {
+    var level = v2GetScheduleTeamLevel(game.teamLevel);
+    counts[level] = (counts[level] || 0) + 1;
+  });
+  var seasonTeam = counts[selectedTeam]
+    ? selectedTeam
+    : (v2ScheduleTeamLevels.find(function(level) { return counts[level.value]; }) || {}).value || selectedTeam;
+  var teamGames = group.games.filter(function(game) {
+    return v2GetScheduleTeamLevel(game.teamLevel) === seasonTeam;
+  });
+  var groupResults = results.filter(function(result) {
+    return v2GetScheduleTeamLevel(result.teamLevel) === seasonTeam &&
+      v2GetBaseballSeason(result.season, result.date) === group.season &&
+      ((v2GetDateParts(result.date) || {}).year || 0) === group.year;
+  }).map(function(result) {
+    return Object.assign({}, result, { season: v2GetBaseballSeason(result.season, result.date) });
+  });
+  var usedResults = [];
+  return '<section class="v2-schedule-season">' +
+    v2BuildSeasonScheduleHeader(group, groupResults, group.games, seasonTeam, orderedGroups, resolvedSeasonKey) +
+    v2BuildSeasonSummaryCards(teamGames, groupResults) +
+    v2BuildScheduleSubgroup('State Playoff Games', teamGames.filter(function(game) { return !!game.playoff; }), groupResults, usedResults, v2NewestGameFirst) +
+    v2BuildScheduleSubgroup('Region Games', teamGames.filter(function(game) { return !game.playoff && v2RegionTeams.indexOf(game.opponent) !== -1; }), groupResults, usedResults, v2NewestGameFirst) +
+    v2BuildScheduleSubgroup('Non-Region Games', teamGames.filter(function(game) { return !game.playoff && v2RegionTeams.indexOf(game.opponent) === -1; }), groupResults, usedResults, v2NewestGameFirst) +
+  '</section>';
 }
 
-function v2BuildSeasonScheduleHeader(group, results, allGames, selectedTeam) {
+function v2BuildSeasonScheduleHeader(group, results, allGames, selectedTeam, allGroups, selectedSeasonKey) {
   var wins = v2CountWins(results);
   var losses = v2CountLosses(results);
   return '<div class="v2-results-header v2-season-results-header">' +
@@ -768,7 +862,23 @@ function v2BuildSeasonScheduleHeader(group, results, allGames, selectedTeam) {
           '<span class="v2-heading-record-value">' + wins + '-' + losses + '</span>' +
         '</div>' +
       '</div>' +
-      v2BuildSeasonTeamTabs(group, allGames, selectedTeam) +
+      '<div class="v2-schedule-controls">' +
+        '<div class="v2-schedule-controls-top">' +
+          v2BuildSeasonSelect(allGroups, selectedSeasonKey, selectedTeam) +
+          '<div class="v2-calendar-sync" aria-label="Sync schedule calendar">' +
+            '<div>' +
+              '<span class="v2-calendar-sync-label">Sync Calendar</span>' +
+              '<p>Subscribe once and get the baseball schedule on your phone each season.</p>' +
+            '</div>' +
+            '<div class="v2-calendar-sync-actions">' +
+              '<a class="v2-calendar-sync-link v2-calendar-sync-link-apple" href="/api/schedule.ics">Apple</a>' +
+              '<a class="v2-calendar-sync-link v2-calendar-sync-link-google" href="/api/schedule.ics" target="_blank" rel="noopener">Android</a>' +
+              '<a class="v2-calendar-sync-link v2-calendar-sync-link-muted" href="/api/schedule.ics" download="timpanogos-baseball-schedule.ics">ICS</a>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        v2BuildSeasonTeamTabs(group, allGames, selectedTeam, selectedSeasonKey) +
+      '</div>' +
     '</div>' +
   '</div>';
 }
@@ -778,12 +888,28 @@ function v2GetSeasonName(season) {
   return match ? match.label : 'Spring';
 }
 
-function v2BuildSeasonTeamTabs(group, allGames, selectedTeam) {
+function v2BuildSeasonSelect(allGroups, selectedSeasonKey, selectedTeam) {
+  var groups = allGroups || [];
+  if (groups.length < 2) return '';
+  return '<label class="v2-season-picker-label">Season ' +
+    '<select class="v2-season-picker" onchange="window.location.href=this.value">' +
+      groups.map(function(group) {
+        var key = v2GetSeasonGroupKey(group);
+        var url = new URL(window.location.href);
+        url.searchParams.set('season', key);
+        if (selectedTeam === 'varsity') url.searchParams.delete('team');
+        else url.searchParams.set('team', selectedTeam);
+        return '<option value="' + v2EscapeHtml(url.pathname + url.search) + '"' + (key === selectedSeasonKey ? ' selected' : '') + '>' +
+          v2EscapeHtml(group.year + ' ' + v2GetSeasonName(group.season)) +
+        '</option>';
+      }).join('') +
+    '</select>' +
+  '</label>';
+}
+
+function v2BuildSeasonTeamTabs(group, seasonGames, selectedTeam, selectedSeasonKey) {
   var counts = {};
-  allGames.forEach(function(game) {
-    var parts = v2GetDateParts(game.date);
-    if (!parts || parts.year !== group.year) return;
-    if (v2GetBaseballSeason(game.season, game.date) !== group.season) return;
+  (seasonGames || []).forEach(function(game) {
     var level = v2GetScheduleTeamLevel(game.teamLevel);
     counts[level] = (counts[level] || 0) + 1;
   });
@@ -793,9 +919,11 @@ function v2BuildSeasonTeamTabs(group, allGames, selectedTeam) {
   if (!activeLevels.length) return '';
   return '<div class="v2-schedule-tabs" aria-label="Schedule team">' + activeLevels.map(function(level) {
     var url = new URL(window.location.href);
+    if (selectedSeasonKey) url.searchParams.set('season', selectedSeasonKey);
+    else url.searchParams.delete('season');
     if (level.value === 'varsity') url.searchParams.delete('team');
     else url.searchParams.set('team', level.value);
-    return '<a href="' + v2EscapeHtml(url.pathname + url.search + '#schedule') + '" class="v2-schedule-tab' + (level.value === selectedTeam ? ' active' : '') + '">' +
+    return '<a href="' + v2EscapeHtml(url.pathname + url.search) + '" class="v2-schedule-tab' + (level.value === selectedTeam ? ' active' : '') + '">' +
       v2EscapeHtml(level.label) + ' ' + (counts[level.value] || 0) +
     '</a>';
   }).join('') + '</div>';
@@ -806,31 +934,13 @@ function v2BuildSeasonSummaryCards(games, results) {
     return v2GameDateTimeValue(game) >= Date.now();
   }).sort(v2OldestGameFirst);
   var next = futureGames[0];
-  var recent = results.slice().sort(function(a, b) {
-    return v2GameDateTimeValue(b) - v2GameDateTimeValue(a);
-  }).slice(0, 3);
-  var wins = v2CountWins(results);
-  var losses = v2CountLosses(results);
 
   var nextCard = next
     ? '<h3>' + v2EscapeHtml(next.opponent || 'Opponent TBD') + '</h3><p>' + v2EscapeHtml(v2FormatDate(next.date, { weekday: 'short', month: 'long', day: 'numeric' })) + (next.time ? ' @ ' + v2EscapeHtml(next.time) : '') + '</p><p class="v2-panel-note">' + v2EscapeHtml(next.location || '') + '</p>'
-    : '<h3>Season Complete</h3><p>No future games scheduled.</p>';
-
-  var recentCard = recent.length
-    ? '<div class="v2-season-results-list">' + recent.map(function(result) {
-        var label = v2OutcomeLabel(result).charAt(0);
-        var cls = v2OutcomeClass(result);
-        return '<div class="v2-season-result-row">' +
-          '<span class="v2-season-result-team"><strong>' + v2EscapeHtml(result.opponent) + '</strong><small>' + v2EscapeHtml(v2FormatDate(result.date, { month: 'short', day: 'numeric' })) + '</small></span>' +
-          '<span class="v2-season-result-pill ' + cls + '"><span>' + label + '</span>' + result.ourScore + '-' + result.theirScore + '</span>' +
-        '</div>';
-      }).join('') + '</div>'
-    : '<p>No results posted.</p>';
+    : '<h3>Season Complete</h3>';
 
   return '<div class="v2-season-summary-grid">' +
     '<article class="v2-panel v2-panel-highlight"><p class="v2-panel-label">Next Game</p>' + nextCard + '</article>' +
-    '<article class="v2-panel v2-season-results-card"><p class="v2-panel-label">Recent Results</p>' + recentCard + '</article>' +
-    '<article class="v2-panel v2-season-record-card"><p class="v2-panel-label">Record</p><div class="v2-season-record-value"><span>' + wins + '</span><em>-</em><span>' + losses + '</span></div><p class="v2-panel-note">Current season record</p></article>' +
   '</div>';
 }
 
@@ -871,7 +981,7 @@ function v2RenderScheduleTeamTabs(games, selectedTeam) {
     var url = new URL(window.location.href);
     if (level.value === 'varsity') url.searchParams.delete('team');
     else url.searchParams.set('team', level.value);
-    link.href = url.pathname + url.search + '#schedule';
+    link.href = url.pathname + url.search;
     link.className = 'v2-schedule-tab' + (level.value === selectedTeam ? ' active' : '');
     link.textContent = level.label + ' ' + (counts[level.value] || 0);
     tabs.appendChild(link);
@@ -887,7 +997,7 @@ function v2BuildSeasonGames(games, results) {
   });
 
   (results || []).forEach(function(result) {
-    if (!result || !result.date || !result.opponent) return;
+    if (!v2HasContestIdentity(result)) return;
     if (mergedGames.some(function(game) {
       return result.date === game.date &&
         v2GetScheduleTeamLevel(result.teamLevel) === v2GetScheduleTeamLevel(game.teamLevel) &&
@@ -1482,20 +1592,44 @@ function v2WireHeaderScrollState() {
 }
 
 function v2WireCalendarSyncLinks() {
-  var appleLink = document.getElementById('v2AppleCalendarLink');
-  var googleLink = document.getElementById('v2GoogleCalendarLink');
-  if (!appleLink && !googleLink) return;
+  var syncEl = document.querySelector('#schedule .v2-season-results-header .v2-calendar-sync');
+  if (!syncEl) return;
+  var appleLink = syncEl.querySelector('.v2-calendar-sync-link-apple');
+  var googleLink = syncEl.querySelector('.v2-calendar-sync-link-google');
+  var icsLink = syncEl.querySelector('.v2-calendar-sync-link-muted');
+  var labelEl = syncEl.querySelector('.v2-calendar-sync-label');
+  var descriptionEl = syncEl.querySelector('p');
+  if (!appleLink && !googleLink && !icsLink) return;
 
+  var games = v2GetScheduleGames();
   var selectedTeam = v2GetSelectedScheduleTeam();
-  var calendarPath = (window.__SITE_BASE_PATH || '') + '/api/schedule.ics' + (selectedTeam === 'varsity' ? '' : '?team=' + encodeURIComponent(selectedTeam));
+  var selectedSeasonKey = v2ResolveSelectedSeasonKey(games);
+  var selectedSeason = selectedSeasonKey.split('-')[0] || 'spring';
+  var selectedYear = selectedSeasonKey.split('-')[1] || '';
+  var seasonLabel = v2GetSeasonName(selectedSeason) + (selectedYear ? ' ' + selectedYear : '');
+  var teamLabel = v2GetScheduleTeamLabel(selectedTeam);
+  var params = new URLSearchParams();
+  params.set('team', selectedTeam);
+  if (selectedSeasonKey) params.set('season', selectedSeasonKey);
+  var calendarPath = (window.__SITE_BASE_PATH || '') + '/api/schedule.ics?' + params.toString();
   var calendarUrl = window.location.origin + calendarPath;
+
+  if (labelEl) labelEl.textContent = 'Sync ' + teamLabel + ' ' + seasonLabel;
+  if (descriptionEl) descriptionEl.textContent = 'Subscribe to the ' + teamLabel + ' ' + seasonLabel + ' schedule.';
 
   if (appleLink) {
     appleLink.href = calendarUrl.replace(/^https?:\/\//, 'webcal://');
+    appleLink.textContent = 'Apple (' + teamLabel + ')';
   }
 
   if (googleLink) {
     googleLink.href = 'https://calendar.google.com/calendar/render?cid=' + encodeURIComponent(calendarUrl);
+    googleLink.textContent = 'Android (' + teamLabel + ')';
+  }
+
+  if (icsLink) {
+    icsLink.href = calendarPath;
+    icsLink.textContent = 'ICS (' + teamLabel + ')';
   }
 }
 
@@ -1503,13 +1637,12 @@ function v2Boot() {
   if (window.__v2Booted) return;
   window.__v2Booted = true;
 
-  var games = v2EnrichGamesWithOpponents(v2GetScheduleGames(), v2CachedOpponents || []);
-  var varsityGames = games.filter(function(game) { return v2GetScheduleTeamLevel(game.teamLevel) === 'varsity'; });
+  var games = v2GetScheduleGames();
+  var selectedTeamGames = v2GetGamesForSelectedTeam(games);
   var results = v2NormalizeFirebaseResults(v2CachedResults || []);
   v2WireHeroVideo();
-  v2RenderSummary(varsityGames.length ? varsityGames : games, results);
+  v2RenderSummary(selectedTeamGames.length ? selectedTeamGames : games, results);
   v2RenderFilmstrip(v2GetCarouselPhotos());
-  v2RenderCountdown(varsityGames.length ? varsityGames : games);
   v2RenderSchedule(games, results);
   v2RenderRoster();
   v2RenderNews();
@@ -1540,9 +1673,13 @@ function v2Init() {
     v2CachedResults = fbToArray(values[1]);
     v2CachedCarouselPhotos = values[2] ? fbToArray(values[2]) : null;
     v2CachedOpponents = values[3] ? fbToArray(values[3]).map(v2NormalizeOpponent) : [];
-    v2Boot();
+    if (window.__v2Booted) {
+      v2RefreshSiteFromCache();
+    } else {
+      v2Boot();
+    }
   }).catch(function() {
-    v2Boot();
+    if (!window.__v2Booted) v2Boot();
   });
 }
 
