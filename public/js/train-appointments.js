@@ -373,6 +373,18 @@
     renderSlots();
   }
 
+  function scrollSlotsIntoViewOnMobile() {
+    if (!window.matchMedia || !window.matchMedia('(max-width: 760px)').matches) return;
+    var slots = document.querySelector('.v2-train-slots');
+    if (!slots) return;
+    window.setTimeout(function() {
+      var header = document.querySelector('.v2-header');
+      var headerHeight = header ? header.getBoundingClientRect().height : 0;
+      var top = slots.getBoundingClientRect().top + window.scrollY - headerHeight - 12;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    }, 80);
+  }
+
   function openModal() {
     var trainer = getTrainer();
     var slot = getOpenSlotsForDate(state.selectedDate).find(function(item) { return item._key === state.selectedSlotId; });
@@ -580,6 +592,7 @@
       state.selectedDate = btn.dataset.date;
       state.selectedSlotId = '';
       render();
+      scrollSlotsIntoViewOnMobile();
     });
 
     $('trainSlotList').addEventListener('click', function(event) {

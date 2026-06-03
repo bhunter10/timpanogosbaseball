@@ -570,6 +570,16 @@ body.v2-train-modal-open{
     padding:8px;
   }
 
+  .v2-train-day.has-open-slots::after{
+    content:"";
+    width:6px;
+    height:6px;
+    margin-top:6px;
+    border-radius:50%;
+    background:var(--green);
+    box-shadow:0 0 10px rgba(91,255,24,.8);
+  }
+
   .v2-train-day small{
     display:none;
   }
