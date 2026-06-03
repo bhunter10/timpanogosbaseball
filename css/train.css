@@ -253,6 +253,9 @@
 
 .v2-train-day{
   position:relative;
+  display:grid;
+  justify-items:center;
+  align-content:start;
   min-height:78px;
   padding:10px;
   border:1px solid rgba(255,255,255,.11);
@@ -260,7 +263,7 @@
   background:rgba(255,255,255,.045);
   color:#fff;
   cursor:pointer;
-  text-align:left;
+  text-align:center;
 }
 
 .v2-train-day span{
@@ -270,7 +273,7 @@
 
 .v2-train-day small{
   display:block;
-  margin-top:20px;
+  margin-top:8px;
   color:rgba(244,247,251,.58);
   font-size:.74rem;
 }
@@ -304,17 +307,6 @@
   color:rgba(244,247,251,.36);
   cursor:not-allowed;
   background:rgba(255,255,255,.025);
-}
-
-.v2-train-day.is-full::after{
-  content:"";
-  position:absolute;
-  left:9px;
-  right:9px;
-  top:50%;
-  height:2px;
-  background:rgba(244,247,251,.38);
-  transform:rotate(-16deg);
 }
 
 .v2-train-slots{

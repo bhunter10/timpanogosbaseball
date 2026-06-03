@@ -1023,6 +1023,96 @@ body.admin-modal-open{
   gap:14px;
 }
 
+.admin-panel>.admin-appointments-dashboard{
+  margin:24px;
+}
+
+.admin-appointments-dashboard{
+  display:grid;
+  gap:16px;
+}
+
+.admin-appointments-tabs{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  padding:6px;
+  border:1px solid rgba(15,23,42,.10);
+  border-radius:14px;
+  background:rgba(255,255,255,.72);
+  box-shadow:0 12px 30px rgba(15,23,42,.06);
+}
+
+.admin-appointments-tab{
+  min-height:42px;
+  border:0;
+  border-radius:10px;
+  padding:0 18px;
+  background:transparent;
+  color:var(--admin-v2-muted);
+  cursor:pointer;
+  font:inherit;
+  font-weight:900;
+}
+
+.admin-appointments-tab.is-active{
+  background:var(--admin-v2-green);
+  color:#071126;
+  box-shadow:0 10px 24px rgba(91,205,39,.24);
+}
+
+.admin-appointments-tab-panel[hidden]{
+  display:none;
+}
+
+.admin-appointments-split{
+  display:grid;
+  grid-template-columns:minmax(320px, .82fr) minmax(420px, 1.18fr);
+  gap:16px;
+  align-items:start;
+}
+
+.admin-appointments-split-wide{
+  grid-template-columns:minmax(360px, .8fr) minmax(460px, 1.2fr);
+}
+
+.admin-appointments-card{
+  min-width:0;
+}
+
+.admin-card-heading{
+  display:flex;
+  justify-content:space-between;
+  gap:16px;
+  align-items:start;
+}
+
+.admin-card-heading h2{
+  margin-bottom:6px;
+}
+
+.admin-card-heading p{
+  margin:0;
+}
+
+.admin-appointments-list-card,
+.admin-availability-blocks-card{
+  max-height:calc(100svh - 220px);
+  overflow:auto;
+}
+
+.admin-appointments-editor-card{
+  position:sticky;
+  top:106px;
+}
+
+.admin-requests-grid{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:16px;
+  align-items:start;
+}
+
 .admin-appointment-grid{
   display:grid;
   grid-template-columns:repeat(auto-fit, minmax(210px, 1fr));
@@ -1114,7 +1204,7 @@ body.admin-modal-open{
 .admin-v2-body .admin-request-list{
   display:grid;
   gap:12px;
-  margin-top:18px;
+  margin-top:14px;
 }
 
 .admin-v2-body .admin-trainer-item,
@@ -1247,6 +1337,30 @@ body.admin-modal-open{
   .admin-v2-body .admin-request-item .list-actions{
     width:100%;
     margin-left:0;
+  }
+
+  .admin-panel>.admin-appointments-dashboard{
+    margin:16px 0;
+  }
+
+  .admin-appointments-split,
+  .admin-appointments-split-wide,
+  .admin-requests-grid{
+    grid-template-columns:1fr;
+  }
+
+  .admin-appointments-list-card,
+  .admin-availability-blocks-card{
+    max-height:none;
+    overflow:visible;
+  }
+
+  .admin-appointments-editor-card{
+    position:static;
+  }
+
+  .admin-appointments-tab{
+    flex:1 1 120px;
   }
 
   .admin-photo-crop-editor{

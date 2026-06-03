@@ -1021,6 +1021,44 @@ function renderAdminLogin(app) {
   });
 }
 
+const adminPanelRoutes = {
+  dashboard: 'saved-games',
+  opponents: 'opponents',
+  carousel: 'gallery',
+  appointments: 'training',
+  news: 'news'
+};
+
+const adminRoutePanels = Object.keys(adminPanelRoutes).reduce(function(map, panelName) {
+  map[adminPanelRoutes[panelName]] = panelName;
+  return map;
+}, {});
+
+function adminPanelFromPath() {
+  if (!isStandaloneAdminPage()) return 'dashboard';
+  var basePath = window.__SITE_BASE_PATH || '';
+  var path = window.location.pathname || '';
+  if (basePath && path.indexOf(basePath) === 0) path = path.slice(basePath.length);
+  path = path.replace(/\/+$/, '');
+  var parts = path.split('/').filter(Boolean);
+  var adminIndex = parts.indexOf('admin');
+  var slug = adminIndex >= 0 ? parts[adminIndex + 1] : '';
+  return adminRoutePanels[slug] || 'dashboard';
+}
+
+function adminPanelPath(panelName) {
+  var basePath = window.__SITE_BASE_PATH || '';
+  var slug = adminPanelRoutes[panelName] || adminPanelRoutes.dashboard;
+  return basePath + '/admin/' + slug + '/';
+}
+
+function updateAdminRoute(panelName, replaceRoute) {
+  if (!isStandaloneAdminPage()) return;
+  var nextPath = adminPanelPath(panelName);
+  if (window.location.pathname === nextPath) return;
+  history[replaceRoute ? 'replaceState' : 'pushState']({ adminPanel: panelName }, '', nextPath);
+}
+
 function renderAdmin(app) {
   if (!authReady || !currentAdminUser) {
     renderAdminLogin(app);
@@ -1028,14 +1066,15 @@ function renderAdmin(app) {
   }
 
   app.className = 'container admin-page';
+  const initialAdminPanel = adminPanelFromPath();
   app.innerHTML = `
     <aside class="admin-card admin-sidebar">
-      <button type="button" class="admin-nav-link active" data-admin-panel="dashboard">Dashboard</button>
+      <button type="button" class="admin-nav-link active" data-admin-panel="dashboard">Saved games</button>
       <button type="button" class="admin-nav-link admin-nav-link-action" id="adminAddGameNavBtn">Add game</button>
       <button type="button" class="admin-nav-link" data-admin-panel="opponents">Opponents</button>
-      <button type="button" class="admin-nav-link" data-admin-panel="carousel">Carousel photos</button>
-      <button type="button" class="admin-nav-link" data-admin-panel="appointments">Appointments</button>
-      <button type="button" class="admin-nav-link" data-admin-panel="news">Utah News</button>
+      <button type="button" class="admin-nav-link" data-admin-panel="carousel">Gallery</button>
+      <button type="button" class="admin-nav-link" data-admin-panel="appointments">Training</button>
+      <button type="button" class="admin-nav-link" data-admin-panel="news">News</button>
     </aside>
     <div class="admin-content">
       <section class="admin-card admin-session">
@@ -1123,7 +1162,7 @@ function renderAdmin(app) {
       </div>
       <div class="admin-panel" data-admin-panel-view="news">
         <section class="admin-card" id="newsAdminCard">
-          <h2>Utah News</h2>
+          <h2>News</h2>
           <p class="muted">Refresh coverage from Herald Extra, KSL, and other Utah feeds. Saved articles appear on the public <a href="news/">News page</a> immediately.</p>
           <dl class="admin-news-stats">
             <div><dt>Last updated</dt><dd id="adminNewsLastUpdated">Never</dd></div>
@@ -1206,6 +1245,8 @@ function renderAdmin(app) {
       </div>
     </div>`;
 
+  showAdminPanel(initialAdminPanel, { replaceRoute: true });
+
   document.getElementById('adminSignOut').addEventListener('click', () => {
     fbSignOut().then(() => navigate());
   });
@@ -1244,13 +1285,21 @@ function renderAdmin(app) {
     });
   }
 
-  function showAdminPanel(panelName) {
+  function showAdminPanel(panelName, options) {
+    options = options || {};
     document.querySelectorAll('.admin-nav-link').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.adminPanel === panelName);
     });
     document.querySelectorAll('.admin-panel').forEach(panel => {
       panel.classList.toggle('active', panel.dataset.adminPanelView === panelName);
     });
+    updateAdminRoute(panelName, !!options.replaceRoute);
+    if (panelName === 'news' && window.AdminNews) {
+      window.AdminNews.loadStatus();
+    }
+    if (panelName === 'appointments' && window.AdminAppointments) {
+      window.AdminAppointments.initPanel();
+    }
   }
 
   function resetGameFormForAdd() {
@@ -1334,14 +1383,16 @@ function renderAdmin(app) {
     btn.addEventListener('click', () => {
       const panelName = btn.dataset.adminPanel;
       showAdminPanel(panelName);
-      if (panelName === 'news' && window.AdminNews) {
-        window.AdminNews.loadStatus();
-      }
-      if (panelName === 'appointments' && window.AdminAppointments) {
-        window.AdminAppointments.initPanel();
-      }
     });
   });
+
+  if (!window.__adminPanelPopstateWired) {
+    window.__adminPanelPopstateWired = true;
+    window.addEventListener('popstate', function() {
+      if (!isStandaloneAdminPage() || !document.querySelector('.admin-page')) return;
+      showAdminPanel(adminPanelFromPath(), { replaceRoute: true });
+    });
+  }
 
   const adminAddGameNavBtn = document.getElementById('adminAddGameNavBtn');
   if (adminAddGameNavBtn) {

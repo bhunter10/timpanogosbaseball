@@ -9,6 +9,7 @@
     trainerId: '',
     editingTrainerKey: '',
     editingAvailability: null,
+    activeTab: 'trainers',
     photoCrop: {
       file: null,
       image: null,
@@ -278,78 +279,124 @@
 
   function panelHtml() {
     return [
-      '<section class="admin-card admin-appointments-card">',
-        '<h2>Trainers</h2>',
-        '<form id="trainerForm" class="admin-appointment-form">',
-          '<div class="admin-appointment-grid">',
-            '<label>Name:<input type="text" id="trainerName" required placeholder="Coach name"></label>',
-            '<label>Specialty:<input type="text" id="trainerSpecialty" required placeholder="Hitting and catchers"></label>',
-            '<label>Coach cell phone:<input type="tel" id="trainerCellPhone" placeholder="801-555-1234"></label>',
-            '<label>Photo URL:<input type="url" id="trainerPhotoUrl" placeholder="https://..."></label>',
-            '<label>Upload photo:<input type="file" id="trainerPhotoFile" accept="image/*"></label>',
-            '<label>Sort order:<input type="number" id="trainerSortOrder" min="0" step="1" value="0"></label>',
-          '</div>',
-          '<div class="admin-photo-crop-editor" id="trainerPhotoCropEditor" hidden>',
-            '<div class="admin-photo-crop-preview">',
-              '<canvas id="trainerPhotoCropCanvas" width="260" height="260" aria-label="Trainer photo crop preview"></canvas>',
-            '</div>',
-            '<div class="admin-photo-crop-controls">',
-              '<label>Zoom<input type="range" id="trainerPhotoZoom" min="1" max="3" step="0.01" value="1"></label>',
-              '<div class="admin-photo-nudge-grid" aria-label="Pan trainer photo">',
-                '<button type="button" class="btn small alt" data-photo-nudge="0,-1">Up</button>',
-                '<button type="button" class="btn small alt" data-photo-nudge="-1,0">Left</button>',
-                '<button type="button" class="btn small alt" data-photo-nudge="1,0">Right</button>',
-                '<button type="button" class="btn small alt" data-photo-nudge="0,1">Down</button>',
+      '<section class="admin-appointments-dashboard">',
+        '<div class="admin-appointments-tabs" role="tablist" aria-label="Appointment admin sections">',
+          '<button type="button" class="admin-appointments-tab is-active" role="tab" aria-selected="true" aria-controls="appointmentsTabTrainers" data-appointments-tab="trainers">Trainers</button>',
+          '<button type="button" class="admin-appointments-tab" role="tab" aria-selected="false" aria-controls="appointmentsTabAvailability" data-appointments-tab="availability">Availability</button>',
+          '<button type="button" class="admin-appointments-tab" role="tab" aria-selected="false" aria-controls="appointmentsTabRequests" data-appointments-tab="requests">Requests</button>',
+        '</div>',
+        '<section class="admin-appointments-tab-panel is-active" id="appointmentsTabTrainers" role="tabpanel" data-appointments-panel="trainers">',
+          '<div class="admin-appointments-split">',
+            '<section class="admin-card admin-appointments-card admin-appointments-list-card">',
+              '<div class="admin-card-heading">',
+                '<div><h2>Trainers</h2><p class="muted">Manage coach profiles, specialties, phone numbers, and public visibility.</p></div>',
               '</div>',
-              '<button type="button" class="btn small alt" id="trainerPhotoReset">Reset photo crop</button>',
-            '</div>',
+              '<ul id="trainerAdminList" class="list admin-trainer-list"></ul>',
+            '</section>',
+            '<section class="admin-card admin-appointments-card admin-appointments-editor-card">',
+              '<h2>Trainer Profile</h2>',
+              '<form id="trainerForm" class="admin-appointment-form">',
+                '<div class="admin-appointment-grid">',
+                  '<label>Name:<input type="text" id="trainerName" required placeholder="Coach name"></label>',
+                  '<label>Specialty:<input type="text" id="trainerSpecialty" required placeholder="Hitting and catchers"></label>',
+                  '<label>Coach cell phone:<input type="tel" id="trainerCellPhone" placeholder="801-555-1234"></label>',
+                  '<label>Photo URL:<input type="url" id="trainerPhotoUrl" placeholder="https://..."></label>',
+                  '<label>Upload photo:<input type="file" id="trainerPhotoFile" accept="image/*"></label>',
+                  '<label>Sort order:<input type="number" id="trainerSortOrder" min="0" step="1" value="0"></label>',
+                '</div>',
+                '<div class="admin-photo-crop-editor" id="trainerPhotoCropEditor" hidden>',
+                  '<div class="admin-photo-crop-preview">',
+                    '<canvas id="trainerPhotoCropCanvas" width="260" height="260" aria-label="Trainer photo crop preview"></canvas>',
+                  '</div>',
+                  '<div class="admin-photo-crop-controls">',
+                    '<label>Zoom<input type="range" id="trainerPhotoZoom" min="1" max="3" step="0.01" value="1"></label>',
+                    '<div class="admin-photo-nudge-grid" aria-label="Pan trainer photo">',
+                      '<button type="button" class="btn small alt" data-photo-nudge="0,-1">Up</button>',
+                      '<button type="button" class="btn small alt" data-photo-nudge="-1,0">Left</button>',
+                      '<button type="button" class="btn small alt" data-photo-nudge="1,0">Right</button>',
+                      '<button type="button" class="btn small alt" data-photo-nudge="0,1">Down</button>',
+                    '</div>',
+                    '<button type="button" class="btn small alt" id="trainerPhotoReset">Reset photo crop</button>',
+                  '</div>',
+                '</div>',
+                '<label class="checkbox-label"><input type="checkbox" id="trainerActive" checked> Active on public booking page</label>',
+                '<div class="form-row">',
+                  '<button type="submit" class="btn" id="trainerSubmitBtn">Add Trainer</button>',
+                  '<button type="button" class="btn alt" id="trainerCancelEditBtn" hidden>Cancel edit</button>',
+                '</div>',
+                '<p id="trainerSaveStatus"></p>',
+              '</form>',
+            '</section>',
           '</div>',
-          '<label class="checkbox-label"><input type="checkbox" id="trainerActive" checked> Active on public booking page</label>',
-          '<div class="form-row">',
-            '<button type="submit" class="btn" id="trainerSubmitBtn">Add Trainer</button>',
-            '<button type="button" class="btn alt" id="trainerCancelEditBtn" hidden>Cancel edit</button>',
+        '</section>',
+        '<section class="admin-appointments-tab-panel" id="appointmentsTabAvailability" role="tabpanel" data-appointments-panel="availability" hidden>',
+          '<div class="admin-appointments-split admin-appointments-split-wide">',
+            '<section class="admin-card admin-appointments-card admin-availability-control-card">',
+              '<h2>Availability</h2>',
+              '<form id="trainerAvailabilityForm" class="admin-appointment-form">',
+                '<div class="admin-appointment-grid">',
+                  '<label>Trainer:<select id="availabilityTrainerSelect"></select></label>',
+                  '<label>Date:<input type="date" id="availabilityDate" required></label>',
+                  '<label>Start time:<input type="time" id="availabilityStartTime" required></label>',
+                  '<label>End time:<input type="time" id="availabilityEndTime" required></label>',
+                  '<label>Location:<input type="text" id="availabilityLocation" required placeholder="Timpanogos cages"></label>',
+                '</div>',
+                '<p class="muted">Add open blocks and locations. Visitors can request 30-minute ($30) or 1-hour ($50) appointments inside a block.</p>',
+                '<div class="form-row">',
+                  '<button type="submit" class="btn" id="availabilitySubmitBtn">Add Availability Block</button>',
+                  '<button type="button" class="btn alt" id="availabilityCancelEditBtn" hidden>Cancel edit</button>',
+                '</div>',
+                '<p id="availabilitySaveStatus"></p>',
+              '</form>',
+            '</section>',
+            '<section class="admin-card admin-appointments-card admin-availability-blocks-card">',
+              '<div class="admin-card-heading">',
+                '<div><h2>Saved Blocks</h2><p class="muted">All availability blocks for the selected trainer.</p></div>',
+              '</div>',
+              '<ul id="availabilitySlotList" class="list admin-availability-list"></ul>',
+            '</section>',
           '</div>',
-          '<p id="trainerSaveStatus"></p>',
-        '</form>',
-        '<ul id="trainerAdminList" class="list admin-trainer-list"></ul>',
-      '</section>',
-      '<section class="admin-card admin-appointments-card">',
-        '<h2>Availability</h2>',
-        '<form id="trainerAvailabilityForm" class="admin-appointment-form">',
-          '<div class="admin-appointment-grid">',
-            '<label>Trainer:<select id="availabilityTrainerSelect"></select></label>',
-            '<label>Date:<input type="date" id="availabilityDate" required></label>',
-            '<label>Start time:<input type="time" id="availabilityStartTime" required></label>',
-            '<label>End time:<input type="time" id="availabilityEndTime" required></label>',
-            '<label>Location:<input type="text" id="availabilityLocation" required placeholder="Timpanogos cages"></label>',
+        '</section>',
+        '<section class="admin-appointments-tab-panel" id="appointmentsTabRequests" role="tabpanel" data-appointments-panel="requests" hidden>',
+          '<div class="admin-requests-grid">',
+            '<section class="admin-card admin-appointments-card">',
+              '<h2>Pending Appointments</h2>',
+              '<p class="muted">Approve, deny, or delete appointment requests. Denying or deleting releases the time.</p>',
+              '<ul id="appointmentRequestList" class="list admin-request-list"></ul>',
+              '<p id="appointmentRequestStatus"></p>',
+            '</section>',
+            '<section class="admin-card admin-appointments-card">',
+              '<h2>Approved Appointments</h2>',
+              '<p class="muted">Approved appointments stay here. Canceling or deleting releases the time.</p>',
+              '<ul id="approvedAppointmentList" class="list admin-request-list"></ul>',
+            '</section>',
+            '<section class="admin-card admin-appointments-card">',
+              '<h2>Denied / Canceled Appointments</h2>',
+              '<p class="muted">Denied and canceled requests are kept here for history. Delete removes the record.</p>',
+              '<ul id="deniedAppointmentList" class="list admin-request-list"></ul>',
+            '</section>',
           '</div>',
-          '<p class="muted">Add the trainer&apos;s open block and location. Visitors can request 30-minute ($30) or 1-hour ($50) appointments that fit inside it.</p>',
-          '<div class="form-row">',
-            '<button type="submit" class="btn" id="availabilitySubmitBtn">Add Availability Block</button>',
-            '<button type="button" class="btn alt" id="availabilityCancelEditBtn" hidden>Cancel edit</button>',
-          '</div>',
-          '<p id="availabilitySaveStatus"></p>',
-        '</form>',
-        '<h3 class="admin-subsection-title">Saved Availability Blocks</h3>',
-        '<ul id="availabilitySlotList" class="list admin-availability-list"></ul>',
-      '</section>',
-      '<section class="admin-card admin-appointments-card">',
-        '<h2>Pending Appointments</h2>',
-        '<p class="muted">Approve, deny, or delete appointment requests. Denying or deleting releases the time.</p>',
-        '<ul id="appointmentRequestList" class="list admin-request-list"></ul>',
-        '<p id="appointmentRequestStatus"></p>',
-      '</section>',
-      '<section class="admin-card admin-appointments-card">',
-        '<h2>Approved Appointments</h2>',
-        '<p class="muted">Approved appointments stay here. Canceling or deleting releases the time.</p>',
-        '<ul id="approvedAppointmentList" class="list admin-request-list"></ul>',
-      '</section>',
-      '<section class="admin-card admin-appointments-card">',
-        '<h2>Denied / Canceled Appointments</h2>',
-        '<p class="muted">Denied and canceled requests are kept here for history. Delete removes the record.</p>',
-        '<ul id="deniedAppointmentList" class="list admin-request-list"></ul>',
+        '</section>',
       '</section>'
     ].join('');
+  }
+
+  function syncAppointmentTabs() {
+    document.querySelectorAll('[data-appointments-tab]').forEach(function(tab) {
+      var active = tab.dataset.appointmentsTab === state.activeTab;
+      tab.classList.toggle('is-active', active);
+      tab.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    document.querySelectorAll('[data-appointments-panel]').forEach(function(panel) {
+      var active = panel.dataset.appointmentsPanel === state.activeTab;
+      panel.classList.toggle('is-active', active);
+      panel.hidden = !active;
+    });
+  }
+
+  function setAppointmentTab(tabName) {
+    state.activeTab = tabName || 'trainers';
+    syncAppointmentTabs();
   }
 
   function resetTrainerForm() {
@@ -550,15 +597,14 @@
 
     if (!approved.length) {
       approvedList.innerHTML = '<li class="muted">No approved appointments yet.</li>';
-      return;
+    } else {
+      approvedList.innerHTML = approved.map(function(request) {
+        return requestListItem(request,
+          '<button type="button" class="btn small alt" data-deny-request="' + escapeHtml(request._key) + '">Cancel</button>' +
+          '<button type="button" class="btn small alt" data-delete-request="' + escapeHtml(request._key) + '">Delete</button>'
+        );
+      }).join('');
     }
-
-    approvedList.innerHTML = approved.map(function(request) {
-      return requestListItem(request,
-        '<button type="button" class="btn small alt" data-deny-request="' + escapeHtml(request._key) + '">Cancel</button>' +
-        '<button type="button" class="btn small alt" data-delete-request="' + escapeHtml(request._key) + '">Delete</button>'
-      );
-    }).join('');
 
     var deniedList = $('deniedAppointmentList');
     if (!deniedList) return;
@@ -568,14 +614,13 @@
 
     if (!denied.length) {
       deniedList.innerHTML = '<li class="muted">No denied or canceled appointments yet.</li>';
-      return;
+    } else {
+      deniedList.innerHTML = denied.map(function(request) {
+        return requestListItem(request,
+          '<button type="button" class="btn small alt" data-delete-request="' + escapeHtml(request._key) + '">Delete</button>'
+        );
+      }).join('');
     }
-
-    deniedList.innerHTML = denied.map(function(request) {
-      return requestListItem(request,
-        '<button type="button" class="btn small alt" data-delete-request="' + escapeHtml(request._key) + '">Delete</button>'
-      );
-    }).join('');
   }
 
   function renderAll() {
@@ -672,6 +717,7 @@
   function editTrainer(key) {
     var trainer = getTrainerById(key);
     if (!trainer) return;
+    setAppointmentTab('trainers');
     state.editingTrainerKey = key;
     $('trainerName').value = trainer.name || '';
     $('trainerSpecialty').value = trainer.specialty || '';
@@ -804,6 +850,7 @@
   function editSlot(date, slotKey) {
     var block = findAvailabilityBlock(date, slotKey);
     if (!block) return;
+    setAppointmentTab('availability');
     state.editingAvailability = { date: date, key: slotKey };
     $('availabilityDate').value = date;
     $('availabilityStartTime').value = block.startTimeValue || block.timeValue || '';
@@ -883,6 +930,11 @@
   }
 
   function wireEvents() {
+    document.querySelectorAll('[data-appointments-tab]').forEach(function(tab) {
+      tab.addEventListener('click', function() {
+        setAppointmentTab(tab.dataset.appointmentsTab);
+      });
+    });
     $('trainerForm').addEventListener('submit', saveTrainer);
     $('trainerCancelEditBtn').addEventListener('click', resetTrainerForm);
     $('trainerAdminList').addEventListener('click', function(event) {
@@ -967,6 +1019,7 @@
     if (!panel || state.initialized) return;
     state.initialized = true;
     wireEvents();
+    syncAppointmentTabs();
     var dateInput = $('availabilityDate');
     if (dateInput && !dateInput.value) dateInput.value = new Date().toISOString().slice(0, 10);
     loadAll();
