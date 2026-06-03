@@ -7,6 +7,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+  const isStaticExport = process.env.NEXT_PUBLIC_STATIC_EXPORT === 'true';
 
   return (
     <html lang="en">
@@ -25,7 +26,7 @@ export default function RootLayout({ children }) {
         <link rel="icon" href={`${basePath}/images/twolves-wolf.svg`} type="image/svg+xml" />
         <script
           dangerouslySetInnerHTML={{
-            __html: `window.__SITE_BASE_PATH=${JSON.stringify(basePath)};`
+            __html: `window.__SITE_BASE_PATH=${JSON.stringify(basePath)};window.__SITE_STATIC_EXPORT=${JSON.stringify(isStaticExport)};`
           }}
         />
       </head>

@@ -48,7 +48,7 @@
 
   function cropProxyUrl(src) {
     var normalized = normalizeAssetUrl(src);
-    if (!/^https?:\/\//i.test(normalized)) return normalized;
+    if (!/^https?:\/\//i.test(normalized) || window.__SITE_STATIC_EXPORT) return normalized;
     return (window.__SITE_BASE_PATH || '') + '/api/trainer-photo-proxy?url=' + encodeURIComponent(normalized);
   }
 
