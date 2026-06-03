@@ -33,6 +33,9 @@ function cleanFirebaseRecord(item) {
   if (!item || typeof item !== 'object') return item;
   var cleaned = Object.assign({}, item);
   delete cleaned._key;
+  if (typeof cleaned.src === 'string' && cleaned.src) {
+    cleaned.src = normalizeAssetUrl(cleaned.src);
+  }
   return cleaned;
 }
 
@@ -249,10 +252,23 @@ function enrichGamesWithOpponents(games, opponents) {
     return enrichGameWithOpponent(game, opponents);
   });
 }
+function normalizeAssetUrl(src) {
+  if (!src) return '';
+  if (/^(https?:|data:|blob:|\/\/)/i.test(src)) return src;
+  var basePath = window.__SITE_BASE_PATH || '';
+  var cleanSrc = String(src).replace(/^\.?\//, '');
+  if (basePath && cleanSrc.indexOf(basePath.replace(/^\//, '') + '/') === 0) {
+    return basePath + '/' + cleanSrc;
+  }
+  return (basePath || '') + '/' + cleanSrc;
+}
+
 function normalizeCarouselPhoto(photo, index) {
-  if (typeof photo === 'string') return { src: photo, alt: 'Team photo', sortOrder: index, _key: String(index) };
+  if (typeof photo === 'string') {
+    return { src: normalizeAssetUrl(photo), alt: 'Team photo', sortOrder: index, _key: String(index) };
+  }
   return {
-    src: photo && photo.src ? photo.src : '',
+    src: photo && photo.src ? normalizeAssetUrl(photo.src) : '',
     alt: photo && photo.alt ? photo.alt : 'Team photo',
     storagePath: photo && photo.storagePath ? photo.storagePath : '',
     width: photo && photo.width ? photo.width : null,

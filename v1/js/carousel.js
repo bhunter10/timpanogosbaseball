@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
-  const defaultPhotos = ['../photos/optimized/1.jpg','../photos/optimized/2.jpg','../photos/optimized/3.jpg','../photos/optimized/4.jpg','../photos/optimized/5.jpg','../photos/optimized/6.jpg','../photos/optimized/7.jpg','../photos/optimized/8.jpg','../photos/optimized/9.jpg'].map(src => ({
-    src,
+  const basePath = window.__SITE_BASE_PATH || '';
+  const defaultPhotos = ['/photos/optimized/1.jpg','/photos/optimized/2.jpg','/photos/optimized/3.jpg','/photos/optimized/4.jpg','/photos/optimized/5.jpg','/photos/optimized/6.jpg','/photos/optimized/7.jpg','/photos/optimized/8.jpg','/photos/optimized/9.jpg'].map(src => ({
+    src: basePath + src,
     alt: 'Team photo'
   }));
   window.defaultCarouselPhotos = defaultPhotos;
@@ -19,10 +20,23 @@ document.addEventListener('DOMContentLoaded', () => {
   const track = document.querySelector('.carousel-track');
   const dots = document.querySelector('.carousel-dots');
 
+  if (!carousel || !track || !dots) return;
+
+  function normalizePhotoSrc(src) {
+    if (!src) return '';
+    if (/^(https?:|data:|blob:|\/\/)/i.test(src)) return src;
+    const basePath = window.__SITE_BASE_PATH || '';
+    const cleanSrc = String(src).replace(/^\.?\//, '');
+    if (basePath && cleanSrc.indexOf(basePath.replace(/^\//, '') + '/') === 0) {
+      return basePath + '/' + cleanSrc;
+    }
+    return (basePath || '') + '/' + cleanSrc;
+  }
+
   function normalizePhoto(photo) {
-    if (typeof photo === 'string') return { src: photo, alt: 'Team photo' };
+    if (typeof photo === 'string') return { src: normalizePhotoSrc(photo), alt: 'Team photo' };
     return {
-      src: photo && photo.src ? photo.src : '',
+      src: photo && photo.src ? normalizePhotoSrc(photo.src) : '',
       alt: photo && photo.alt ? photo.alt : 'Team photo',
       storagePath: photo && photo.storagePath,
       sortOrder: photo && photo.sortOrder != null ? photo.sortOrder : 0,
