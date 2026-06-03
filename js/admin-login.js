@@ -6,7 +6,7 @@ function initAdminLogin() {
 
   document.addEventListener('adminauthchange', function() {
     if (authReady && currentAdminUser) {
-      window.location.replace(basePath + '/admin/#admin');
+      window.location.replace(basePath + '/admin/');
     }
   });
 
@@ -22,7 +22,7 @@ function initAdminLogin() {
       document.getElementById('adminEmail').value,
       document.getElementById('adminPassword').value
     ).then(function() {
-      window.location.replace(basePath + '/admin/#admin');
+      window.location.replace(basePath + '/admin/');
     }).catch(function(err) {
       errorEl.textContent = err && err.message ? err.message : 'Unable to sign in.';
       submitBtn.disabled = false;

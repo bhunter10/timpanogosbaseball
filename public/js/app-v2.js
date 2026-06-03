@@ -318,6 +318,10 @@ function v2NormalizeOpponent(opponent, index) {
   };
 }
 
+function v2IsHomeGameLocation(location) {
+  return String(location || '').trim().toLowerCase() === 'home';
+}
+
 function v2FindOpponent(opponentId, opponents) {
   if (!opponentId) return null;
   return (opponents || []).find(function(opponent) {
@@ -334,7 +338,9 @@ function v2EnrichGameWithOpponent(game, opponents) {
     enriched.opponent = opponent.shortName || opponent.schoolName || enriched.opponent;
     enriched.opponentMascot = opponent.mascot || '';
     enriched.opponentLogoUrl = opponent.logoUrl || '';
-    enriched.locationAddress = enriched.locationAddress || opponent.address || '';
+    if (!v2IsHomeGameLocation(enriched.location)) {
+      enriched.locationAddress = enriched.locationAddress || opponent.address || '';
+    }
   }
   return enriched;
 }

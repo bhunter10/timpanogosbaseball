@@ -219,6 +219,16 @@ body.admin-v2-body.auth-pending #app{
   border-left-color:var(--admin-v2-green);
 }
 
+.admin-v2-body .admin-nav-link-action{
+  border-left-color:rgba(91,205,39,.45);
+  background:rgba(91,205,39,.08);
+  font-weight:800;
+}
+
+.admin-v2-body .admin-nav-link-action:hover{
+  background:rgba(91,205,39,.16);
+}
+
 .admin-v2-body input,
 .admin-v2-body select{
   background:#ffffff;
@@ -591,6 +601,25 @@ body.admin-v2-body.auth-pending #app{
   display:grid;
   place-items:center;
   padding:20px;
+}
+
+.admin-v2-body .admin-game-form-modal{
+  z-index:2900;
+}
+
+.admin-v2-body .admin-game-form-modal-panel{
+  width:min(640px, 100%);
+  max-height:min(90vh, 820px);
+  grid-template-rows:auto minmax(0, 1fr);
+}
+
+.admin-v2-body .admin-game-form-modal-body{
+  overflow:auto;
+  padding:0 18px 18px;
+}
+
+.admin-v2-body .admin-game-form-modal-body #gameForm label{
+  margin-bottom:12px;
 }
 
 .admin-v2-body .admin-opponent-modal-backdrop{

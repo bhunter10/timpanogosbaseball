@@ -198,6 +198,10 @@ function findOpponentById(opponentId, opponents) {
     return opponent && opponent._key === opponentId;
   }) || null;
 }
+function isHomeGameLocation(location) {
+  return String(location || '').trim().toLowerCase() === 'home';
+}
+
 function opponentsMatch(a, b) {
   if (!a || !b) return false;
   if (a.opponentId && b.opponentId && a.opponentId === b.opponentId) return true;
@@ -227,7 +231,9 @@ function enrichGameWithOpponent(game, opponents) {
     enriched.opponent = opponent.shortName || opponent.schoolName || enriched.opponent;
     enriched.opponentMascot = opponent.mascot || '';
     enriched.opponentLogoUrl = opponent.logoUrl || '';
-    enriched.locationAddress = enriched.locationAddress || opponent.address || '';
+    if (!isHomeGameLocation(enriched.location)) {
+      enriched.locationAddress = enriched.locationAddress || opponent.address || '';
+    }
   }
   return enriched;
 }
@@ -1002,6 +1008,7 @@ function renderAdmin(app) {
   app.innerHTML = `
     <aside class="admin-card admin-sidebar">
       <button type="button" class="admin-nav-link active" data-admin-panel="dashboard">Dashboard</button>
+      <button type="button" class="admin-nav-link admin-nav-link-action" id="adminAddGameNavBtn">Add game</button>
       <button type="button" class="admin-nav-link" data-admin-panel="opponents">Opponents</button>
       <button type="button" class="admin-nav-link" data-admin-panel="carousel">Carousel photos</button>
       <button type="button" class="admin-nav-link" data-admin-panel="news">Utah News</button>
@@ -1015,34 +1022,9 @@ function renderAdmin(app) {
         <button type="button" class="btn alt" id="adminSignOut">Sign Out</button>
       </section>
       <div class="admin-panel active" data-admin-panel-view="dashboard">
-        <div class="admin-main-grid admin-main-grid-single">
-          <section class="admin-card" id="gameAdminCard">
-            <h2>Add Game / Result</h2>
-            <form id="gameForm">
-              <label>Schedule:<select id="gameTeamLevel">${scheduleTeamLevels.map(level => `<option value="${level.value}">${level.label}</option>`).join('')}</select></label>
-              <label class="admin-date-field">Date (MM-DD-YYYY):<input type="date" id="gameDate" required /><span class="admin-season-hint muted" id="gameSeasonHint" aria-live="polite"></span></label>
-              <div class="admin-opponent-picker-field">
-                <span class="admin-field-label">Opponent</span>
-                <input type="hidden" id="gameOpponentId" value="" />
-                <button type="button" class="admin-opponent-picker-btn" id="gameOpponentPickerBtn" aria-haspopup="dialog" aria-controls="gameOpponentModal">
-                  <span id="gameOpponentPickerLabel">Choose or add opponent</span>
-                </button>
-              </div>
-              <label>Location:<input type="text" id="gameLocation" required placeholder="Home/Away" /></label>
-              <label>Location Address:<input type="text" id="gameLocationAddress" placeholder="Auto-filled from opponent when available" /></label>
-              <label>Time:<input type="text" id="gameTime" required placeholder="4:00 PM" /></label>
-              <label>Our Score:<input id="gameOurScore" type="number" placeholder="Optional" /></label>
-              <label>Their Score:<input id="gameTheirScore" type="number" placeholder="Optional" /></label>
-              <label class="checkbox-label"><input type="checkbox" id="gamePlayoff" /> Playoff Game</label>
-              <div class="form-row">
-                <button type="submit" class="btn">Add Game</button>
-              </div>
-              <p class="auth-error" id="gameSaveError"></p>
-            </form>
-          </section>
-        </div>
         <section class="admin-card">
           <h2>Saved Games & Results</h2>
+          <p class="muted">Use <strong>Add game</strong> in the sidebar or <strong>Edit</strong> on a row to open the form.</p>
           <ul id="gamesPreview" class="list"></ul>
         </section>
         <section class="admin-card admin-reseed-section" hidden>
@@ -1136,6 +1118,38 @@ function renderAdmin(app) {
         </section>
       </div>
     </div>
+    <div class="admin-opponent-modal admin-game-form-modal" id="gameFormModal" hidden>
+      <button type="button" class="admin-opponent-modal-backdrop" id="gameFormModalBackdrop" aria-label="Close game form"></button>
+      <div class="admin-opponent-modal-panel admin-game-form-modal-panel" role="dialog" aria-modal="true" aria-labelledby="gameFormModalTitle">
+        <header class="admin-opponent-modal-header">
+          <h3 id="gameFormModalTitle">Add Game / Result</h3>
+          <button type="button" class="admin-opponent-modal-close" id="gameFormModalClose" aria-label="Close">×</button>
+        </header>
+        <div class="admin-game-form-modal-body">
+          <form id="gameForm">
+            <label>Schedule:<select id="gameTeamLevel">${scheduleTeamLevels.map(level => `<option value="${level.value}">${level.label}</option>`).join('')}</select></label>
+            <label class="admin-date-field">Date (MM-DD-YYYY):<input type="date" id="gameDate" required /><span class="admin-season-hint muted" id="gameSeasonHint" aria-live="polite"></span></label>
+            <div class="admin-opponent-picker-field">
+              <span class="admin-field-label">Opponent</span>
+              <input type="hidden" id="gameOpponentId" value="" />
+              <button type="button" class="admin-opponent-picker-btn" id="gameOpponentPickerBtn" aria-haspopup="dialog" aria-controls="gameOpponentModal">
+                <span id="gameOpponentPickerLabel">Choose or add opponent</span>
+              </button>
+            </div>
+            <label>Location:<input type="text" id="gameLocation" required placeholder="Home/Away" /></label>
+            <label>Location Address:<input type="text" id="gameLocationAddress" placeholder="Auto-filled from opponent when available" /></label>
+            <label>Time:<input type="text" id="gameTime" required placeholder="4:00 PM" /></label>
+            <label>Our Score:<input id="gameOurScore" type="number" placeholder="Optional" /></label>
+            <label>Their Score:<input id="gameTheirScore" type="number" placeholder="Optional" /></label>
+            <label class="checkbox-label"><input type="checkbox" id="gamePlayoff" /> Playoff Game</label>
+            <div class="form-row">
+              <button type="submit" class="btn">Add Game</button>
+            </div>
+            <p class="auth-error" id="gameSaveError"></p>
+          </form>
+        </div>
+      </div>
+    </div>
     <div class="admin-opponent-modal" id="gameOpponentModal" hidden>
       <button type="button" class="admin-opponent-modal-backdrop" aria-label="Close opponent picker"></button>
       <div class="admin-opponent-modal-panel" role="dialog" aria-modal="true" aria-labelledby="gameOpponentModalTitle">
@@ -1212,7 +1226,84 @@ function renderAdmin(app) {
     });
   }
 
-  document.querySelectorAll('.admin-nav-link').forEach(btn => {
+  function resetGameFormForAdd() {
+    editingGameIdx = -1;
+    editingResultIdx = -1;
+    const form = document.getElementById('gameForm');
+    if (form) form.reset();
+    updateGameSeasonHint();
+    updateGameOpponentPickerDisplay();
+    const submitBtn = form && form.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.textContent = 'Add Game';
+    const titleEl = document.getElementById('gameFormModalTitle');
+    if (titleEl) titleEl.textContent = 'Add Game / Result';
+    const errorEl = document.getElementById('gameSaveError');
+    if (errorEl) errorEl.textContent = '';
+  }
+
+  function fillGameFormFromRecord(g, result, record) {
+    document.getElementById('gameTeamLevel').value = getScheduleTeamLevel(g.teamLevel);
+    document.getElementById('gameDate').value = g.date;
+    updateGameSeasonHint();
+    const matchedOpponent = matchOpponentForGame(g);
+    setGameOpponentSelection(matchedOpponent ? matchedOpponent._key : (g.opponentId || ''));
+    document.getElementById('gameLocation').value = g.location || '';
+    document.getElementById('gameLocationAddress').value = g.locationAddress || '';
+    document.getElementById('gameTime').value = g.time || '';
+    document.getElementById('gamePlayoff').checked = !!g.playoff;
+    document.getElementById('gameOurScore').value = result ? result.ourScore : '';
+    document.getElementById('gameTheirScore').value = result ? result.theirScore : '';
+    editingGameIdx = record.gameIndex;
+    editingResultIdx = record.resultIndex;
+    if (editingGameIdx < 0 && record.adminResultIndex >= 0) {
+      editingResultIdx = savedResultIndexFromAdminIndex(record.adminResultIndex);
+    }
+    const submitBtn = document.querySelector('#gameForm button[type="submit"]');
+    if (submitBtn) submitBtn.textContent = 'Update';
+    const titleEl = document.getElementById('gameFormModalTitle');
+    if (titleEl) titleEl.textContent = 'Edit Game / Result';
+    const errorEl = document.getElementById('gameSaveError');
+    if (errorEl) errorEl.textContent = '';
+  }
+
+  function gameFormModalKeydown(event) {
+    if (event.key === 'Escape') {
+      const opponentModal = document.getElementById('gameOpponentModal');
+      if (opponentModal && !opponentModal.hidden) return;
+      closeGameFormModal();
+    }
+  }
+
+  function openGameFormModal() {
+    const modal = document.getElementById('gameFormModal');
+    if (!modal) return;
+    modal.hidden = false;
+    document.body.classList.add('admin-modal-open');
+    document.addEventListener('keydown', gameFormModalKeydown);
+    const dateInput = document.getElementById('gameDate');
+    if (dateInput) setTimeout(function() { dateInput.focus(); }, 0);
+  }
+
+  function closeGameFormModal() {
+    const modal = document.getElementById('gameFormModal');
+    if (!modal) return;
+    modal.hidden = true;
+    if (!document.getElementById('gameOpponentModal') || document.getElementById('gameOpponentModal').hidden) {
+      document.body.classList.remove('admin-modal-open');
+    }
+    document.removeEventListener('keydown', gameFormModalKeydown);
+  }
+
+  function wireGameFormModal() {
+    const modal = document.getElementById('gameFormModal');
+    if (!modal) return;
+    const backdrop = document.getElementById('gameFormModalBackdrop');
+    const closeBtn = document.getElementById('gameFormModalClose');
+    if (backdrop) backdrop.addEventListener('click', closeGameFormModal);
+    if (closeBtn) closeBtn.addEventListener('click', closeGameFormModal);
+  }
+
+  document.querySelectorAll('.admin-nav-link[data-admin-panel]').forEach(btn => {
     btn.addEventListener('click', () => {
       const panelName = btn.dataset.adminPanel;
       showAdminPanel(panelName);
@@ -1221,6 +1312,17 @@ function renderAdmin(app) {
       }
     });
   });
+
+  const adminAddGameNavBtn = document.getElementById('adminAddGameNavBtn');
+  if (adminAddGameNavBtn) {
+    adminAddGameNavBtn.addEventListener('click', () => {
+      showAdminPanel('dashboard');
+      resetGameFormForAdd();
+      openGameFormModal();
+    });
+  }
+
+  wireGameFormModal();
 
   let games = getGames().slice();
   let results = getResults().slice();
@@ -1485,25 +1587,9 @@ function renderAdmin(app) {
         const editBtn = document.createElement('button');
         editBtn.textContent = 'Edit'; editBtn.className = 'btn small';
         editBtn.addEventListener('click', () => {
-          document.getElementById('gameTeamLevel').value = getScheduleTeamLevel(g.teamLevel);
-          document.getElementById('gameDate').value = g.date;
-          updateGameSeasonHint();
-          const matchedOpponent = matchOpponentForGame(g);
-          setGameOpponentSelection(matchedOpponent ? matchedOpponent._key : (g.opponentId || ''));
-          document.getElementById('gameLocation').value = g.location || '';
-          document.getElementById('gameLocationAddress').value = g.locationAddress || '';
-          document.getElementById('gameTime').value = g.time || '';
-          document.getElementById('gamePlayoff').checked = !!g.playoff;
-          document.getElementById('gameOurScore').value = result ? result.ourScore : '';
-          document.getElementById('gameTheirScore').value = result ? result.theirScore : '';
-          editingGameIdx = record.gameIndex;
-          editingResultIdx = record.resultIndex;
-          if (editingGameIdx < 0 && record.adminResultIndex >= 0) {
-            editingResultIdx = savedResultIndexFromAdminIndex(record.adminResultIndex);
-          }
-          document.querySelector('#gameForm button[type="submit"]').textContent = 'Update';
           showAdminPanel('dashboard');
-          document.getElementById('gameAdminCard').scrollIntoView({ behavior: 'smooth' });
+          fillGameFormFromRecord(g, result, record);
+          openGameFormModal();
         });
         const delBtn = document.createElement('button');
         delBtn.textContent = 'Delete'; delBtn.className = 'btn small alt';
@@ -1594,8 +1680,10 @@ function renderAdmin(app) {
   function applySelectedOpponentToGameForm() {
     const opponent = findOpponentById(document.getElementById('gameOpponentId').value, opponents);
     if (!opponent) return;
+    const locationEl = document.getElementById('gameLocation');
     const addressEl = document.getElementById('gameLocationAddress');
-    if (opponent.address && addressEl && !addressEl.value) {
+    const isHome = locationEl && isHomeGameLocation(locationEl.value);
+    if (opponent.address && addressEl && !addressEl.value && !isHome) {
       addressEl.value = opponent.address;
     }
   }
@@ -1706,7 +1794,10 @@ function renderAdmin(app) {
     const modal = document.getElementById('gameOpponentModal');
     if (!modal) return;
     modal.hidden = true;
-    document.body.classList.remove('admin-modal-open');
+    const gameModal = document.getElementById('gameFormModal');
+    if (!gameModal || gameModal.hidden) {
+      document.body.classList.remove('admin-modal-open');
+    }
     document.removeEventListener('keydown', opponentPickerModalKeydown);
     setQuickAddOpponentFormVisible(false);
   }
@@ -2497,14 +2588,16 @@ function renderAdmin(app) {
       openOpponentPickerModal();
       return;
     }
+    const gameLocation = document.getElementById('gameLocation').value;
+    const gameLocationAddress = document.getElementById('gameLocationAddress').value.trim();
     const game = {
       teamLevel: getScheduleTeamLevel(document.getElementById('gameTeamLevel').value),
       season: getBaseballSeason('', document.getElementById('gameDate').value),
       opponentId: selectedOpponent._key,
       date: document.getElementById('gameDate').value,
       opponent: getGameOpponentDisplayName(selectedOpponent),
-      location: document.getElementById('gameLocation').value,
-      locationAddress: document.getElementById('gameLocationAddress').value || selectedOpponent.address || '',
+      location: gameLocation,
+      locationAddress: gameLocationAddress || (isHomeGameLocation(gameLocation) ? '' : selectedOpponent.address || ''),
       time: document.getElementById('gameTime').value
     };
     if (document.getElementById('gamePlayoff').checked) game.playoff = true;
@@ -2540,6 +2633,7 @@ function renderAdmin(app) {
         form.reset();
         updateGameSeasonHint();
         updateGameOpponentPickerDisplay();
+        closeGameFormModal();
       }).catch(err => {
         games = previousGames;
         results = previousResults;
@@ -2565,6 +2659,7 @@ function renderAdmin(app) {
         form.reset();
         updateGameSeasonHint();
         updateGameOpponentPickerDisplay();
+        closeGameFormModal();
       }).catch(err => {
         games = previousGames;
         results = previousResults;
@@ -2832,8 +2927,14 @@ function renderRoster(app) {
    ══════════════════════════════════ */
 const routes = { home: renderHome, schedule: renderSchedule, results: renderResults, roster: renderRoster, admin: renderAdmin };
 
+function isStandaloneAdminPage() {
+  return !!window.__ADMIN_STANDALONE_PAGE;
+}
+
 function navigate() {
-  const hash = (location.hash.slice(1) || 'home').toLowerCase();
+  const hash = isStandaloneAdminPage()
+    ? 'admin'
+    : (location.hash.slice(1) || 'home').toLowerCase();
   const app = document.getElementById('app');
   app.className = 'container';
   app.innerHTML = '';
@@ -2871,9 +2972,16 @@ function navigate() {
   });
 }
 
-window.addEventListener('hashchange', navigate);
+window.addEventListener('hashchange', function() {
+  if (isStandaloneAdminPage()) {
+    if (typeof clearStandaloneAdminHash === 'function') clearStandaloneAdminHash();
+    navigate();
+    return;
+  }
+  navigate();
+});
 document.addEventListener('adminauthchange', () => {
-  if ((location.hash.slice(1) || 'home').toLowerCase() === 'admin') navigate();
+  if (isStandaloneAdminPage() || (location.hash.slice(1) || 'home').toLowerCase() === 'admin') navigate();
 });
 function v1BootstrapFirebaseAndNavigate() {
   seedDatabase().then(function() {

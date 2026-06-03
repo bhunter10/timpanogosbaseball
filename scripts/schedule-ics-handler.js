@@ -8,6 +8,18 @@ var TEAM_LABELS = {
   sophomore: 'Sophomores'
 };
 var SEASON_ORDER = { spring: 1, summer: 2, fall: 3 };
+var TIMPANOGOS_HOME_FIELD = '1450 N 200 E, Orem, UT 84057';
+
+function isHomeGameLocation(location) {
+  return String(location || '').trim().toLowerCase() === 'home';
+}
+
+function resolveCalendarLocation(game) {
+  if (isHomeGameLocation(game && game.location)) {
+    return TIMPANOGOS_HOME_FIELD;
+  }
+  return (game && (game.locationAddress || game.address || game.location)) || '';
+}
 
 function sendCalendar(res, statusCode, body) {
   res.statusCode = statusCode;
@@ -220,7 +232,7 @@ function buildGameEvent(game, index, now) {
   var startsAt = zonedDateToUtc(dateParts[0], dateParts[1], dateParts[2], parsedTime.hour, parsedTime.minute, TIME_ZONE);
   var endsAt = new Date(startsAt.getTime() + DEFAULT_DURATION_MINUTES * 60000);
   var opponent = game.opponent || 'Opponent TBD';
-  var location = game.locationAddress || game.address || game.location || '';
+  var location = resolveCalendarLocation(game);
   var summary = 'Timpanogos Baseball vs ' + opponent;
   var season = getSeasonFromDate(game);
   var seasonLabel = season.charAt(0).toUpperCase() + season.slice(1);
