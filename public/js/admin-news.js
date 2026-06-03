@@ -35,6 +35,14 @@
       .replace(/"/g, '&quot;');
   }
 
+  function sortArticlesByDate(articles) {
+    return articles.slice().sort(function(a, b) {
+      var aTime = Date.parse(a && a.pubDate || 0) || 0;
+      var bTime = Date.parse(b && b.pubDate || 0) || 0;
+      return bTime - aTime;
+    });
+  }
+
   function renderNewsPreview(articles) {
     var preview = document.getElementById('adminNewsPreview');
     if (!preview) return;
@@ -44,9 +52,11 @@
       return;
     }
 
-    preview.innerHTML = articles.slice(0, 8).map(function(article) {
-      return '<li><strong>' + escapeHtml(article.title) + '</strong><br><span class="muted">' +
-        escapeHtml(article.source || 'News') + ' · ' + escapeHtml(formatAdminTimestamp(article.pubDate)) + '</span></li>';
+    preview.innerHTML = sortArticlesByDate(articles).map(function(article) {
+      return '<li><strong>' + escapeHtml(article.title) + '</strong>' +
+        '<span class="muted admin-news-preview-meta">' +
+        escapeHtml(article.source || 'News') + ' · ' + escapeHtml(formatAdminTimestamp(article.pubDate)) +
+        '</span></li>';
     }).join('');
   }
 

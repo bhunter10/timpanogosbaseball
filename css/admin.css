@@ -996,6 +996,28 @@ body.admin-modal-open{
   border-top:1px solid var(--admin-v2-line);
 }
 
+.admin-v2-body .admin-news-preview li{
+  display:block;
+  height:auto;
+  min-height:0;
+}
+
+.admin-v2-body .admin-news-preview li strong{
+  display:block;
+  margin-bottom:4px;
+}
+
+.admin-v2-body .admin-news-preview li span{
+  flex:none;
+  margin-right:0;
+}
+
+.admin-news-preview-meta{
+  display:block;
+  margin-top:0;
+  font-size:.92rem;
+}
+
 @media (max-width: 768px){
   .admin-v2-body .admin-login-page{
     padding:28px 14px 40px!important;
