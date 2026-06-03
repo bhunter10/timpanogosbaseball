@@ -96,7 +96,8 @@ body.admin-v2-body.auth-pending #app{
   gap:12px;
 }
 
-.admin-v2-nav a{
+.admin-v2-nav a,
+.admin-v2-auth-signout{
   display:inline-flex;
   align-items:center;
   justify-content:center;
@@ -108,6 +109,27 @@ body.admin-v2-body.auth-pending #app{
   border:1px solid rgba(15,23,42,.08);
   background:rgba(255,255,255,.8);
   font-weight:800;
+}
+
+.admin-v2-auth{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.admin-v2-auth[hidden]{
+  display:none;
+}
+
+.admin-v2-auth-user{
+  color:rgba(15,23,42,.68);
+  font-size:.9rem;
+  font-weight:800;
+}
+
+.admin-v2-auth-signout{
+  cursor:pointer;
+  font:inherit;
 }
 
 .admin-v2-nav a[href="#admin"]{
@@ -1308,6 +1330,10 @@ body.admin-modal-open{
   }
 
   .admin-v2-nav{
+    flex-wrap:wrap;
+  }
+
+  .admin-v2-auth{
     flex-wrap:wrap;
   }
 

@@ -1077,13 +1077,6 @@ function renderAdmin(app) {
       <button type="button" class="admin-nav-link" data-admin-panel="news">News</button>
     </aside>
     <div class="admin-content">
-      <section class="admin-card admin-session">
-        <div>
-          <h2>Admin</h2>
-          <p class="muted">Signed in as ${currentAdminUser.email}</p>
-        </div>
-        <button type="button" class="btn alt" id="adminSignOut">Sign Out</button>
-      </section>
       <div class="admin-panel active" data-admin-panel-view="dashboard">
         <section class="admin-card">
           <h2>Saved Games & Results</h2>
@@ -1246,10 +1239,6 @@ function renderAdmin(app) {
     </div>`;
 
   showAdminPanel(initialAdminPanel, { replaceRoute: true });
-
-  document.getElementById('adminSignOut').addEventListener('click', () => {
-    fbSignOut().then(() => navigate());
-  });
 
   const adminReseedBtn = document.getElementById('adminReseedScheduleBtn');
   if (adminReseedBtn) {

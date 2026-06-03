@@ -8,6 +8,36 @@ function clearStandaloneAdminHash() {
   }
 }
 
+function renderAdminHeaderAuth() {
+  var authSlot = document.getElementById('adminHeaderAuth');
+  if (!authSlot) return;
+
+  authSlot.innerHTML = '';
+
+  if (!authReady || !currentAdminUser) {
+    authSlot.hidden = true;
+    return;
+  }
+
+  var signedIn = document.createElement('span');
+  signedIn.className = 'admin-v2-auth-user';
+  signedIn.textContent = 'Signed in as ' + currentAdminUser.email;
+
+  var signOutBtn = document.createElement('button');
+  signOutBtn.type = 'button';
+  signOutBtn.className = 'admin-v2-auth-signout';
+  signOutBtn.textContent = 'Sign Out';
+  signOutBtn.addEventListener('click', function() {
+    fbSignOut().then(function() {
+      window.location.replace(adminBasePath + '/admin-login/');
+    });
+  });
+
+  authSlot.appendChild(signedIn);
+  authSlot.appendChild(signOutBtn);
+  authSlot.hidden = false;
+}
+
 clearStandaloneAdminHash();
 
 window.defaultCarouselPhotos = [
@@ -25,6 +55,8 @@ window.defaultCarouselPhotos = [
 });
 
 document.addEventListener('adminauthchange', function() {
+  renderAdminHeaderAuth();
+
   if (!authReady) return;
 
   if (!currentAdminUser) {
@@ -37,7 +69,11 @@ document.addEventListener('adminauthchange', function() {
 });
 
 document.addEventListener('DOMContentLoaded', function() {
+  renderAdminHeaderAuth();
+
   if (authReady && currentAdminUser) {
     document.body.classList.remove('auth-pending');
   }
 });
+
+renderAdminHeaderAuth();
