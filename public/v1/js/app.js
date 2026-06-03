@@ -235,7 +235,14 @@ function enrichGameWithOpponent(game, opponents) {
       enriched.locationAddress = enriched.locationAddress || opponent.address || '';
     }
   }
+  if (isHomeGameLocation(enriched.location)) {
+    enriched.locationAddress = '';
+  }
   return enriched;
+}
+function adminPreviewLocationAddress(game) {
+  if (!game || isHomeGameLocation(game.location)) return '';
+  return game.locationAddress || '';
 }
 function enrichGamesWithOpponents(games, opponents) {
   return (games || []).map(function(game) {
@@ -1414,7 +1421,7 @@ function renderAdmin(app) {
           teamLevel: getScheduleTeamLevel(result.teamLevel),
           season: getBaseballSeason(result.season, result.date),
           location: result.location || '',
-          locationAddress: result.locationAddress || '',
+          locationAddress: isHomeGameLocation(result.location) ? '' : (result.locationAddress || ''),
           time: result.time || '',
           playoff: !!result.playoff
         },
@@ -1490,7 +1497,8 @@ function renderAdmin(app) {
   function formatAdminGameLine(game, result) {
     const details = [];
     if (game.location) details.push(game.location);
-    if (game.locationAddress) details.push(game.locationAddress);
+    const previewAddress = adminPreviewLocationAddress(game);
+    if (previewAddress) details.push(previewAddress);
     if (game.time) details.push(game.time);
     const detailText = details.length ? ' (' + details.join(' | ') + ')' : '';
     const score = result ? ` | Timpanogos ${result.ourScore}, ${game.opponent} ${result.theirScore}` : '';
@@ -1550,7 +1558,8 @@ function renderAdmin(app) {
         details.push(getBaseballSeasonLabel(g.season, g.date));
         if (g.playoff) details.push('State Playoff');
         if (g.location) details.push(g.location);
-        if (g.locationAddress) details.push(g.locationAddress);
+        const previewAddress = adminPreviewLocationAddress(g);
+        if (previewAddress) details.push(previewAddress);
         if (g.time) details.push(g.time);
         const li = document.createElement('li');
         li.className = 'game-preview-item';
