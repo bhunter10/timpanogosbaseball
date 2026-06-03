@@ -1,9 +1,20 @@
 .v2-train-page{
+  position:relative;
+  isolation:isolate;
   min-height:100svh;
   padding-top:96px;
+  background:#02060f;
+}
+
+.v2-train-page::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  z-index:-1;
   background:
     linear-gradient(180deg, rgba(0,0,0,.78), rgba(0,0,0,.94)),
-    url('/images/home/coach-team-meeting.jpg') center top / cover fixed;
+    url('/images/home/coach-team-meeting.jpg') center top / cover no-repeat;
+  pointer-events:none;
 }
 
 .v2-train-hero{
@@ -218,6 +229,11 @@
   cursor:pointer;
 }
 
+.v2-train-icon-btn:disabled{
+  opacity:.35;
+  cursor:not-allowed;
+}
+
 .v2-train-weekdays,
 .v2-train-calendar-grid{
   display:grid;
@@ -265,7 +281,22 @@
 
 .v2-train-day.is-selected{
   border-color:rgba(91,255,24,.76);
-  box-shadow:inset 0 0 0 1px rgba(91,255,24,.3);
+  background:rgba(255,255,255,.045);
+  color:#fff;
+  box-shadow:inset 0 0 0 2px rgba(91,255,24,.62);
+}
+
+.v2-train-day.is-selected small{
+  color:rgba(244,247,251,.78);
+}
+
+.v2-train-day:focus{
+  outline:none;
+}
+
+.v2-train-day:focus-visible{
+  outline:2px solid rgba(91,255,24,.74);
+  outline-offset:2px;
 }
 
 .v2-train-day.is-full,
@@ -475,7 +506,6 @@ body.v2-train-modal-open{
 @media (max-width: 760px){
   .v2-train-page{
     padding-top:88px;
-    background-attachment:scroll;
   }
 
   .v2-train-hero{

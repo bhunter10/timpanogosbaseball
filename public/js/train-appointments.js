@@ -6,11 +6,15 @@
     availability: {},
     claims: {},
     trainerId: '',
-    monthDate: startOfMonth(new Date()),
+    monthDate: new Date(2026, 5, 1),
     selectedDate: '',
     selectedSlotId: ''
   };
 
+  var firstTrainingMonth = new Date(2026, 5, 1);
+  var lastTrainingMonth = new Date(2026, 7, 1);
+  var firstTrainingDate = '2026-06-01';
+  var lastTrainingDate = '2026-08-31';
   var basePath = window.__SITE_BASE_PATH || '';
   var fallbackCoachPhoto = basePath + '/images/home/coach-talk-wide.jpg';
 
@@ -34,6 +38,21 @@
 
   function startOfMonth(date) {
     return new Date(date.getFullYear(), date.getMonth(), 1);
+  }
+
+  function monthIndex(date) {
+    return date.getFullYear() * 12 + date.getMonth();
+  }
+
+  function clampCalendarMonth(date) {
+    var month = startOfMonth(date);
+    if (monthIndex(month) < monthIndex(firstTrainingMonth)) return new Date(firstTrainingMonth);
+    if (monthIndex(month) > monthIndex(lastTrainingMonth)) return new Date(lastTrainingMonth);
+    return month;
+  }
+
+  function isTrainingDate(iso) {
+    return iso >= firstTrainingDate && iso <= lastTrainingDate;
   }
 
   function parseIso(iso) {
@@ -245,8 +264,13 @@
     var grid = $('trainCalendarGrid');
     var label = $('trainMonthLabel');
     if (!grid || !label) return;
+    state.monthDate = clampCalendarMonth(state.monthDate);
 
     label.textContent = state.monthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    var prevBtn = $('trainPrevMonth');
+    var nextBtn = $('trainNextMonth');
+    if (prevBtn) prevBtn.disabled = monthIndex(state.monthDate) <= monthIndex(firstTrainingMonth);
+    if (nextBtn) nextBtn.disabled = monthIndex(state.monthDate) >= monthIndex(lastTrainingMonth);
 
     var first = startOfMonth(state.monthDate);
     var cursor = new Date(first);
@@ -260,7 +284,7 @@
       var openSlots = getOpenSlotsForDate(iso);
       var allSlots = getOptionsForDate(iso);
       var isPast = iso < todayIso;
-      var disabled = isPast || !state.trainerId || !openSlots.length;
+      var disabled = !isTrainingDate(iso) || isPast || !state.trainerId || !openSlots.length;
       var labelText = allSlots.length ? (openSlots.length ? openSlots.length + ' open' : 'Booked') : 'No times';
       cells.push('<button type="button" class="v2-train-day' +
         (outside ? ' is-outside' : '') +
@@ -527,12 +551,12 @@
     });
 
     $('trainPrevMonth').addEventListener('click', function() {
-      state.monthDate = new Date(state.monthDate.getFullYear(), state.monthDate.getMonth() - 1, 1);
+      state.monthDate = clampCalendarMonth(new Date(state.monthDate.getFullYear(), state.monthDate.getMonth() - 1, 1));
       renderCalendar();
     });
 
     $('trainNextMonth').addEventListener('click', function() {
-      state.monthDate = new Date(state.monthDate.getFullYear(), state.monthDate.getMonth() + 1, 1);
+      state.monthDate = clampCalendarMonth(new Date(state.monthDate.getFullYear(), state.monthDate.getMonth() + 1, 1));
       renderCalendar();
     });
 
