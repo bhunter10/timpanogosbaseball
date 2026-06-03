@@ -406,8 +406,11 @@
     modal.hidden = false;
     document.body.classList.add('v2-train-modal-open');
     setTimeout(function() {
+      var card = modal.querySelector('.v2-train-modal-card');
+      if (card) card.scrollTop = 0;
+      if (window.matchMedia && window.matchMedia('(max-width: 760px)').matches) return;
       var input = $('trainCustomerName');
-      if (input) input.focus();
+      if (input) input.focus({ preventScroll: true });
     }, 0);
   }
 
