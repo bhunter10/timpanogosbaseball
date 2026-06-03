@@ -1034,6 +1034,7 @@ function renderAdmin(app) {
       <button type="button" class="admin-nav-link admin-nav-link-action" id="adminAddGameNavBtn">Add game</button>
       <button type="button" class="admin-nav-link" data-admin-panel="opponents">Opponents</button>
       <button type="button" class="admin-nav-link" data-admin-panel="carousel">Carousel photos</button>
+      <button type="button" class="admin-nav-link" data-admin-panel="appointments">Appointments</button>
       <button type="button" class="admin-nav-link" data-admin-panel="news">Utah News</button>
     </aside>
     <div class="admin-content">
@@ -1139,6 +1140,9 @@ function renderAdmin(app) {
           <h2>Latest headlines</h2>
           <ul id="adminNewsPreview" class="list admin-news-preview"></ul>
         </section>
+      </div>
+      <div class="admin-panel" data-admin-panel-view="appointments" id="appointmentsAdminPanel">
+        ${window.AdminAppointments ? window.AdminAppointments.panelHtml() : '<section class="admin-card"><h2>Appointments</h2><p class="auth-error">Appointment tools did not load. Refresh and try again.</p></section>'}
       </div>
     </div>
     <div class="admin-opponent-modal admin-game-form-modal" id="gameFormModal" hidden>
@@ -1332,6 +1336,9 @@ function renderAdmin(app) {
       showAdminPanel(panelName);
       if (panelName === 'news' && window.AdminNews) {
         window.AdminNews.loadStatus();
+      }
+      if (panelName === 'appointments' && window.AdminAppointments) {
+        window.AdminAppointments.initPanel();
       }
     });
   });

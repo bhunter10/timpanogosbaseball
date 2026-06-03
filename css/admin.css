@@ -1018,6 +1018,82 @@ body.admin-modal-open{
   font-size:.92rem;
 }
 
+.admin-appointment-form{
+  display:grid;
+  gap:14px;
+}
+
+.admin-appointment-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(210px, 1fr));
+  gap:14px;
+}
+
+.admin-v2-body .admin-trainer-list,
+.admin-v2-body .admin-availability-list,
+.admin-v2-body .admin-request-list{
+  display:grid;
+  gap:12px;
+  margin-top:18px;
+}
+
+.admin-v2-body .admin-trainer-item,
+.admin-v2-body .admin-availability-item,
+.admin-v2-body .admin-request-item{
+  min-height:0;
+  height:auto;
+  align-items:center;
+  gap:14px;
+}
+
+.admin-trainer-main{
+  display:grid;
+  grid-template-columns:56px 1fr;
+  gap:12px;
+  align-items:center;
+  flex:1 1 280px;
+  min-width:0;
+}
+
+.admin-trainer-main img,
+.admin-trainer-photo-placeholder{
+  width:56px;
+  height:56px;
+  border-radius:50%;
+  object-fit:cover;
+  background:linear-gradient(135deg, rgba(91,205,39,.2), rgba(15,23,42,.08));
+  border:1px solid rgba(15,23,42,.08);
+}
+
+.admin-trainer-main strong,
+.admin-request-main strong{
+  display:block;
+  color:var(--admin-v2-text);
+}
+
+.admin-trainer-main span,
+.admin-trainer-main small,
+.admin-request-main span,
+.admin-request-main small,
+.admin-availability-item span{
+  display:block;
+  margin-top:4px;
+  color:var(--admin-v2-muted);
+  font-size:.9rem;
+}
+
+.admin-availability-item strong{
+  flex:1 1 auto;
+  color:var(--admin-v2-text);
+}
+
+.admin-request-main{
+  display:grid;
+  gap:2px;
+  flex:1 1 360px;
+  min-width:0;
+}
+
 @media (max-width: 768px){
   .admin-v2-body .admin-login-page{
     padding:28px 14px 40px!important;
@@ -1071,5 +1147,20 @@ body.admin-modal-open{
   .admin-v2-login-card{
     width:min(100%, 340px);
     padding:24px 20px;
+  }
+
+  .admin-v2-body .admin-trainer-item,
+  .admin-v2-body .admin-availability-item,
+  .admin-v2-body .admin-request-item{
+    display:grid;
+    grid-template-columns:1fr;
+    align-items:start;
+  }
+
+  .admin-v2-body .admin-trainer-item .list-actions,
+  .admin-v2-body .admin-availability-item .list-actions,
+  .admin-v2-body .admin-request-item .list-actions{
+    width:100%;
+    margin-left:0;
   }
 }

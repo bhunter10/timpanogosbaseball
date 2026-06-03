@@ -1,0 +1,435 @@
+.v2-train-page{
+  min-height:100svh;
+  padding-top:96px;
+  background:
+    linear-gradient(180deg, rgba(0,0,0,.78), rgba(0,0,0,.94)),
+    url('/images/home/coach-team-meeting.jpg') center top / cover fixed;
+}
+
+.v2-train-hero{
+  padding:72px 0 38px;
+}
+
+.v2-train-hero-inner{
+  max-width:820px;
+}
+
+.v2-train-hero h1,
+.v2-train-heading h2{
+  margin:0;
+  font-family:"Bebas Neue",sans-serif;
+  letter-spacing:.02em;
+  line-height:.92;
+}
+
+.v2-train-hero h1{
+  font-size:clamp(4.5rem, 11vw, 8rem);
+}
+
+.v2-train-hero p:last-child{
+  max-width:650px;
+  margin:18px 0 0;
+  color:rgba(244,247,251,.78);
+  font-size:1.08rem;
+  line-height:1.7;
+}
+
+.v2-train-booking{
+  padding:0 0 90px;
+}
+
+.v2-train-heading{
+  display:flex;
+  align-items:end;
+  justify-content:space-between;
+  gap:24px;
+  margin-bottom:22px;
+}
+
+.v2-train-heading h2{
+  font-size:clamp(2.6rem, 5vw, 4.6rem);
+}
+
+.v2-train-status{
+  margin:0;
+  color:rgba(244,247,251,.66);
+  font-weight:800;
+}
+
+.v2-train-layout{
+  display:grid;
+  grid-template-columns:minmax(220px, .72fr) minmax(440px, 1.5fr) minmax(260px, .86fr);
+  gap:16px;
+  align-items:start;
+}
+
+.v2-train-trainers,
+.v2-train-calendar-panel,
+.v2-train-slots,
+.v2-train-modal-card{
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(4,10,22,.88);
+  box-shadow:0 24px 70px rgba(0,0,0,.34);
+}
+
+.v2-train-trainers,
+.v2-train-calendar-panel,
+.v2-train-slots{
+  border-radius:8px;
+  padding:18px;
+}
+
+.v2-train-trainers h3,
+.v2-train-slots h3,
+.v2-train-calendar-toolbar h3{
+  margin:0;
+  color:#fff;
+}
+
+.v2-trainer-list,
+.v2-train-slot-list{
+  display:grid;
+  gap:10px;
+}
+
+.v2-trainer-list{
+  margin-top:14px;
+}
+
+.v2-trainer-option,
+.v2-train-slot{
+  width:100%;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:8px;
+  background:rgba(255,255,255,.04);
+  color:#fff;
+  cursor:pointer;
+  text-align:left;
+}
+
+.v2-trainer-option{
+  display:grid;
+  grid-template-columns:52px 1fr;
+  gap:12px;
+  align-items:center;
+  padding:10px;
+}
+
+.v2-trainer-option img{
+  width:52px;
+  height:52px;
+  border-radius:50%;
+  object-fit:cover;
+  background:#111827;
+}
+
+.v2-trainer-option strong,
+.v2-train-slot strong{
+  display:block;
+}
+
+.v2-trainer-option span,
+.v2-train-empty{
+  color:rgba(244,247,251,.62);
+  font-size:.9rem;
+}
+
+.v2-trainer-option.is-selected,
+.v2-train-slot.is-selected{
+  border-color:rgba(91,255,24,.74);
+  background:rgba(91,255,24,.12);
+}
+
+.v2-train-calendar-toolbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  margin-bottom:14px;
+}
+
+.v2-train-icon-btn{
+  width:42px;
+  height:42px;
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:50%;
+  background:rgba(255,255,255,.05);
+  color:#fff;
+  font-size:1.5rem;
+  cursor:pointer;
+}
+
+.v2-train-weekdays,
+.v2-train-calendar-grid{
+  display:grid;
+  grid-template-columns:repeat(7, minmax(0, 1fr));
+  gap:6px;
+}
+
+.v2-train-weekdays{
+  margin-bottom:6px;
+  color:rgba(244,247,251,.58);
+  font-size:.72rem;
+  font-weight:900;
+  letter-spacing:.08em;
+  text-align:center;
+  text-transform:uppercase;
+}
+
+.v2-train-day{
+  position:relative;
+  min-height:78px;
+  padding:10px;
+  border:1px solid rgba(255,255,255,.11);
+  border-radius:8px;
+  background:rgba(255,255,255,.045);
+  color:#fff;
+  cursor:pointer;
+  text-align:left;
+}
+
+.v2-train-day span{
+  display:block;
+  font-weight:900;
+}
+
+.v2-train-day small{
+  display:block;
+  margin-top:20px;
+  color:rgba(244,247,251,.58);
+  font-size:.74rem;
+}
+
+.v2-train-day.is-outside{
+  opacity:.36;
+}
+
+.v2-train-day.is-selected{
+  border-color:rgba(91,255,24,.76);
+  box-shadow:inset 0 0 0 1px rgba(91,255,24,.3);
+}
+
+.v2-train-day.is-full,
+.v2-train-day:disabled{
+  color:rgba(244,247,251,.36);
+  cursor:not-allowed;
+  background:rgba(255,255,255,.025);
+}
+
+.v2-train-day.is-full::after{
+  content:"";
+  position:absolute;
+  left:9px;
+  right:9px;
+  top:50%;
+  height:2px;
+  background:rgba(244,247,251,.38);
+  transform:rotate(-16deg);
+}
+
+.v2-train-slots{
+  display:grid;
+  gap:16px;
+}
+
+.v2-train-slot{
+  padding:13px 14px;
+}
+
+.v2-train-continue,
+.v2-train-request-btn{
+  min-height:50px;
+  border:0;
+  border-radius:999px;
+  background:var(--green);
+  color:#02060f;
+  font:inherit;
+  font-weight:900;
+  cursor:pointer;
+}
+
+.v2-train-continue:disabled,
+.v2-train-request-btn:disabled{
+  opacity:.48;
+  cursor:not-allowed;
+}
+
+.v2-train-modal[hidden]{
+  display:none;
+}
+
+.v2-train-modal{
+  position:fixed;
+  inset:0;
+  z-index:60;
+  display:grid;
+  place-items:center;
+  padding:20px;
+}
+
+.v2-train-modal-backdrop{
+  position:absolute;
+  inset:0;
+  border:0;
+  background:rgba(0,0,0,.78);
+}
+
+.v2-train-modal-card{
+  position:relative;
+  z-index:1;
+  width:min(100%, 760px);
+  max-height:min(92svh, 820px);
+  overflow:auto;
+  border-radius:8px;
+  padding:22px;
+  color:#fff;
+}
+
+.v2-train-modal-close{
+  position:absolute;
+  top:12px;
+  right:12px;
+  width:40px;
+  height:40px;
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:50%;
+  background:rgba(255,255,255,.07);
+  color:#fff;
+  cursor:pointer;
+}
+
+.v2-train-modal-coach{
+  display:grid;
+  grid-template-columns:110px 1fr;
+  gap:18px;
+  align-items:center;
+  padding-right:42px;
+}
+
+.v2-train-modal-coach img{
+  width:110px;
+  height:110px;
+  border-radius:8px;
+  object-fit:cover;
+}
+
+.v2-train-modal-coach h2{
+  margin:0;
+  font-family:"Bebas Neue",sans-serif;
+  font-size:3rem;
+  letter-spacing:.02em;
+  line-height:.94;
+}
+
+.v2-train-modal-coach p:last-child{
+  margin:8px 0 0;
+  color:rgba(244,247,251,.68);
+}
+
+.v2-train-details{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:10px;
+  margin:20px 0;
+}
+
+.v2-train-details div{
+  padding:12px;
+  border-radius:8px;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.1);
+}
+
+.v2-train-details dt{
+  color:rgba(244,247,251,.55);
+  font-size:.72rem;
+  font-weight:900;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+.v2-train-details dd{
+  margin:5px 0 0;
+  font-weight:800;
+}
+
+.v2-train-form{
+  display:grid;
+  gap:12px;
+}
+
+.v2-train-form label{
+  display:grid;
+  gap:7px;
+  color:rgba(244,247,251,.74);
+  font-size:.92rem;
+  font-weight:800;
+}
+
+.v2-train-form input{
+  min-height:48px;
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:8px;
+  background:rgba(255,255,255,.06);
+  color:#fff;
+  font:inherit;
+  padding:0 13px;
+}
+
+.v2-train-form-status{
+  min-height:1.4em;
+  margin:0;
+  color:rgba(244,247,251,.72);
+  font-weight:800;
+}
+
+body.v2-train-modal-open{
+  overflow:hidden;
+}
+
+@media (max-width: 1080px){
+  .v2-train-layout{
+    grid-template-columns:1fr 1.5fr;
+  }
+
+  .v2-train-slots{
+    grid-column:1 / -1;
+  }
+}
+
+@media (max-width: 760px){
+  .v2-train-page{
+    padding-top:88px;
+    background-attachment:scroll;
+  }
+
+  .v2-train-hero{
+    padding:42px 0 28px;
+  }
+
+  .v2-train-heading{
+    display:grid;
+  }
+
+  .v2-train-layout{
+    grid-template-columns:1fr;
+  }
+
+  .v2-train-day{
+    min-height:58px;
+    padding:8px;
+  }
+
+  .v2-train-day small{
+    display:none;
+  }
+
+  .v2-train-modal-coach,
+  .v2-train-details{
+    grid-template-columns:1fr;
+  }
+
+  .v2-train-modal-coach{
+    padding-right:40px;
+  }
+}

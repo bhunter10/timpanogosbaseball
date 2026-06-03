@@ -62,6 +62,11 @@ function fbRemove(path) {
   return db.ref(path).remove();
 }
 
+/* Update multiple paths atomically. */
+function fbUpdate(updates) {
+  return db.ref().update(updates);
+}
+
 function fbUploadFile(path, file, metadata, onProgress) {
   return new Promise(function(resolve, reject) {
     var ref = storage.ref(path);

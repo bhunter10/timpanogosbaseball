@@ -22,6 +22,7 @@ export default async function AdminPage() {
       <Script src={withBasePath('/v1/js/carousel.js')} strategy="afterInteractive" />
       <Script src={withBasePath('/js/news-fetch.js')} strategy="afterInteractive" />
       <Script src={withBasePath('/js/admin-news.js')} strategy="afterInteractive" />
+      <Script src={withBasePath('/js/admin-appointments.js')} strategy="afterInteractive" />
       <Script src={withBasePath('/v1/js/app.js')} strategy="afterInteractive" />
       <Script src={withBasePath('/js/admin-shell.js')} strategy="afterInteractive" />
     </>
