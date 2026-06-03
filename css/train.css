@@ -38,6 +38,65 @@
   padding:0 0 90px;
 }
 
+.v2-train-success{
+  min-height:calc(100svh - 96px);
+  display:grid;
+  place-items:center;
+  padding:48px 0 90px;
+}
+
+.v2-train-success[hidden]{
+  display:none;
+}
+
+.v2-train-success-card{
+  width:min(100%, 760px);
+  max-width:760px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:8px;
+  background:rgba(4,10,22,.9);
+  box-shadow:0 24px 70px rgba(0,0,0,.34);
+  color:#fff;
+  padding:28px;
+}
+
+.v2-train-success-card h2{
+  margin:0;
+  font-family:"Bebas Neue",sans-serif;
+  font-size:clamp(3rem, 6vw, 5rem);
+  letter-spacing:.02em;
+  line-height:.94;
+}
+
+.v2-train-success-card p{
+  max-width:620px;
+  color:rgba(244,247,251,.74);
+  font-size:1.02rem;
+  line-height:1.65;
+}
+
+.v2-train-success-contact{
+  display:grid;
+  gap:5px;
+  margin:22px 0;
+  padding:16px;
+  border:1px solid rgba(91,255,24,.24);
+  border-radius:8px;
+  background:rgba(91,255,24,.09);
+}
+
+.v2-train-success-contact span{
+  color:rgba(244,247,251,.62);
+  font-size:.78rem;
+  font-weight:900;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+.v2-train-success-contact strong{
+  font-size:1.1rem;
+}
+
 .v2-train-heading{
   display:flex;
   align-items:end;
@@ -109,15 +168,15 @@
 
 .v2-trainer-option{
   display:grid;
-  grid-template-columns:52px 1fr;
-  gap:12px;
+  grid-template-columns:76px 1fr;
+  gap:14px;
   align-items:center;
-  padding:10px;
+  padding:12px;
 }
 
 .v2-trainer-option img{
-  width:52px;
-  height:52px;
+  width:76px;
+  height:76px;
   border-radius:50%;
   object-fit:cover;
   background:#111827;
@@ -232,12 +291,25 @@
   gap:16px;
 }
 
+.v2-train-continue-top{
+  margin-top:-4px;
+}
+
 .v2-train-slot{
   padding:13px 14px;
 }
 
+.v2-train-slot span{
+  display:block;
+  margin-top:5px;
+  color:rgba(244,247,251,.64);
+  font-size:.9rem;
+  font-weight:800;
+}
+
 .v2-train-continue,
-.v2-train-request-btn{
+.v2-train-request-btn,
+.v2-train-success-btn{
   min-height:50px;
   border:0;
   border-radius:999px;
@@ -249,7 +321,8 @@
 }
 
 .v2-train-continue:disabled,
-.v2-train-request-btn:disabled{
+.v2-train-request-btn:disabled,
+.v2-train-success-btn:disabled{
   opacity:.48;
   cursor:not-allowed;
 }
@@ -300,15 +373,15 @@
 
 .v2-train-modal-coach{
   display:grid;
-  grid-template-columns:110px 1fr;
-  gap:18px;
+  grid-template-columns:150px 1fr;
+  gap:20px;
   align-items:center;
   padding-right:42px;
 }
 
 .v2-train-modal-coach img{
-  width:110px;
-  height:110px;
+  width:150px;
+  height:150px;
   border-radius:8px;
   object-fit:cover;
 }
@@ -324,6 +397,8 @@
 .v2-train-modal-coach p:last-child{
   margin:8px 0 0;
   color:rgba(244,247,251,.68);
+  font-size:1rem;
+  font-weight:800;
 }
 
 .v2-train-details{
@@ -405,6 +480,11 @@ body.v2-train-modal-open{
 
   .v2-train-hero{
     padding:42px 0 28px;
+  }
+
+  .v2-train-success{
+    min-height:calc(100svh - 88px);
+    padding:32px 0 70px;
   }
 
   .v2-train-heading{

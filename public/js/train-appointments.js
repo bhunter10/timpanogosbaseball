@@ -67,22 +67,154 @@
     return state.trainers.find(function(trainer) { return trainer._key === state.trainerId; }) || null;
   }
 
-  function getSlotsForDate(iso) {
-    var slots = state.availability[state.trainerId] && state.availability[state.trainerId][iso];
-    return toArray(slots)
-      .filter(function(slot) { return slot.active !== false; })
+  function getBlocksForDate(iso) {
+    var blocks = state.availability[state.trainerId] && state.availability[state.trainerId][iso];
+    return toArray(blocks)
+      .filter(function(block) { return block.active !== false; })
       .sort(function(a, b) {
         return String(a.timeValue || a.time || '').localeCompare(String(b.timeValue || b.time || ''));
       });
   }
 
-  function hasClaim(iso, slotId) {
-    return !!(state.claims[state.trainerId] && state.claims[state.trainerId][iso] && state.claims[state.trainerId][iso][slotId]);
+  function timeToMinutes(value) {
+    var parts = String(value || '').split(':');
+    if (parts.length < 2) return null;
+    var hour = +parts[0];
+    var minute = +parts[1];
+    if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null;
+    return hour * 60 + minute;
+  }
+
+  function minutesToTimeValue(minutes) {
+    minutes = ((minutes % 1440) + 1440) % 1440;
+    return String(Math.floor(minutes / 60)).padStart(2, '0') + ':' + String(minutes % 60).padStart(2, '0');
+  }
+
+  function formatTimeLabel(timeValue) {
+    if (!timeValue) return '';
+    var parts = String(timeValue).split(':');
+    var hour = +parts[0];
+    var minute = parts[1] || '00';
+    var suffix = hour >= 12 ? 'PM' : 'AM';
+    var displayHour = hour % 12 || 12;
+    return displayHour + ':' + minute + ' ' + suffix;
+  }
+
+  function slotDuration(slot) {
+    return +((slot && slot.durationMinutes) || 30);
+  }
+
+  function slotPrice(slot) {
+    var duration = slotDuration(slot);
+    return slot && slot.price != null ? +slot.price : (duration >= 60 ? 50 : 30);
+  }
+
+  function slotRangeLabel(slot) {
+    var startMinutes = timeToMinutes(slot && (slot.startTimeValue || slot.timeValue || slot.time));
+    var endValue = slot && (slot.endTimeValue || slot.endTime);
+    var endMinutes = timeToMinutes(endValue);
+    if (endMinutes == null && startMinutes != null) endMinutes = startMinutes + slotDuration(slot);
+    var startLabel = slot && slot.time ? slot.time : formatTimeLabel(slot && slot.timeValue);
+    var endLabel = endMinutes == null ? '' : formatTimeLabel(minutesToTimeValue(endMinutes));
+    return startLabel + (endLabel ? ' - ' + endLabel : '');
+  }
+
+  function blockStartMinutes(block) {
+    return timeToMinutes(block && (block.startTimeValue || block.timeValue || block.time));
+  }
+
+  function blockEndMinutes(block) {
+    var explicit = timeToMinutes(block && (block.endTimeValue || block.endTime));
+    if (explicit != null) return explicit;
+    var start = blockStartMinutes(block);
+    var duration = +((block && block.durationMinutes) || 30);
+    return start == null ? null : start + duration;
+  }
+
+  function rangesOverlap(startA, endA, startB, endB) {
+    return startA < endB && startB < endA;
+  }
+
+  function claimStartMinutes(claim) {
+    return timeToMinutes(claim && (claim.startTimeValue || claim.timeValue || claim.time));
+  }
+
+  function claimEndMinutes(claim) {
+    var explicit = timeToMinutes(claim && (claim.endTimeValue || claim.endTime));
+    if (explicit != null) return explicit;
+    var start = claimStartMinutes(claim);
+    var duration = +((claim && claim.durationMinutes) || 30);
+    return start == null ? null : start + duration;
+  }
+
+  function getClaimsForDate(iso) {
+    return toArray(state.claims[state.trainerId] && state.claims[state.trainerId][iso]);
+  }
+
+  function hasClaimOverlap(iso, option) {
+    var optionStart = timeToMinutes(option.startTimeValue);
+    var optionEnd = timeToMinutes(option.endTimeValue);
+    return getClaimsForDate(iso).some(function(claim) {
+      var claimStart = claimStartMinutes(claim);
+      var claimEnd = claimEndMinutes(claim);
+      if (claimStart == null || claimEnd == null) return claim._key === option._key || claim.slotId === option._key;
+      return rangesOverlap(optionStart, optionEnd, claimStart, claimEnd);
+    });
+  }
+
+  function buildOption(block, startMinutes, duration) {
+    var endMinutes = startMinutes + duration;
+    var startValue = minutesToTimeValue(startMinutes);
+    var endValue = minutesToTimeValue(endMinutes);
+    return {
+      _key: [block._key || 'block', startValue, duration].join('-').replace(/[^a-zA-Z0-9_-]+/g, '-'),
+      blockId: block._key || '',
+      time: formatTimeLabel(startValue),
+      timeValue: startValue,
+      startTimeValue: startValue,
+      endTime: formatTimeLabel(endValue),
+      endTimeValue: endValue,
+      durationMinutes: duration,
+      price: duration >= 60 ? 50 : 30,
+      location: block.location || '',
+      active: true
+    };
+  }
+
+  function claimKeyFromMinutes(minutes) {
+    return 'segment-' + minutesToTimeValue(minutes).replace(/[^0-9a-zA-Z_-]+/g, '-');
+  }
+
+  function claimKeysForSlot(slot) {
+    var start = timeToMinutes(slot && (slot.startTimeValue || slot.timeValue));
+    var end = timeToMinutes(slot && slot.endTimeValue);
+    var keys = [];
+    if (start == null || end == null) return [slot && slot._key ? slot._key : 'slot'];
+    for (var cursor = start; cursor < end; cursor += 30) {
+      keys.push(claimKeyFromMinutes(cursor));
+    }
+    return keys;
+  }
+
+  function getOptionsForDate(iso) {
+    var options = [];
+    getBlocksForDate(iso).forEach(function(block) {
+      var start = blockStartMinutes(block);
+      var end = blockEndMinutes(block);
+      if (start == null || end == null || end <= start) return;
+      for (var cursor = start; cursor + 30 <= end; cursor += 30) {
+        options.push(buildOption(block, cursor, 30));
+        if (cursor + 60 <= end) options.push(buildOption(block, cursor, 60));
+      }
+    });
+    return options.sort(function(a, b) {
+      return String(a.timeValue || '').localeCompare(String(b.timeValue || '')) || a.durationMinutes - b.durationMinutes;
+    });
   }
 
   function getOpenSlotsForDate(iso) {
-    return getSlotsForDate(iso).filter(function(slot) {
-      return !hasClaim(iso, slot._key);
+    return getOptionsForDate(iso).filter(function(slot) {
+      return !hasClaimOverlap(iso, slot);
     });
   }
 
@@ -126,7 +258,7 @@
       var iso = isoFromDate(cursor);
       var outside = cursor.getMonth() !== state.monthDate.getMonth();
       var openSlots = getOpenSlotsForDate(iso);
-      var allSlots = getSlotsForDate(iso);
+      var allSlots = getOptionsForDate(iso);
       var isPast = iso < todayIso;
       var disabled = isPast || !state.trainerId || !openSlots.length;
       var labelText = allSlots.length ? (openSlots.length ? openSlots.length + ' open' : 'Booked') : 'No times';
@@ -145,13 +277,13 @@
   function renderSlots() {
     var list = $('trainSlotList');
     var label = $('trainSelectedDateLabel');
-    var continueBtn = $('trainContinueBtn');
-    if (!list || !label || !continueBtn) return;
+    var continueTopBtn = $('trainContinueTopBtn');
+    if (!list || !label || !continueTopBtn) return;
 
     if (!state.selectedDate) {
       label.textContent = 'Select a date';
       list.innerHTML = '<p class="v2-train-empty">Choose an available date on the calendar.</p>';
-      continueBtn.disabled = true;
+      continueTopBtn.disabled = true;
       return;
     }
 
@@ -159,16 +291,17 @@
     var slots = getOpenSlotsForDate(state.selectedDate);
     if (!slots.length) {
       list.innerHTML = '<p class="v2-train-empty">This date is fully booked.</p>';
-      continueBtn.disabled = true;
+      continueTopBtn.disabled = true;
       return;
     }
 
     list.innerHTML = slots.map(function(slot) {
       return '<button type="button" class="v2-train-slot' + (slot._key === state.selectedSlotId ? ' is-selected' : '') + '" data-slot-id="' + escapeHtml(slot._key) + '">' +
-        '<strong>' + escapeHtml(slot.time || slot.timeValue || 'Training time') + '</strong>' +
+        '<strong>' + escapeHtml(slotRangeLabel(slot)) + '</strong>' +
+        '<span>' + escapeHtml(slotDuration(slot) + ' min · $' + slotPrice(slot)) + '</span>' +
       '</button>';
     }).join('');
-    continueBtn.disabled = !state.selectedSlotId;
+    continueTopBtn.disabled = !state.selectedSlotId;
   }
 
   function render() {
@@ -185,12 +318,14 @@
 
     $('trainModalCoachPhoto').src = normalizeAssetUrl(trainer.photoUrl) || fallbackCoachPhoto;
     $('trainModalCoachPhoto').alt = trainer.name ? trainer.name + ' photo' : 'Coach photo';
-    $('trainModalTitle').textContent = trainer.name || 'Training session';
-    $('trainModalSpecialty').textContent = trainer.specialty || 'Baseball training';
+    $('trainModalTitle').textContent = 'Appointment request';
+    $('trainModalSpecialty').textContent = 'with ' + (trainer.name || 'your coach');
     $('trainModalDetails').innerHTML =
       '<div><dt>Date</dt><dd>' + escapeHtml(formatDate(state.selectedDate)) + '</dd></div>' +
-      '<div><dt>Time</dt><dd>' + escapeHtml(slot.time || slot.timeValue || '') + '</dd></div>' +
-      '<div><dt>Location</dt><dd>' + escapeHtml(trainer.location || 'Timpanogos Baseball') + '</dd></div>' +
+      '<div><dt>Time</dt><dd>' + escapeHtml(slotRangeLabel(slot)) + '</dd></div>' +
+      '<div><dt>Length</dt><dd>' + escapeHtml(slotDuration(slot) + ' minutes') + '</dd></div>' +
+      '<div><dt>Price</dt><dd>$' + escapeHtml(slotPrice(slot)) + '</dd></div>' +
+      '<div><dt>Location</dt><dd>' + escapeHtml(slot.location || trainer.location || 'Timpanogos Baseball') + '</dd></div>' +
       '<div><dt>Coach</dt><dd>' + escapeHtml(trainer.name || 'Trainer') + '</dd></div>';
     $('trainFormStatus').textContent = '';
     modal.hidden = false;
@@ -208,6 +343,48 @@
     document.body.classList.remove('v2-train-modal-open');
   }
 
+  function showSuccess(request, trainer) {
+    closeModal();
+    var hero = document.querySelector('.v2-train-hero');
+    var booking = document.querySelector('.v2-train-booking');
+    var success = $('trainSuccess');
+    if (hero) hero.hidden = true;
+    if (booking) booking.hidden = true;
+    if (!success) return;
+
+    var coachName = (trainer && trainer.name) || request.trainerName || 'your coach';
+    var coachPhone = (trainer && trainer.cellPhone) || request.trainerPhone || '';
+    var summary = $('trainSuccessSummary');
+    var phone = $('trainSuccessCoachPhone');
+    if (summary) {
+      summary.textContent = 'Your request with ' + coachName + ' for ' + formatDate(request.date) + ' at ' + slotRangeFromRequest(request) + ' has been sent.';
+    }
+    if (phone) {
+      phone.textContent = coachPhone ? 'Text ' + coachName + ' at ' + coachPhone + '.' : 'Coach cell phone not listed yet.';
+    }
+    success.hidden = false;
+    success.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function slotRangeFromRequest(request) {
+    var start = request.time || request.timeValue || '';
+    var end = request.endTime || '';
+    if (start && end) return start + ' - ' + end;
+    return start || 'your selected time';
+  }
+
+  function resetSuccess() {
+    var hero = document.querySelector('.v2-train-hero');
+    var booking = document.querySelector('.v2-train-booking');
+    var success = $('trainSuccess');
+    if (hero) hero.hidden = false;
+    if (booking) booking.hidden = false;
+    if (success) success.hidden = true;
+    setStatus(state.trainers.length ? 'Choose a coach and date.' : 'No trainers are available yet.', !state.trainers.length);
+    var title = $('trainBookingTitle');
+    if (title) title.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   function submitRequest(event) {
     event.preventDefault();
     var trainer = getTrainer();
@@ -217,20 +394,40 @@
     if (!trainer || !slot || !status || !button) return;
 
     var requestRef = db.ref('appointmentRequests').push();
-    var claimPath = 'appointmentClaims/' + trainer._key + '/' + state.selectedDate + '/' + slot._key;
+    var claimDatePath = 'appointmentClaims/' + trainer._key + '/' + state.selectedDate;
+    var claimKeys = claimKeysForSlot(slot);
     var now = new Date().toISOString();
     var claim = {
       appointmentId: requestRef.key,
+      slotId: slot._key,
+      blockId: slot.blockId || '',
+      time: slot.time || slot.timeValue || '',
+      timeValue: slot.timeValue || '',
+      startTimeValue: slot.startTimeValue || slot.timeValue || '',
+      endTime: slot.endTime || '',
+      endTimeValue: slot.endTimeValue || '',
+      durationMinutes: slotDuration(slot),
+      price: slotPrice(slot),
+      location: slot.location || trainer.location || '',
       status: 'pending',
       createdAt: now
     };
     var request = {
       trainerId: trainer._key,
       trainerName: trainer.name || '',
+      trainerPhone: trainer.cellPhone || '',
       date: state.selectedDate,
       slotId: slot._key,
+      blockId: slot.blockId || '',
+      claimKeys: claimKeys,
       time: slot.time || slot.timeValue || '',
-      location: trainer.location || '',
+      endTime: slot.endTime || '',
+      timeValue: slot.timeValue || '',
+      startTimeValue: slot.startTimeValue || slot.timeValue || '',
+      endTimeValue: slot.endTimeValue || '',
+      durationMinutes: slotDuration(slot),
+      price: slotPrice(slot),
+      location: slot.location || trainer.location || '',
       fullName: $('trainCustomerName').value.trim(),
       phone: $('trainCustomerPhone').value.trim(),
       email: $('trainCustomerEmail').value.trim(),
@@ -242,23 +439,43 @@
     button.disabled = true;
     status.textContent = 'Submitting request...';
 
-    db.ref(claimPath).transaction(function(current) {
-      return current ? undefined : claim;
-    }).then(function(result) {
-      if (!result.committed) throw new Error('That time was just booked. Please choose another slot.');
+    var acquiredKeys = [];
+    claimKeys.reduce(function(promise, key) {
+      return promise.then(function() {
+        return db.ref(claimDatePath + '/' + key).transaction(function(current) {
+          return current ? undefined : claim;
+        }).then(function(result) {
+          if (!result.committed) throw new Error('That time was just booked. Please choose another slot.');
+          acquiredKeys.push(key);
+        });
+      });
+    }, Promise.resolve()).then(function() {
       return requestRef.set(request).catch(function(error) {
-        return db.ref(claimPath).remove().then(function() { throw error; });
+        var cleanup = {};
+        acquiredKeys.forEach(function(key) {
+          cleanup[claimDatePath + '/' + key] = null;
+        });
+        return db.ref().update(cleanup).then(function() { throw error; });
       });
     }).then(function() {
-      status.textContent = 'Request sent. We will review it and follow up soon.';
+      status.textContent = 'Request sent.';
       state.claims[trainer._key] = state.claims[trainer._key] || {};
       state.claims[trainer._key][state.selectedDate] = state.claims[trainer._key][state.selectedDate] || {};
-      state.claims[trainer._key][state.selectedDate][slot._key] = claim;
+      claimKeys.forEach(function(key) {
+        state.claims[trainer._key][state.selectedDate][key] = claim;
+      });
       state.selectedSlotId = '';
       render();
       event.target.reset();
-      setTimeout(closeModal, 1400);
+      showSuccess(request, trainer);
     }).catch(function(error) {
+      if (acquiredKeys && acquiredKeys.length) {
+        var cleanup = {};
+        acquiredKeys.forEach(function(key) {
+          cleanup[claimDatePath + '/' + key] = null;
+        });
+        db.ref().update(cleanup).catch(function() {});
+      }
       status.textContent = error && error.message ? error.message : 'Could not submit the request.';
     }).finally(function() {
       button.disabled = false;
@@ -319,10 +536,12 @@
       renderCalendar();
     });
 
-    $('trainContinueBtn').addEventListener('click', openModal);
+    $('trainContinueTopBtn').addEventListener('click', openModal);
     $('trainModalBackdrop').addEventListener('click', closeModal);
     $('trainModalClose').addEventListener('click', closeModal);
     $('trainRequestForm').addEventListener('submit', submitRequest);
+    var successReset = $('trainSuccessReset');
+    if (successReset) successReset.addEventListener('click', resetSuccess);
     document.addEventListener('keydown', function(event) {
       if (event.key === 'Escape') closeModal();
     });

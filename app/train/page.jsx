@@ -41,7 +41,7 @@ export default function TrainPage() {
           <div className="v2-shell v2-train-hero-inner">
             <p className="v2-kicker">Baseball training</p>
             <h1>Book a Session</h1>
-            <p>Choose a coach, find an open training time, and request an appointment with the Timpanogos baseball staff.</p>
+            <p>Choose a coach, find an open training time, and request an appointment.</p>
           </div>
         </section>
 
@@ -75,11 +75,24 @@ export default function TrainPage() {
             <aside className="v2-train-slots" aria-label="Choose a time">
               <div>
                 <p className="v2-kicker">Time slots</p>
-                <h3 id="trainSelectedDateLabel">Select a date</h3>
+              <h3 id="trainSelectedDateLabel">Select a date</h3>
               </div>
+              <button type="button" className="v2-train-continue v2-train-continue-top" id="trainContinueTopBtn" disabled>Continue</button>
               <div id="trainSlotList" className="v2-train-slot-list"></div>
-              <button type="button" className="v2-train-continue" id="trainContinueBtn" disabled>Continue</button>
             </aside>
+          </div>
+        </section>
+
+        <section className="v2-train-success v2-shell" id="trainSuccess" aria-labelledby="trainSuccessTitle" hidden>
+          <div className="v2-train-success-card">
+            <p className="v2-kicker">Request sent</p>
+            <h2 id="trainSuccessTitle">Appointment request received</h2>
+            <p id="trainSuccessSummary">We will review your request and follow up soon.</p>
+            <div className="v2-train-success-contact">
+              <span>Need to change anything?</span>
+              <strong id="trainSuccessCoachPhone">Text your coach.</strong>
+            </div>
+            <button type="button" className="v2-train-success-btn" id="trainSuccessReset">Request another appointment</button>
           </div>
         </section>
       </main>
@@ -98,16 +111,16 @@ export default function TrainPage() {
           <div className="v2-train-modal-coach">
             <img id="trainModalCoachPhoto" src={withBasePath('/images/home/coach-talk-wide.jpg')} alt="" />
             <div>
-              <p className="v2-kicker">Appointment request</p>
-              <h2 id="trainModalTitle">Training session</h2>
+              <p className="v2-kicker">Training session</p>
+              <h2 id="trainModalTitle">Appointment request</h2>
               <p id="trainModalSpecialty"></p>
             </div>
           </div>
           <dl className="v2-train-details" id="trainModalDetails"></dl>
           <form id="trainRequestForm" className="v2-train-form">
-            <label>Full name<input type="text" id="trainCustomerName" autocomplete="name" required /></label>
-            <label>Cell phone number<input type="tel" id="trainCustomerPhone" autocomplete="tel" required /></label>
-            <label>Email<input type="email" id="trainCustomerEmail" autocomplete="email" required /></label>
+            <label>Full name<input type="text" id="trainCustomerName" autoComplete="name" required /></label>
+            <label>Cell phone number<input type="tel" id="trainCustomerPhone" autoComplete="tel" required /></label>
+            <label>Email<input type="email" id="trainCustomerEmail" autoComplete="email" required /></label>
             <button type="submit" className="v2-train-request-btn">Request an appointment</button>
             <p className="v2-train-form-status" id="trainFormStatus" aria-live="polite"></p>
           </form>

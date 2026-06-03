@@ -38,7 +38,7 @@
         "$date": {
           "$slotId": {
             ".write": "auth != null || !data.exists()",
-            ".validate": "auth != null || newData.hasChildren(['appointmentId','status','createdAt']) && newData.child('status').val() === 'pending'"
+            ".validate": "auth != null || newData.hasChildren(['appointmentId','slotId','time','timeValue','endTime','endTimeValue','durationMinutes','price','status','createdAt']) && newData.child('status').val() === 'pending'"
           }
         }
       }
@@ -47,7 +47,7 @@
       ".read": "auth != null",
       "$requestId": {
         ".write": "auth != null || !data.exists()",
-        ".validate": "auth != null || newData.hasChildren(['trainerId','date','slotId','time','location','fullName','phone','email','status','createdAt','updatedAt']) && newData.child('status').val() === 'pending'"
+        ".validate": "auth != null || newData.hasChildren(['trainerId','date','slotId','time','endTime','durationMinutes','price','location','fullName','phone','email','status','createdAt','updatedAt']) && newData.child('status').val() === 'pending'"
       }
     }
   }
