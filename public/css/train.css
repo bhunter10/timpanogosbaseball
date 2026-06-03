@@ -28,7 +28,8 @@
 }
 
 .v2-train-hero-inner{
-  max-width:820px;
+  max-width:620px;
+  text-align:left;
 }
 
 .v2-train-hero h1,
@@ -40,7 +41,7 @@
 }
 
 .v2-train-hero h1{
-  font-size:clamp(4.5rem, 11vw, 8rem);
+  font-size:clamp(3.25rem, 7vw, 5.5rem);
 }
 
 .v2-train-hero p:last-child{
@@ -116,10 +117,8 @@
 
 .v2-train-heading{
   display:flex;
-  align-items:end;
-  justify-content:space-between;
-  gap:24px;
-  margin-bottom:22px;
+  justify-content:flex-end;
+  margin-bottom:16px;
 }
 
 .v2-train-heading h2{
@@ -204,10 +203,48 @@
   display:block;
 }
 
+.v2-trainer-copy{
+  display:grid;
+  gap:7px;
+}
+
 .v2-trainer-option span,
 .v2-train-empty{
   color:rgba(244,247,251,.62);
   font-size:.9rem;
+}
+
+.v2-trainer-specialties-label{
+  color:rgba(244,247,251,.62);
+  font-size:.68rem;
+  font-weight:800;
+  letter-spacing:0;
+  text-transform:none;
+}
+
+.v2-trainer-specialties{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+
+.v2-trainer-option .v2-trainer-specialty{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  min-height:24px;
+  padding:3px 8px;
+  border:1px solid rgba(91,255,24,.28);
+  border-radius:999px;
+  background:rgba(91,255,24,.08);
+  color:rgba(244,247,251,.84);
+  font-size:.72rem;
+  font-weight:900;
+}
+
+.v2-trainer-option .v2-trainer-specialty span{
+  color:var(--green);
+  font-size:.72rem;
 }
 
 .v2-trainer-option.is-selected,
@@ -266,7 +303,7 @@
   padding:10px;
   border:1px solid rgba(255,255,255,.11);
   border-radius:8px;
-  background:rgba(255,255,255,.045);
+  background:rgba(255,255,255,.065);
   color:#fff;
   cursor:pointer;
   text-align:center;
@@ -282,6 +319,11 @@
   margin-top:8px;
   color:rgba(244,247,251,.58);
   font-size:.74rem;
+}
+
+.v2-train-day.has-open-slots small{
+  color:rgba(244,247,251,.86);
+  font-weight:900;
 }
 
 .v2-train-day.is-outside{

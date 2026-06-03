@@ -82,6 +82,44 @@
     return basePath + '/' + String(src).replace(/^\.?\//, '');
   }
 
+  function trainerSpecialtiesFromText(value) {
+    return String(value || '')
+      .split(/[,/&]+|\band\b/i)
+      .map(function(item) { return item.trim(); })
+      .filter(Boolean);
+  }
+
+  function normalizeTrainerSpecialtyName(value) {
+    var text = String(value || '').trim();
+    var lower = text.toLowerCase();
+    if (lower === 'catcher' || lower === 'catchers' || lower === 'catching') return 'Catching';
+    if (lower === 'hit' || lower === 'hitter' || lower === 'hitters' || lower === 'hitting') return 'Hitting';
+    return text;
+  }
+
+  function normalizeTrainerSpecialties(trainer) {
+    var specialties;
+    if (Array.isArray(trainer && trainer.specialties)) {
+      specialties = trainer.specialties;
+    } else {
+      specialties = trainerSpecialtiesFromText(trainer && trainer.specialty);
+    }
+    return specialties.map(normalizeTrainerSpecialtyName).filter(Boolean).filter(function(item, index, all) {
+      return all.indexOf(item) === index;
+    });
+  }
+
+  function renderTrainerSpecialties(trainer) {
+    var specialties = normalizeTrainerSpecialties(trainer);
+    if (!specialties.length) specialties = [trainer && trainer.specialty ? trainer.specialty : 'Baseball training'];
+    return '<span class="v2-trainer-specialties-label">Specialties:</span>' +
+      '<span class="v2-trainer-specialties">' +
+        specialties.map(function(item) {
+          return '<span class="v2-trainer-specialty"><span aria-hidden="true">&#10003;</span>' + escapeHtml(item) + '</span>';
+        }).join('') +
+      '</span>';
+  }
+
   function getTrainer() {
     return state.trainers.find(function(trainer) { return trainer._key === state.trainerId; }) || null;
   }
@@ -255,7 +293,7 @@
       var photo = normalizeAssetUrl(trainer.photoUrl) || fallbackCoachPhoto;
       return '<button type="button" class="v2-trainer-option' + (trainer._key === state.trainerId ? ' is-selected' : '') + '" data-trainer-id="' + escapeHtml(trainer._key) + '">' +
         '<img src="' + escapeHtml(photo) + '" alt="">' +
-        '<span><strong>' + escapeHtml(trainer.name || 'Trainer') + '</strong><span>' + escapeHtml(trainer.specialty || 'Baseball training') + '</span></span>' +
+        '<span class="v2-trainer-copy"><strong>' + escapeHtml(trainer.name || 'Trainer') + '</strong>' + renderTrainerSpecialties(trainer) + '</span>' +
       '</button>';
     }).join('');
   }
@@ -289,6 +327,7 @@
       cells.push('<button type="button" class="v2-train-day' +
         (outside ? ' is-outside' : '') +
         (disabled ? ' is-full' : '') +
+        (openSlots.length ? ' has-open-slots' : '') +
         (iso === state.selectedDate ? ' is-selected' : '') +
         '" data-date="' + iso + '"' + (disabled ? ' disabled' : '') + '>' +
         '<span>' + cursor.getDate() + '</span><small>' + escapeHtml(labelText) + '</small></button>');
@@ -404,7 +443,7 @@
     if (hero) hero.hidden = false;
     if (booking) booking.hidden = false;
     if (success) success.hidden = true;
-    setStatus(state.trainers.length ? 'Choose a coach and date.' : 'No trainers are available yet.', !state.trainers.length);
+    setStatus(state.trainers.length ? '' : 'No trainers are available yet.', !state.trainers.length);
     var title = $('trainBookingTitle');
     if (title) title.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -587,7 +626,7 @@
       state.availability = values[1] || {};
       state.claims = values[2] || {};
       state.trainerId = state.trainers[0] ? state.trainers[0]._key : '';
-      setStatus(state.trainers.length ? 'Choose a coach and date.' : 'No trainers are available yet.', !state.trainers.length);
+      setStatus(state.trainers.length ? '' : 'No trainers are available yet.', !state.trainers.length);
       render();
     }).catch(function(error) {
       setStatus(error && error.message ? error.message : 'Could not load appointments.', true);

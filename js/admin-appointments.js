@@ -3,6 +3,7 @@
 
   var state = {
     initialized: false,
+    initializedPanel: null,
     trainers: [],
     availability: {},
     requests: [],
@@ -38,6 +39,53 @@
       if (item && typeof item === 'object') item._key = key;
       return item;
     }).filter(Boolean);
+  }
+
+  var trainerSpecialtyOptions = ['Catching', 'Hitting', 'Pitching', 'Fielding'];
+
+  function trainerSpecialtiesFromText(value) {
+    return String(value || '')
+      .split(/[,/&]+|\band\b/i)
+      .map(function(item) { return item.trim(); })
+      .filter(Boolean);
+  }
+
+  function normalizeTrainerSpecialtyName(value) {
+    var text = String(value || '').trim();
+    var lower = text.toLowerCase();
+    if (lower === 'catcher' || lower === 'catchers' || lower === 'catching') return 'Catching';
+    if (lower === 'hit' || lower === 'hitter' || lower === 'hitters' || lower === 'hitting') return 'Hitting';
+    var match = trainerSpecialtyOptions.find(function(option) { return option.toLowerCase() === lower; });
+    return match || text;
+  }
+
+  function normalizeTrainerSpecialties(trainer) {
+    var specialties;
+    if (Array.isArray(trainer && trainer.specialties)) {
+      specialties = trainer.specialties;
+    } else {
+      specialties = trainerSpecialtiesFromText(trainer && trainer.specialty);
+    }
+    return specialties.map(normalizeTrainerSpecialtyName).filter(Boolean).filter(function(item, index, all) {
+      return all.indexOf(item) === index;
+    });
+  }
+
+  function selectedTrainerSpecialties() {
+    return Array.prototype.slice.call(document.querySelectorAll('[name="trainerSpecialties"]:checked'))
+      .map(function(input) { return input.value; });
+  }
+
+  function setTrainerSpecialtyChecks(specialties) {
+    var selected = specialties.map(function(item) { return item.toLowerCase(); });
+    document.querySelectorAll('[name="trainerSpecialties"]').forEach(function(input) {
+      input.checked = selected.indexOf(String(input.value || '').toLowerCase()) !== -1;
+    });
+  }
+
+  function trainerSpecialtyLabel(trainer) {
+    var specialties = normalizeTrainerSpecialties(trainer);
+    return specialties.length ? specialties.join(', ') : (trainer && trainer.specialty ? trainer.specialty : 'Baseball training');
   }
 
   function normalizeAssetUrl(src) {
@@ -298,12 +346,18 @@
               '<form id="trainerForm" class="admin-appointment-form">',
                 '<div class="admin-appointment-grid">',
                   '<label>Name:<input type="text" id="trainerName" required placeholder="Coach name"></label>',
-                  '<label>Specialty:<input type="text" id="trainerSpecialty" required placeholder="Hitting and catchers"></label>',
+                  '<label>Specialty summary:<input type="text" id="trainerSpecialty" placeholder="Catching, hitting"></label>',
                   '<label>Coach cell phone:<input type="tel" id="trainerCellPhone" placeholder="801-555-1234"></label>',
                   '<label>Photo URL:<input type="url" id="trainerPhotoUrl" placeholder="https://..."></label>',
                   '<label>Upload photo:<input type="file" id="trainerPhotoFile" accept="image/*"></label>',
                   '<label>Sort order:<input type="number" id="trainerSortOrder" min="0" step="1" value="0"></label>',
                 '</div>',
+                '<fieldset class="admin-trainer-specialties">',
+                  '<legend>Specialties</legend>',
+                  trainerSpecialtyOptions.map(function(option) {
+                    return '<label class="checkbox-label"><input type="checkbox" name="trainerSpecialties" value="' + escapeHtml(option) + '"> ' + escapeHtml(option) + '</label>';
+                  }).join(''),
+                '</fieldset>',
                 '<div class="admin-photo-crop-editor" id="trainerPhotoCropEditor" hidden>',
                   '<div class="admin-photo-crop-preview">',
                     '<canvas id="trainerPhotoCropCanvas" width="260" height="260" aria-label="Trainer photo crop preview"></canvas>',
@@ -403,6 +457,7 @@
     state.editingTrainerKey = '';
     var form = $('trainerForm');
     if (form) form.reset();
+    setTrainerSpecialtyChecks([]);
     var active = $('trainerActive');
     if (active) active.checked = true;
     var sort = $('trainerSortOrder');
@@ -444,7 +499,7 @@
         '<div class="admin-trainer-main">' +
           (photo ? '<img src="' + escapeHtml(photo) + '" alt="">' : '<span class="admin-trainer-photo-placeholder"></span>') +
           '<div><strong>' + escapeHtml(trainer.name || 'Trainer') + '</strong>' +
-          '<span>' + escapeHtml(trainer.specialty || 'Baseball training') + '</span>' +
+          '<span>' + escapeHtml(trainerSpecialtyLabel(trainer)) + '</span>' +
           '<small>' + escapeHtml(trainer.cellPhone || 'No coach phone saved') + ' · ' + (trainer.active === false ? 'Inactive' : 'Active') + '</small></div>' +
         '</div>' +
         '<div class="list-actions">' +
@@ -658,9 +713,12 @@
     var file = $('trainerPhotoFile').files[0];
     var now = new Date().toISOString();
     var existing = state.editingTrainerKey ? getTrainerById(state.editingTrainerKey) : null;
+    var specialties = selectedTrainerSpecialties();
+    var specialty = $('trainerSpecialty').value.trim() || specialties.join(', ');
     var trainer = {
       name: $('trainerName').value.trim(),
-      specialty: $('trainerSpecialty').value.trim(),
+      specialty: specialty,
+      specialties: specialties,
       cellPhone: $('trainerCellPhone').value.trim(),
       photoUrl: $('trainerPhotoUrl').value.trim(),
       photoStoragePath: existing && existing.photoStoragePath ? existing.photoStoragePath : '',
@@ -720,7 +778,8 @@
     setAppointmentTab('trainers');
     state.editingTrainerKey = key;
     $('trainerName').value = trainer.name || '';
-    $('trainerSpecialty').value = trainer.specialty || '';
+    $('trainerSpecialty').value = trainer.specialty || normalizeTrainerSpecialties(trainer).join(', ');
+    setTrainerSpecialtyChecks(normalizeTrainerSpecialties(trainer));
     $('trainerCellPhone').value = trainer.cellPhone || '';
     $('trainerPhotoUrl').value = trainer.photoUrl || '';
     $('trainerSortOrder').value = trainer.sortOrder != null ? trainer.sortOrder : 0;
@@ -1016,8 +1075,9 @@
 
   function initPanel() {
     var panel = $('appointmentsAdminPanel');
-    if (!panel || state.initialized) return;
+    if (!panel || state.initializedPanel === panel) return;
     state.initialized = true;
+    state.initializedPanel = panel;
     wireEvents();
     syncAppointmentTabs();
     var dateInput = $('availabilityDate');

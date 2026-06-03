@@ -45,12 +45,8 @@ export default function TrainPage() {
           </div>
         </section>
 
-        <section className="v2-train-booking v2-shell" aria-labelledby="trainBookingTitle">
+        <section className="v2-train-booking v2-shell" aria-label="Training availability">
           <div className="v2-train-heading">
-            <div>
-              <p className="v2-kicker">Calendar</p>
-              <h2 id="trainBookingTitle">Training availability</h2>
-            </div>
             <p id="trainStatus" className="v2-train-status" aria-live="polite">Loading trainers...</p>
           </div>
 
