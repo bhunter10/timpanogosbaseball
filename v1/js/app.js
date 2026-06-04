@@ -1070,7 +1070,7 @@ function renderAdmin(app) {
   app.innerHTML = `
     <aside class="admin-card admin-sidebar">
       <button type="button" class="admin-nav-link active" data-admin-panel="dashboard">Saved games</button>
-      <button type="button" class="admin-nav-link admin-nav-link-action" id="adminAddGameNavBtn">Add game</button>
+      <button type="button" class="admin-nav-link" id="adminAddGameNavBtn">Add game</button>
       <button type="button" class="admin-nav-link" data-admin-panel="opponents">Opponents</button>
       <button type="button" class="admin-nav-link" data-admin-panel="carousel">Gallery</button>
       <button type="button" class="admin-nav-link" data-admin-panel="appointments">Training</button>
