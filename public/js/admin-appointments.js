@@ -10,6 +10,7 @@
     trainerId: '',
     editingTrainerKey: '',
     editingAvailability: null,
+    availabilityDates: [],
     activeTab: 'trainers',
     photoCrop: {
       file: null,
@@ -395,6 +396,14 @@
                   '<label>End time:<input type="time" id="availabilityEndTime" required></label>',
                   '<label>Location:<input type="text" id="availabilityLocation" required placeholder="Timpanogos cages"></label>',
                 '</div>',
+                '<div class="admin-availability-date-tools" id="availabilityMultiDateTools">',
+                  '<div class="admin-availability-range-row">',
+                    '<label>Optional range end:<input type="date" id="availabilityRangeEndDate"></label>',
+                    '<button type="button" class="btn small alt" id="availabilityAddDateBtn">Add Date</button>',
+                    '<button type="button" class="btn small alt" id="availabilityAddRangeBtn">Add Range</button>',
+                  '</div>',
+                  '<div class="admin-availability-date-chips" id="availabilityDateChips" aria-live="polite"></div>',
+                '</div>',
                 '<p class="muted">Add open blocks and locations. Visitors can request 30-minute ($30) or 1-hour ($50) appointments inside a block.</p>',
                 '<div class="form-row">',
                   '<button type="submit" class="btn" id="availabilitySubmitBtn">Add Availability Block</button>',
@@ -512,10 +521,124 @@
 
   function getBlocksForSelectedDate() {
     var date = $('availabilityDate') ? $('availabilityDate').value : '';
+    return { date: date, blocks: getBlocksForDate(date) };
+  }
+
+  function getBlocksForDate(date) {
     var blocks = state.availability[state.trainerId] && state.availability[state.trainerId][date];
-    return { date: date, blocks: toArray(blocks).sort(function(a, b) {
+    return toArray(blocks).sort(function(a, b) {
       return String(a.timeValue || a.time || '').localeCompare(String(b.timeValue || b.time || ''));
-    }) };
+    });
+  }
+
+  function selectedAvailabilityDates() {
+    var dates = [];
+    var primary = $('availabilityDate') ? $('availabilityDate').value : '';
+    if (primary) dates.push(primary);
+    state.availabilityDates.forEach(function(date) {
+      if (date && dates.indexOf(date) === -1) dates.push(date);
+    });
+    return dates.sort();
+  }
+
+  function syncAvailabilityDateChips() {
+    var tools = $('availabilityMultiDateTools');
+    var chips = $('availabilityDateChips');
+    if (tools) tools.hidden = false;
+    if (!chips) return;
+    state.availabilityDates = state.availabilityDates.filter(function(date, index, all) {
+      return date && all.indexOf(date) === index;
+    }).sort();
+    if (!state.availabilityDates.length) {
+      chips.innerHTML = '<span class="muted">Use Add Date for the selected date, or set an optional range end and use Add Range.</span>';
+      return;
+    }
+    chips.innerHTML = state.availabilityDates.map(function(date) {
+      return '<button type="button" class="admin-availability-date-chip" data-remove-availability-date="' + escapeHtml(date) + '">' +
+        escapeHtml(formatDate(date)) + '<span aria-hidden="true">x</span></button>';
+    }).join('');
+  }
+
+  function addAvailabilityDate(date) {
+    if (!date || state.availabilityDates.indexOf(date) !== -1) return;
+    state.availabilityDates.push(date);
+    syncAvailabilityDateChips();
+  }
+
+  function addAvailabilityDateFromInput() {
+    var input = $('availabilityDate');
+    if (!input || !input.value) return;
+    addAvailabilityDate(input.value);
+    input.focus();
+  }
+
+  function addAvailabilityRangeFromInput() {
+    var startInput = $('availabilityDate');
+    var endInput = $('availabilityRangeEndDate');
+    if (!startInput || !endInput || !startInput.value) return;
+    var start = isoDateToLocalDate(startInput.value);
+    var end = isoDateToLocalDate(endInput.value || startInput.value);
+    if (!start || !end) return;
+    if (end < start) {
+      var swap = start;
+      start = end;
+      end = swap;
+    }
+    var cursor = new Date(start);
+    while (cursor <= end) {
+      addAvailabilityDate(localDateToIso(cursor));
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    endInput.value = '';
+    endInput.focus();
+  }
+
+  function removeAvailabilityDate(date) {
+    state.availabilityDates = state.availabilityDates.filter(function(item) { return item !== date; });
+    syncAvailabilityDateChips();
+  }
+
+  function availabilityConflictForDate(date, startMinutes, endMinutes, editing) {
+    return getBlocksForDate(date).filter(function(block) {
+      if (editing && editing.date === date && editing.key === block._key) return false;
+      if (editing && editing.rangeGroupId && block.rangeGroupId === editing.rangeGroupId) return false;
+      return block.active !== false;
+    }).find(function(block) {
+      var blockStart = blockStartMinutes(block);
+      var blockEnd = blockEndMinutes(block);
+      return blockStart != null && blockEnd != null && rangesOverlap(startMinutes, endMinutes, blockStart, blockEnd);
+    });
+  }
+
+  function buildAvailabilityBlock(startValue, endMinutes, location) {
+    return {
+      time: formatTimeLabel(startValue),
+      timeValue: startValue,
+      startTimeValue: startValue,
+      endTime: formatTimeLabel(minutesToTimeValue(endMinutes)),
+      endTimeValue: minutesToTimeValue(endMinutes),
+      location: location,
+      active: true,
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  function saveAvailabilityBlocksToState(dates, blockKey, block, editing, primaryDate) {
+    state.availability[state.trainerId] = state.availability[state.trainerId] || {};
+    if (editing) {
+      editing.groupDates.forEach(function(groupDate) {
+        if (dates.indexOf(groupDate) === -1 && state.availability[state.trainerId][groupDate]) {
+          delete state.availability[state.trainerId][groupDate][editing.key];
+        }
+      });
+      if (editing.date !== primaryDate && state.availability[state.trainerId][editing.date]) {
+        delete state.availability[state.trainerId][editing.date][editing.key];
+      }
+    }
+    dates.forEach(function(date) {
+      state.availability[state.trainerId][date] = state.availability[state.trainerId][date] || {};
+      state.availability[state.trainerId][date][blockKey] = Object.assign({ _key: blockKey }, block);
+    });
   }
 
   function getAllBlocksForSelectedTrainer() {
@@ -529,6 +652,53 @@
     });
     return blocks.sort(function(a, b) {
       return String(a._date || '').localeCompare(String(b._date || '')) ||
+        String(a.timeValue || a.time || '').localeCompare(String(b.timeValue || b.time || ''));
+    });
+  }
+
+  function rangeGroupId() {
+    return 'range-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+  }
+
+  function rangeLabel(dates) {
+    if (!dates.length) return '';
+    if (dates.length === 1) return formatDate(dates[0]);
+    return formatDate(dates[0]) + ' - ' + formatDate(dates[dates.length - 1]) + ' (' + dates.length + ' days)';
+  }
+
+  function rangeGroupDates(groupId) {
+    if (!groupId) return [];
+    return getAllBlocksForSelectedTrainer().filter(function(block) {
+      return block.rangeGroupId === groupId;
+    }).map(function(block) {
+      return block._date;
+    }).filter(function(date, index, all) {
+      return date && all.indexOf(date) === index;
+    }).sort();
+  }
+
+  function displayAvailabilityBlocks() {
+    var grouped = {};
+    var blocks = [];
+    getAllBlocksForSelectedTrainer().forEach(function(block) {
+      if (!block.rangeGroupId) {
+        blocks.push(block);
+        return;
+      }
+      grouped[block.rangeGroupId] = grouped[block.rangeGroupId] || [];
+      grouped[block.rangeGroupId].push(block);
+    });
+    Object.keys(grouped).forEach(function(groupId) {
+      var groupBlocks = grouped[groupId].sort(function(a, b) {
+        return String(a._date || '').localeCompare(String(b._date || ''));
+      });
+      var block = Object.assign({}, groupBlocks[0]);
+      block._dateRange = groupBlocks.map(function(item) { return item._date; }).sort();
+      block._rangeCount = block._dateRange.length;
+      blocks.push(block);
+    });
+    return blocks.sort(function(a, b) {
+      return String((a._dateRange && a._dateRange[0]) || a._date || '').localeCompare(String((b._dateRange && b._dateRange[0]) || b._date || '')) ||
         String(a.timeValue || a.time || '').localeCompare(String(b.timeValue || b.time || ''));
     });
   }
@@ -552,6 +722,16 @@
   function minutesToTimeValue(minutes) {
     minutes = ((minutes % 1440) + 1440) % 1440;
     return String(Math.floor(minutes / 60)).padStart(2, '0') + ':' + String(minutes % 60).padStart(2, '0');
+  }
+
+  function isoDateToLocalDate(iso) {
+    var parts = String(iso || '').split('-').map(function(part) { return +part; });
+    if (parts.length !== 3 || parts.some(function(part) { return !Number.isFinite(part); })) return null;
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+  }
+
+  function localDateToIso(date) {
+    return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
   }
 
   function blockStartMinutes(block) {
@@ -590,16 +770,18 @@
       list.innerHTML = '<li class="muted">Add a trainer before setting availability.</li>';
       return;
     }
-    var blocks = getAllBlocksForSelectedTrainer();
+    var blocks = displayAvailabilityBlocks();
     if (!blocks.length) {
       list.innerHTML = '<li class="muted">No availability blocks saved for this trainer.</li>';
       return;
     }
     list.innerHTML = blocks.map(function(block) {
       var trainer = getTrainerById(state.trainerId);
+      var dateLabel = block._dateRange ? rangeLabel(block._dateRange) : formatDate(block._date);
+      var blockStatus = block.rangeGroupId ? 'Range block' : 'Open block';
       return '<li class="admin-availability-item">' +
-        '<div class="admin-availability-main"><strong>' + escapeHtml(formatDate(block._date) + ' · ' + blockRangeLabel(block)) + '</strong>' +
-        '<span>' + escapeHtml(blockLocation(block, trainer) || 'No location set') + ' · ' + (block.active === false ? 'Inactive' : 'Open block') + '</span>' +
+        '<div class="admin-availability-main"><strong>' + escapeHtml(dateLabel + ' · ' + blockRangeLabel(block)) + '</strong>' +
+        '<span>' + escapeHtml(blockLocation(block, trainer) || 'No location set') + ' · ' + (block.active === false ? 'Inactive' : blockStatus) + '</span>' +
         '</div><div class="list-actions">' +
           '<button type="button" class="btn small alt" data-edit-slot="' + escapeHtml(block._key) + '" data-slot-date="' + escapeHtml(block._date) + '">Edit</button>' +
           '<button type="button" class="btn small alt" data-delete-slot="' + escapeHtml(block._key) + '" data-slot-date="' + escapeHtml(block._date) + '">Delete</button>' +
@@ -830,6 +1012,7 @@
 
   function resetAvailabilityForm() {
     state.editingAvailability = null;
+    state.availabilityDates = [];
     var form = $('trainerAvailabilityForm');
     if (form) form.reset();
     var dateInput = $('availabilityDate');
@@ -838,6 +1021,7 @@
     if (submit) submit.textContent = 'Add Availability Block';
     var cancel = $('availabilityCancelEditBtn');
     if (cancel) cancel.hidden = true;
+    syncAvailabilityDateChips();
     setStatus('availabilitySaveStatus', '', false);
   }
 
@@ -848,6 +1032,9 @@
     var endValue = $('availabilityEndTime').value;
     var location = $('availabilityLocation').value.trim();
     if (!state.trainerId || !date || !startValue || !endValue || !location) return;
+    var editing = state.editingAvailability;
+    var dates = selectedAvailabilityDates();
+    var originalGroupDates = editing ? editing.groupDates : [];
     var startMinutes = timeToMinutes(startValue);
     var endMinutes = timeToMinutes(endValue);
     if (startMinutes == null || endMinutes == null || endMinutes <= startMinutes) {
@@ -858,47 +1045,46 @@
       setStatus('availabilitySaveStatus', 'Availability blocks must be at least 30 minutes.', true);
       return;
     }
-    var editing = state.editingAvailability;
-    var existingBlocks = getBlocksForSelectedDate().blocks.filter(function(block) {
-      if (editing && editing.date === date && editing.key === block._key) return false;
-      return block.active !== false;
+    var conflictInfo = dates.map(function(itemDate) {
+      return {
+        date: itemDate,
+        block: availabilityConflictForDate(itemDate, startMinutes, endMinutes, editing)
+      };
+    }).find(function(item) {
+      return !!item.block;
     });
-    var conflict = existingBlocks.find(function(block) {
-      var blockStart = blockStartMinutes(block);
-      var blockEnd = blockEndMinutes(block);
-      return blockStart != null && blockEnd != null && rangesOverlap(startMinutes, endMinutes, blockStart, blockEnd);
-    });
-    if (conflict) {
-      setStatus('availabilitySaveStatus', 'That block overlaps ' + blockRangeLabel(conflict) + '. Choose another time.', true);
+    if (conflictInfo) {
+      setStatus('availabilitySaveStatus', formatDate(conflictInfo.date) + ' overlaps ' + blockRangeLabel(conflictInfo.block) + '. Choose another time.', true);
       return;
     }
-    var blockKey = editing && editing.date === date ? editing.key : safeKey(startValue + '-' + endValue);
-    var block = {
-      time: formatTimeLabel(startValue),
-      timeValue: startValue,
-      startTimeValue: startValue,
-      endTime: formatTimeLabel(minutesToTimeValue(endMinutes)),
-      endTimeValue: minutesToTimeValue(endMinutes),
-      location: location,
-      active: true,
-      updatedAt: new Date().toISOString()
-    };
-    setStatus('availabilitySaveStatus', 'Saving availability block...', false);
+    var blockKey = editing ? editing.key : safeKey(startValue + '-' + endValue);
+    var block = buildAvailabilityBlock(startValue, endMinutes, location);
+    if (dates.length > 1) {
+      block.rangeGroupId = editing && editing.rangeGroupId ? editing.rangeGroupId : rangeGroupId();
+      block.rangeStartDate = dates[0];
+      block.rangeEndDate = dates[dates.length - 1];
+      block.rangeDateCount = dates.length;
+    }
+    setStatus('availabilitySaveStatus', dates.length > 1 ? 'Saving ' + dates.length + ' availability blocks...' : 'Saving availability block...', false);
     var updates = {};
-    updates['trainerAvailability/' + state.trainerId + '/' + date + '/' + blockKey] = block;
-    if (editing && editing.date !== date) {
-      updates['trainerAvailability/' + state.trainerId + '/' + editing.date + '/' + editing.key] = null;
+    dates.forEach(function(itemDate) {
+      updates['trainerAvailability/' + state.trainerId + '/' + itemDate + '/' + blockKey] = block;
+    });
+    if (editing) {
+      originalGroupDates.forEach(function(groupDate) {
+        if (dates.indexOf(groupDate) === -1) {
+          updates['trainerAvailability/' + state.trainerId + '/' + groupDate + '/' + editing.key] = null;
+        }
+      });
+      if (editing.date !== date) {
+        updates['trainerAvailability/' + state.trainerId + '/' + editing.date + '/' + editing.key] = null;
+      }
     }
     fbUpdate(updates).then(function() {
       return Object.assign({ _key: blockKey }, block);
     }).then(function(saved) {
-      state.availability[state.trainerId] = state.availability[state.trainerId] || {};
-      if (editing && editing.date !== date && state.availability[state.trainerId][editing.date]) {
-        delete state.availability[state.trainerId][editing.date][editing.key];
-      }
-      state.availability[state.trainerId][date] = state.availability[state.trainerId][date] || {};
-      state.availability[state.trainerId][date][blockKey] = saved;
-      setStatus('availabilitySaveStatus', editing ? 'Availability block updated.' : 'Availability block saved.', false);
+      saveAvailabilityBlocksToState(dates, blockKey, saved, editing, date);
+      setStatus('availabilitySaveStatus', editing ? (dates.length > 1 ? 'Availability range updated across ' + dates.length + ' days.' : 'Availability block updated.') : (dates.length > 1 ? 'Availability range saved across ' + dates.length + ' days.' : 'Availability block saved.'), false);
       resetAvailabilityForm();
       renderAvailability();
     }).catch(function(error) {
@@ -910,23 +1096,34 @@
     var block = findAvailabilityBlock(date, slotKey);
     if (!block) return;
     setAppointmentTab('availability');
-    state.editingAvailability = { date: date, key: slotKey };
+    var groupDates = block.rangeGroupId ? rangeGroupDates(block.rangeGroupId) : [date];
+    state.editingAvailability = { date: date, key: slotKey, rangeGroupId: block.rangeGroupId || '', groupDates: groupDates };
+    state.availabilityDates = groupDates.slice();
     $('availabilityDate').value = date;
     $('availabilityStartTime').value = block.startTimeValue || block.timeValue || '';
     $('availabilityEndTime').value = block.endTimeValue || '';
     $('availabilityLocation').value = block.location || '';
     $('availabilitySubmitBtn').textContent = 'Update Availability Block';
     $('availabilityCancelEditBtn').hidden = false;
+    syncAvailabilityDateChips();
     setStatus('availabilitySaveStatus', '', false);
     $('availabilityDate').focus();
   }
 
   function deleteSlot(date, slotKey) {
     if (!state.trainerId || !date) return;
-    fbDeleteChild('trainerAvailability/' + state.trainerId + '/' + date, slotKey).then(function() {
-      if (state.availability[state.trainerId] && state.availability[state.trainerId][date]) {
-        delete state.availability[state.trainerId][date][slotKey];
-      }
+    var block = findAvailabilityBlock(date, slotKey);
+    var dates = block && block.rangeGroupId ? rangeGroupDates(block.rangeGroupId) : [date];
+    var updates = {};
+    dates.forEach(function(itemDate) {
+      updates['trainerAvailability/' + state.trainerId + '/' + itemDate + '/' + slotKey] = null;
+    });
+    fbUpdate(updates).then(function() {
+      dates.forEach(function(itemDate) {
+        if (state.availability[state.trainerId] && state.availability[state.trainerId][itemDate]) {
+          delete state.availability[state.trainerId][itemDate][slotKey];
+        }
+      });
       if (state.editingAvailability && state.editingAvailability.date === date && state.editingAvailability.key === slotKey) {
         resetAvailabilityForm();
       }
@@ -1009,6 +1206,18 @@
     });
     $('trainerAvailabilityForm').addEventListener('submit', saveAvailabilityBlock);
     $('availabilityCancelEditBtn').addEventListener('click', resetAvailabilityForm);
+    $('availabilityDate').addEventListener('change', syncAvailabilityDateChips);
+    $('availabilityAddDateBtn').addEventListener('click', addAvailabilityDateFromInput);
+    $('availabilityAddRangeBtn').addEventListener('click', addAvailabilityRangeFromInput);
+    $('availabilityRangeEndDate').addEventListener('keydown', function(event) {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      addAvailabilityRangeFromInput();
+    });
+    $('availabilityDateChips').addEventListener('click', function(event) {
+      var btn = event.target.closest('[data-remove-availability-date]');
+      if (btn) removeAvailabilityDate(btn.dataset.removeAvailabilityDate);
+    });
     $('trainerPhotoFile').addEventListener('change', function(event) {
       loadTrainerPhotoCrop(event.target.files[0]).catch(function(error) {
         setStatus('trainerSaveStatus', error && error.message ? error.message : 'Could not load that trainer photo.', true);
@@ -1082,6 +1291,7 @@
     syncAppointmentTabs();
     var dateInput = $('availabilityDate');
     if (dateInput && !dateInput.value) dateInput.value = new Date().toISOString().slice(0, 10);
+    syncAvailabilityDateChips();
     loadAll();
   }
 

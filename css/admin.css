@@ -1131,6 +1131,73 @@ body.admin-modal-open{
   gap:14px;
 }
 
+.admin-availability-date-tools{
+  display:grid;
+  gap:10px;
+  padding:12px;
+  border:1px solid rgba(15,23,42,.10);
+  border-radius:12px;
+  background:#f8fafc;
+}
+
+.admin-availability-date-tools[hidden]{
+  display:none;
+}
+
+.admin-availability-date-tools label{
+  display:grid;
+  gap:8px;
+  margin:0;
+}
+
+.admin-availability-range-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  align-items:end;
+}
+
+.admin-availability-range-row label{
+  flex:1 1 170px;
+}
+
+.admin-availability-range-row input{
+  width:min(100%, 220px);
+}
+
+.admin-availability-range-row .btn{
+  min-height:40px;
+}
+
+.admin-availability-date-chips{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  min-height:32px;
+  align-items:center;
+}
+
+.admin-availability-date-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  min-height:32px;
+  padding:0 10px;
+  border:1px solid rgba(91,205,39,.42);
+  border-radius:999px;
+  background:rgba(91,205,39,.12);
+  color:var(--admin-v2-text);
+  cursor:pointer;
+  font:inherit;
+  font-size:.86rem;
+  font-weight:900;
+}
+
+.admin-availability-date-chip span{
+  color:rgba(15,23,42,.58);
+  font-size:.8rem;
+}
+
 .admin-photo-crop-editor{
   display:grid;
   grid-template-columns:minmax(180px, 260px) minmax(220px, 1fr);
