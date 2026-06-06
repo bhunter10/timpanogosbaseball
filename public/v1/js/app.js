@@ -1025,7 +1025,7 @@ const adminPanelRoutes = {
   dashboard: 'saved-games',
   opponents: 'opponents',
   carousel: 'gallery',
-  appointments: 'training',
+  appointments: 'training/trainers',
   news: 'news'
 };
 
@@ -1043,6 +1043,7 @@ function adminPanelFromPath() {
   var parts = path.split('/').filter(Boolean);
   var adminIndex = parts.indexOf('admin');
   var slug = adminIndex >= 0 ? parts[adminIndex + 1] : '';
+  if (slug === 'training') return 'appointments';
   return adminRoutePanels[slug] || 'dashboard';
 }
 
@@ -1054,8 +1055,13 @@ function adminPanelPath(panelName) {
 
 function updateAdminRoute(panelName, replaceRoute) {
   if (!isStandaloneAdminPage()) return;
+  var currentPath = window.location.pathname || '';
+  var basePath = window.__SITE_BASE_PATH || '';
+  var normalizedPath = currentPath;
+  if (basePath && normalizedPath.indexOf(basePath) === 0) normalizedPath = normalizedPath.slice(basePath.length);
+  if (panelName === 'appointments' && /^\/admin\/training(?:\/|$)/.test(normalizedPath)) return;
   var nextPath = adminPanelPath(panelName);
-  if (window.location.pathname === nextPath) return;
+  if (currentPath === nextPath) return;
   history[replaceRoute ? 'replaceState' : 'pushState']({ adminPanel: panelName }, '', nextPath);
 }
 
@@ -1288,6 +1294,7 @@ function renderAdmin(app) {
     }
     if (panelName === 'appointments' && window.AdminAppointments) {
       window.AdminAppointments.initPanel();
+      if (window.AdminAppointments.syncFromRoute) window.AdminAppointments.syncFromRoute();
     }
   }
 

@@ -1131,6 +1131,22 @@ body.admin-modal-open{
   gap:14px;
 }
 
+.admin-availability-details-grid{
+  display:grid;
+  gap:14px;
+}
+
+.admin-availability-time-row{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:14px;
+}
+
+.admin-availability-time-row label,
+.admin-availability-location-field{
+  margin:0;
+}
+
 .admin-availability-date-tools{
   display:grid;
   gap:10px;
@@ -1167,6 +1183,26 @@ body.admin-modal-open{
 
 .admin-availability-range-row .btn{
   min-height:40px;
+}
+
+.admin-availability-range-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  align-items:center;
+}
+
+@media (min-width: 769px){
+  .admin-availability-range-actions .btn{
+    min-height:34px;
+    padding:0 12px;
+    border-radius:8px;
+    font-size:.84rem;
+  }
+
+  .admin-availability-item .list-actions{
+    gap:8px;
+  }
 }
 
 .admin-availability-date-chips{
@@ -1315,6 +1351,24 @@ body.admin-modal-open{
   gap:14px;
 }
 
+.admin-v2-body .admin-availability-item{
+  display:flex;
+  align-items:center;
+  padding:16px;
+  border:1px solid rgba(15,23,42,.10);
+  border-left:5px solid var(--admin-v2-green);
+  border-radius:12px;
+  background:linear-gradient(180deg, #ffffff, #f8fafc);
+  box-shadow:0 12px 28px rgba(15,23,42,.07);
+}
+
+.admin-v2-body .admin-availability-item .list-actions{
+  display:flex;
+  flex:0 0 auto;
+  align-items:center;
+  align-self:center;
+}
+
 .admin-trainer-main{
   display:grid;
   grid-template-columns:82px 1fr;
@@ -1343,8 +1397,7 @@ body.admin-modal-open{
 .admin-trainer-main span,
 .admin-trainer-main small,
 .admin-request-main span,
-.admin-request-main small,
-.admin-availability-item span{
+.admin-request-main small{
   display:block;
   margin-top:4px;
   color:var(--admin-v2-muted);
@@ -1352,13 +1405,51 @@ body.admin-modal-open{
 }
 
 .admin-availability-main{
+  display:grid;
+  gap:8px;
   flex:1 1 auto;
   min-width:0;
 }
 
-.admin-availability-item strong{
-  flex:1 1 auto;
+.admin-availability-date{
+  color:var(--admin-v2-muted);
+  font-size:.82rem;
+  font-weight:900;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+}
+
+.admin-availability-item .admin-availability-time{
+  display:block;
   color:var(--admin-v2-text);
+  font-size:1.18rem;
+  line-height:1.2;
+}
+
+.admin-availability-meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  justify-content:flex-start;
+}
+
+.admin-availability-meta span{
+  display:inline-flex;
+  flex:0 0 auto;
+  min-width:0;
+  margin-right:0;
+  align-items:center;
+  min-height:28px;
+  padding:0 10px;
+  border-radius:999px;
+  background:rgba(15,23,42,.06);
+  color:var(--admin-v2-muted);
+  font-size:.86rem;
+  font-weight:800;
+}
+
+.admin-v2-body .admin-availability-list li .admin-availability-meta span{
+  flex:0 0 auto;
 }
 
 .admin-request-main{
@@ -1369,6 +1460,10 @@ body.admin-modal-open{
 }
 
 @media (max-width: 768px){
+  .admin-availability-time-row{
+    grid-template-columns:1fr;
+  }
+
   .admin-v2-body .admin-login-page{
     padding:28px 14px 40px!important;
   }

@@ -115,6 +115,13 @@
   font-size:1.1rem;
 }
 
+.v2-train-success-contact p{
+  margin:4px 0 0;
+  color:rgba(244,247,251,.72);
+  font-size:.94rem;
+  line-height:1.45;
+}
+
 .v2-train-heading{
   display:flex;
   justify-content:flex-end;
@@ -376,6 +383,15 @@
   color:rgba(244,247,251,.64);
   font-size:.9rem;
   font-weight:800;
+}
+
+.v2-train-slot-location{
+  display:block;
+  margin-top:6px;
+  color:rgba(244,247,251,.58);
+  font-size:.82rem;
+  font-weight:700;
+  line-height:1.35;
 }
 
 .v2-train-continue,

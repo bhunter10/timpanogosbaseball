@@ -23,7 +23,39 @@
     }
   };
 
+  var appointmentTabs = {
+    trainers: 'trainers',
+    availability: 'availability',
+    requests: 'requests'
+  };
+
   function $(id) { return document.getElementById(id); }
+
+  function adminBasePath() {
+    return window.__SITE_BASE_PATH || '';
+  }
+
+  function appointmentTabFromPath() {
+    var path = window.location.pathname || '';
+    var basePath = adminBasePath();
+    if (basePath && path.indexOf(basePath) === 0) path = path.slice(basePath.length);
+    var parts = path.replace(/\/+$/, '').split('/').filter(Boolean);
+    var adminIndex = parts.indexOf('admin');
+    if (adminIndex < 0 || parts[adminIndex + 1] !== 'training') return 'trainers';
+    var tab = parts[adminIndex + 2] || 'trainers';
+    return appointmentTabs[tab] ? tab : 'trainers';
+  }
+
+  function appointmentTabPath(tabName) {
+    return adminBasePath() + '/admin/training/' + (appointmentTabs[tabName] || appointmentTabs.trainers) + '/';
+  }
+
+  function updateAppointmentRoute(tabName, replaceRoute) {
+    if (!window.__ADMIN_STANDALONE_PAGE || !window.history) return;
+    var nextPath = appointmentTabPath(tabName);
+    if (window.location.pathname === nextPath) return;
+    window.history[replaceRoute ? 'replaceState' : 'pushState']({ adminPanel: 'appointments', appointmentsTab: tabName }, '', nextPath);
+  }
 
   function escapeHtml(value) {
     return String(value || '')
@@ -389,22 +421,26 @@
             '<section class="admin-card admin-appointments-card admin-availability-control-card">',
               '<h2>Availability</h2>',
               '<form id="trainerAvailabilityForm" class="admin-appointment-form">',
-                '<div class="admin-appointment-grid">',
+                '<div class="admin-availability-details-grid">',
                   '<label>Trainer:<select id="availabilityTrainerSelect"></select></label>',
-                  '<label>Date:<input type="date" id="availabilityDate" required></label>',
-                  '<label>Start time:<input type="time" id="availabilityStartTime" required></label>',
-                  '<label>End time:<input type="time" id="availabilityEndTime" required></label>',
-                  '<label>Location:<input type="text" id="availabilityLocation" required placeholder="Timpanogos cages"></label>',
+                  '<div class="admin-availability-time-row">',
+                    '<label>Start time:<input type="time" id="availabilityStartTime" step="900" required></label>',
+                    '<label>End time:<input type="time" id="availabilityEndTime" step="900" required></label>',
+                  '</div>',
+                  '<label class="admin-availability-location-field">Location:<input type="text" id="availabilityLocation" required placeholder="Timpanogos cages"></label>',
                 '</div>',
                 '<div class="admin-availability-date-tools" id="availabilityMultiDateTools">',
                   '<div class="admin-availability-range-row">',
+                    '<label>Date:<input type="date" id="availabilityDate" required></label>',
                     '<label>Optional range end:<input type="date" id="availabilityRangeEndDate"></label>',
+                  '</div>',
+                  '<div class="admin-availability-range-actions">',
                     '<button type="button" class="btn small alt" id="availabilityAddDateBtn">Add Date</button>',
                     '<button type="button" class="btn small alt" id="availabilityAddRangeBtn">Add Range</button>',
                   '</div>',
                   '<div class="admin-availability-date-chips" id="availabilityDateChips" aria-live="polite"></div>',
                 '</div>',
-                '<p class="muted">Add open blocks and locations. Visitors can request 30-minute ($30) or 1-hour ($50) appointments inside a block.</p>',
+                '<p class="muted">Visitors can request 30-minute or 1-hour appointment inside a block.</p>',
                 '<div class="form-row">',
                   '<button type="submit" class="btn" id="availabilitySubmitBtn">Add Availability Block</button>',
                   '<button type="button" class="btn alt" id="availabilityCancelEditBtn" hidden>Cancel edit</button>',
@@ -457,9 +493,11 @@
     });
   }
 
-  function setAppointmentTab(tabName) {
+  function setAppointmentTab(tabName, options) {
+    options = options || {};
     state.activeTab = tabName || 'trainers';
     syncAppointmentTabs();
+    if (options.updateRoute !== false) updateAppointmentRoute(state.activeTab, !!options.replaceRoute);
   }
 
   function resetTrainerForm() {
@@ -778,10 +816,14 @@
     list.innerHTML = blocks.map(function(block) {
       var trainer = getTrainerById(state.trainerId);
       var dateLabel = block._dateRange ? rangeLabel(block._dateRange) : formatDate(block._date);
-      var blockStatus = block.rangeGroupId ? 'Range block' : 'Open block';
       return '<li class="admin-availability-item">' +
-        '<div class="admin-availability-main"><strong>' + escapeHtml(dateLabel + ' · ' + blockRangeLabel(block)) + '</strong>' +
-        '<span>' + escapeHtml(blockLocation(block, trainer) || 'No location set') + ' · ' + (block.active === false ? 'Inactive' : blockStatus) + '</span>' +
+        '<div class="admin-availability-main">' +
+          '<div class="admin-availability-date">' + escapeHtml(dateLabel) + '</div>' +
+          '<strong class="admin-availability-time">' + escapeHtml(blockRangeLabel(block)) + '</strong>' +
+          '<div class="admin-availability-meta">' +
+            '<span>' + escapeHtml(blockLocation(block, trainer) || 'No location set') + '</span>' +
+            (block.active === false ? '<span>Inactive</span>' : '') +
+          '</div>' +
         '</div><div class="list-actions">' +
           '<button type="button" class="btn small alt" data-edit-slot="' + escapeHtml(block._key) + '" data-slot-date="' + escapeHtml(block._date) + '">Edit</button>' +
           '<button type="button" class="btn small alt" data-delete-slot="' + escapeHtml(block._key) + '" data-slot-date="' + escapeHtml(block._date) + '">Delete</button>' +
@@ -1041,6 +1083,10 @@
       setStatus('availabilitySaveStatus', 'Choose a valid start and end time.', true);
       return;
     }
+    if (startMinutes % 15 !== 0 || endMinutes % 15 !== 0) {
+      setStatus('availabilitySaveStatus', 'Start and end times must be in 15-minute increments.', true);
+      return;
+    }
     if (endMinutes - startMinutes < 30) {
       setStatus('availabilitySaveStatus', 'Availability blocks must be at least 30 minutes.', true);
       return;
@@ -1287,6 +1333,7 @@
     if (!panel || state.initializedPanel === panel) return;
     state.initialized = true;
     state.initializedPanel = panel;
+    state.activeTab = appointmentTabFromPath();
     wireEvents();
     syncAppointmentTabs();
     var dateInput = $('availabilityDate');
@@ -1295,9 +1342,20 @@
     loadAll();
   }
 
+  function syncFromRoute() {
+    if (!$('appointmentsAdminPanel')) return;
+    setAppointmentTab(appointmentTabFromPath(), { updateRoute: false });
+  }
+
+  if (!window.__appointmentsTabPopstateWired) {
+    window.__appointmentsTabPopstateWired = true;
+    window.addEventListener('popstate', syncFromRoute);
+  }
+
   window.AdminAppointments = {
     panelHtml: panelHtml,
     initPanel: initPanel,
+    syncFromRoute: syncFromRoute,
     refresh: loadAll
   };
 })();

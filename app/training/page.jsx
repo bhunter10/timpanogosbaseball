@@ -86,7 +86,8 @@ export default function TrainPage() {
             <p id="trainSuccessSummary">We will review your request and follow up soon.</p>
             <div className="v2-train-success-contact">
               <span>Need to change anything?</span>
-              <strong id="trainSuccessCoachPhone">Text your coach.</strong>
+              <strong id="trainSuccessCoachPhone">Please text me with 24 hours notice.</strong>
+              <p>I will take cash, Venmo, or check at your training session.</p>
             </div>
             <button type="button" className="v2-train-success-btn" id="trainSuccessReset">Request another appointment</button>
           </div>
@@ -115,7 +116,7 @@ export default function TrainPage() {
           <dl className="v2-train-details" id="trainModalDetails"></dl>
           <form id="trainRequestForm" className="v2-train-form">
             <label>Full name<input type="text" id="trainCustomerName" autoComplete="name" required /></label>
-            <label>Cell phone number<input type="tel" id="trainCustomerPhone" autoComplete="tel" required /></label>
+            <label>Cell phone number<input type="tel" id="trainCustomerPhone" autoComplete="tel" inputMode="numeric" placeholder="(___) ___-____" maxLength="14" pattern="\([0-9]{3}\) [0-9]{3}-[0-9]{4}" title="Enter a 10-digit phone number." required /></label>
             <label>Email<input type="email" id="trainCustomerEmail" autoComplete="email" required /></label>
             <button type="submit" className="v2-train-request-btn">Request an appointment</button>
             <p className="v2-train-form-status" id="trainFormStatus" aria-live="polite"></p>
