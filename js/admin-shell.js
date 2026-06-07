@@ -8,6 +8,11 @@ function clearStandaloneAdminHash() {
   }
 }
 
+function adminLoginPathForCurrentPage() {
+  var currentPath = window.location.pathname + window.location.search + window.location.hash;
+  return adminBasePath + '/admin-login/?next=' + encodeURIComponent(currentPath);
+}
+
 function renderAdminHeaderAuth() {
   var authSlot = document.getElementById('adminHeaderAuth');
   if (!authSlot) return;
@@ -60,7 +65,7 @@ document.addEventListener('adminauthchange', function() {
   if (!authReady) return;
 
   if (!currentAdminUser) {
-    window.location.replace(adminBasePath + '/admin-login/');
+    window.location.replace(adminLoginPathForCurrentPage());
     return;
   }
 
