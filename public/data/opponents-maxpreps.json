@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-06-03T17:32:49.005Z",
+  "fetchedAt": "2026-06-07T06:47:36.350Z",
   "historyUrl": "https://www.maxpreps.com/ut/orem/timpanogos-timberwolves/baseball/history/",
   "seasonCount": 19,
   "opponentCount": 93,
@@ -7,7 +7,7 @@
     {
       "year": "25-26",
       "scheduleUrl": "https://www.maxpreps.com/ut/orem/timpanogos-timberwolves/baseball/schedule/",
-      "opponentsFound": 18
+      "opponentsFound": 20
     },
     {
       "year": "24-25",
@@ -589,7 +589,7 @@
       "state": "UT",
       "street": "440 Lancer Lane",
       "zip": "84041",
-      "maxprepsUrl": "https://www.maxpreps.com/ut/layton/layton-lancers/baseball/24-25/schedule/",
+      "maxprepsUrl": "https://www.maxpreps.com/ut/layton/layton-lancers/baseball/",
       "logoUrl": "https://image.maxpreps.io/school-mascot/d/8/7/d87f85c9-e648-4712-94a7-92e85c167da2.gif?version=635830014000000000&width=256&height=256",
       "address": "440 Lancer Lane, Layton, UT 84041"
     },
@@ -745,7 +745,7 @@
       "state": "UT",
       "street": "2430 N. Hillfield Rd",
       "zip": "84041",
-      "maxprepsUrl": "https://www.maxpreps.com/ut/layton/northridge-knights/baseball/13-14/schedule/",
+      "maxprepsUrl": "https://www.maxpreps.com/ut/layton/northridge-knights/baseball/",
       "logoUrl": "https://image.maxpreps.io/school-mascot/6/8/3/6837a5f1-64de-4c88-8cca-21c8dfa69c81.gif?version=637015453200000000&width=256&height=256",
       "address": "2430 N. Hillfield Rd, Layton, UT 84041"
     },

@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
 
-export const dynamic = 'force-dynamic';
-
 const MAX_FIELD_LENGTH = 240;
 
 function cleanText(value, fallback = '') {
