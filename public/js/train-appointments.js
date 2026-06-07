@@ -491,6 +491,20 @@
     if (title) title.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
+  function notifyTrainingRequest(request) {
+    if (!window.fetch || window.__SITE_STATIC_EXPORT) return Promise.resolve();
+    return fetch(basePath + '/api/training-request-notification/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ request: request })
+    }).then(function(response) {
+      if (!response.ok) throw new Error('Training request notification failed.');
+      return response.json().catch(function() { return null; });
+    }).catch(function(error) {
+      console.warn(error && error.message ? error.message : 'Training request notification failed.');
+    });
+  }
+
   function submitRequest(event) {
     event.preventDefault();
     var trainer = getTrainer();
@@ -556,6 +570,7 @@
         });
       });
     }, Promise.resolve()).then(function() {
+      request.appointmentId = requestRef.key;
       return requestRef.set(request).catch(function(error) {
         var cleanup = {};
         acquiredKeys.forEach(function(key) {
@@ -563,6 +578,8 @@
         });
         return db.ref().update(cleanup).then(function() { throw error; });
       });
+    }).then(function() {
+      notifyTrainingRequest(request);
     }).then(function() {
       status.textContent = 'Request sent.';
       state.claims[trainer._key] = state.claims[trainer._key] || {};
