@@ -67,6 +67,33 @@
     return date.toLocaleDateString('en-US', options || { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
   }
 
+  function getTrainingNow() {
+    var now = new Date();
+    try {
+      var parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/Denver',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23'
+      }).formatToParts(now).reduce(function(map, part) {
+        map[part.type] = part.value;
+        return map;
+      }, {});
+      return {
+        iso: parts.year + '-' + parts.month + '-' + parts.day,
+        minutes: (+parts.hour * 60) + +parts.minute
+      };
+    } catch (error) {
+      return {
+        iso: isoFromDate(now),
+        minutes: (now.getHours() * 60) + now.getMinutes()
+      };
+    }
+  }
+
   function toArray(value) {
     if (!value) return [];
     return Object.keys(value).map(function(key) {
@@ -277,6 +304,14 @@
     return keys;
   }
 
+  function isSlotInPast(iso, slot, now) {
+    now = now || getTrainingNow();
+    if (iso < now.iso) return true;
+    if (iso > now.iso) return false;
+    var start = timeToMinutes(slot && (slot.startTimeValue || slot.timeValue));
+    return start == null || start <= now.minutes;
+  }
+
   function getOptionsForDate(iso) {
     var options = [];
     getBlocksForDate(iso).forEach(function(block) {
@@ -294,8 +329,9 @@
   }
 
   function getOpenSlotsForDate(iso) {
+    var now = getTrainingNow();
     return getOptionsForDate(iso).filter(function(slot) {
-      return !hasClaimOverlap(iso, slot);
+      return !isSlotInPast(iso, slot, now) && !hasClaimOverlap(iso, slot);
     });
   }
 
@@ -337,7 +373,7 @@
     var first = startOfMonth(state.monthDate);
     var cursor = new Date(first);
     cursor.setDate(1 - first.getDay());
-    var todayIso = isoFromDate(new Date());
+    var now = getTrainingNow();
     var cells = [];
 
     for (var i = 0; i < 42; i += 1) {
@@ -345,9 +381,12 @@
       var outside = cursor.getMonth() !== state.monthDate.getMonth();
       var openSlots = getOpenSlotsForDate(iso);
       var allSlots = getOptionsForDate(iso);
-      var isPast = iso < todayIso;
+      var isPast = iso < now.iso;
       var disabled = !isTrainingDate(iso) || isPast || !state.trainerId || !openSlots.length;
-      var labelText = allSlots.length ? (openSlots.length ? openSlots.length + ' open' : 'Booked') : 'No times';
+      var hasFutureSlot = allSlots.some(function(slot) { return !isSlotInPast(iso, slot, now); });
+      var labelText = allSlots.length
+        ? (openSlots.length ? openSlots.length + ' open' : (hasFutureSlot ? 'Booked' : 'No times'))
+        : 'No times';
       cells.push('<button type="button" class="v2-train-day' +
         (outside ? ' is-outside' : '') +
         (disabled ? ' is-full' : '') +
@@ -376,8 +415,11 @@
 
     label.textContent = formatDate(state.selectedDate, { weekday: 'long', month: 'long', day: 'numeric' });
     var slots = getOpenSlotsForDate(state.selectedDate);
+    if (state.selectedSlotId && !slots.some(function(slot) { return slot._key === state.selectedSlotId; })) {
+      state.selectedSlotId = '';
+    }
     if (!slots.length) {
-      list.innerHTML = '<p class="v2-train-empty">This date is fully booked.</p>';
+      list.innerHTML = '<p class="v2-train-empty">No times are available for this date.</p>';
       continueTopBtn.disabled = true;
       return;
     }
