@@ -2615,7 +2615,9 @@ body.v2-reveals-ready .v2-filmstrip-band.v2-reveal:not(.v2-visible) .v2-filmstri
     scroll-margin-top:104px;
   }
   .v2-strengths-grid,
-  .v2-news-grid{
+  .v2-roster-grid,
+  .v2-news-grid,
+  .v2-swag-layout{
     grid-template-columns:1fr;
   }
   .v2-coach-card,

@@ -965,7 +965,7 @@ function v2UpdateScheduleHeader(group, results, allGames, selectedTeam, allGroup
 
   var recordValue = document.getElementById('v2ScheduleRecordValue') || header.querySelector('.v2-heading-record-value');
   if (recordValue) {
-    recordValue.textContent = v2CountWins(results) + '-' + v2CountLosses(results);
+    recordValue.textContent = v2FormatRecord(results);
   }
 
   var controls = document.getElementById('v2ScheduleControls') || header.querySelector('.v2-schedule-controls');
@@ -1207,6 +1207,18 @@ function v2CountLosses(results) {
   return results.filter(function(result) {
     return result.ourScore < result.theirScore;
   }).length;
+}
+
+function v2CountTies(results) {
+  return results.filter(function(result) {
+    return result.ourScore === result.theirScore;
+  }).length;
+}
+
+function v2FormatRecord(results) {
+  var ties = v2CountTies(results);
+  var record = v2CountWins(results) + '-' + v2CountLosses(results);
+  return ties ? record + '-' + ties : record;
 }
 
 function v2ApplyStagger(selector, itemSelector, stepMs) {
