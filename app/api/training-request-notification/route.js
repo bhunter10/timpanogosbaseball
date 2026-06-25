@@ -21,6 +21,13 @@ function formatMoney(value) {
   return '$' + number.toFixed(0);
 }
 
+function emailList(value) {
+  return String(value || '')
+    .split(/[,\n;]+/)
+    .map((email) => email.trim())
+    .filter(Boolean);
+}
+
 function buildRow(label, value) {
   if (!value) return '';
   return `<tr><th align="left" style="padding:8px 14px 8px 0;color:#334155;font-weight:700;vertical-align:top;">${escapeHtml(label)}</th><td style="padding:8px 0;color:#0f172a;">${escapeHtml(value)}</td></tr>`;
@@ -81,13 +88,13 @@ function buildEmailText(request, adminUrl) {
 
 export async function POST(request) {
   const apiKey = process.env.RESEND_API_KEY;
-  const to = process.env.TRAINING_REQUEST_NOTIFY_TO;
+  const to = emailList(process.env.TRAINING_REQUEST_NOTIFY_TO);
   const from = process.env.RESEND_FROM;
 
-  if (!apiKey || !to || !from) {
+  if (!apiKey || !to.length || !from) {
     console.warn('Training request email skipped: missing env var', {
       hasResendApiKey: Boolean(apiKey),
-      hasTrainingRequestNotifyTo: Boolean(to),
+      hasTrainingRequestNotifyTo: Boolean(to.length),
       hasResendFrom: Boolean(from)
     });
     return NextResponse.json({ skipped: true, reason: 'Email notification is not configured.' });
@@ -132,6 +139,6 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Resend could not send the notification.', details: result }, { status: 502 });
   }
 
-  console.info('Training request email sent', { id: result.id || null, to });
+  console.info('Training request email sent', { id: result.id || null, recipientCount: to.length });
   return NextResponse.json({ id: result.id || null });
 }
