@@ -28,6 +28,10 @@ function emailList(value) {
     .filter(Boolean);
 }
 
+function isEmailAddress(value) {
+  return /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(value);
+}
+
 function buildRow(label, value) {
   if (!value) return '';
   return `<tr><th align="left" style="padding:8px 14px 8px 0;color:#334155;font-weight:700;vertical-align:top;">${escapeHtml(label)}</th><td style="padding:8px 0;color:#0f172a;">${escapeHtml(value)}</td></tr>`;
@@ -88,7 +92,8 @@ function buildEmailText(request, adminUrl) {
 
 export async function POST(request) {
   const apiKey = process.env.RESEND_API_KEY;
-  const to = emailList(process.env.TRAINING_REQUEST_NOTIFY_TO);
+  const recipientCandidates = emailList(process.env.TRAINING_REQUEST_NOTIFY_TO);
+  const to = recipientCandidates.filter(isEmailAddress);
   const from = process.env.RESEND_FROM;
 
   if (!apiKey || !to.length || !from) {
@@ -98,6 +103,13 @@ export async function POST(request) {
       hasResendFrom: Boolean(from)
     });
     return NextResponse.json({ skipped: true, reason: 'Email notification is not configured.' });
+  }
+
+  if (recipientCandidates.length !== to.length) {
+    console.warn('Training request email skipped invalid recipients', {
+      recipientCount: to.length,
+      invalidRecipientCount: recipientCandidates.length - to.length
+    });
   }
 
   let payload;
