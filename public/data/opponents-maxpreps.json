@@ -1,13 +1,18 @@
 {
-  "fetchedAt": "2026-06-07T06:47:36.350Z",
+  "fetchedAt": "2026-07-02T23:42:58.947Z",
   "historyUrl": "https://www.maxpreps.com/ut/orem/timpanogos-timberwolves/baseball/history/",
-  "seasonCount": 19,
+  "seasonCount": 20,
   "opponentCount": 93,
   "seasons": [
     {
-      "year": "25-26",
+      "year": "26-27",
       "scheduleUrl": "https://www.maxpreps.com/ut/orem/timpanogos-timberwolves/baseball/schedule/",
-      "opponentsFound": 20
+      "opponentsFound": 0
+    },
+    {
+      "year": "25-26",
+      "scheduleUrl": "https://www.maxpreps.com/ut/orem/timpanogos-timberwolves/baseball/25-26/schedule/",
+      "opponentsFound": 22
     },
     {
       "year": "24-25",
@@ -121,7 +126,7 @@
       "state": "UT",
       "street": "11055 S 1000 E",
       "zip": "84094",
-      "maxprepsUrl": "https://www.maxpreps.com/ut/sandy/alta-hawks/baseball/",
+      "maxprepsUrl": "https://www.maxpreps.com/ut/sandy/alta-hawks/baseball/25-26/schedule/",
       "logoUrl": "https://image.maxpreps.io/school-mascot/e/6/e/e6e9909c-fc6e-48f5-a192-2c440e70c239.gif?version=638143017000000000&width=256&height=256",
       "address": "11055 S 1000 E, Sandy, UT 84094"
     },
@@ -133,7 +138,7 @@
       "state": "UT",
       "street": "510 North 600 East",
       "zip": "84003",
-      "maxprepsUrl": "https://www.maxpreps.com/ut/american-fork/american-fork-cavemen/baseball/",
+      "maxprepsUrl": "https://www.maxpreps.com/ut/american-fork/american-fork-cavemen/baseball/25-26/schedule/",
       "logoUrl": "https://image.maxpreps.io/school-mascot/b/0/f/b0fca8b1-c433-436c-abf6-5cc0dbddb4bd.gif?version=637605789600000000&width=256&height=256",
       "address": "510 North 600 East, American Fork, UT 84003"
     },
@@ -145,7 +150,7 @@
       "state": "UT",
       "street": "1450 S Main St",
       "zip": "84312",
-      "maxprepsUrl": "https://www.maxpreps.com/ut/garland/bear-river-bears/baseball/",
+      "maxprepsUrl": "https://www.maxpreps.com/ut/garland/bear-river-bears/baseball/25-26/schedule/",
       "logoUrl": "https://image.maxpreps.io/school-mascot/8/9/2/89256834-140b-4795-b315-3d20fe7f7642.gif?version=637714471800000000&width=256&height=256",
       "address": "1450 S Main St, Garland, UT 84312"
     },
@@ -157,7 +162,7 @@
       "state": "UT",
       "street": "2160 W 10400 S",
       "zip": "84095",
-      "maxprepsUrl": "https://www.maxpreps.com/ut/south-jordan/bingham-miners/baseball/24-25/schedule/",
+      "maxprepsUrl": "https://www.maxpreps.com/ut/south-jordan/bingham-miners/baseball/25-26/schedule/",
       "logoUrl": "https://image.maxpreps.io/school-mascot/3/6/7/367338c0-d784-492e-a854-c06cfc6447c1.gif?version=637605788400000000&width=256&height=256",
       "address": "2160 W 10400 S, South Jordan, UT 84095"
     },
@@ -313,7 +318,7 @@
       "state": "UT",
       "street": "4430 S Crimson Cliffs Wy",
       "zip": "84780",
-      "maxprepsUrl": "https://www.maxpreps.com/ut/washington/crimson-cliffs-mustangs/baseball/",
+      "maxprepsUrl": "https://www.maxpreps.com/ut/washington/crimson-cliffs-mustangs/baseball/25-26/schedule/",
       "logoUrl": "https://image.maxpreps.io/school-mascot/a/3/0/a306be62-9b50-4c8b-88eb-c9ca199e3653.gif?version=636916081200000000&width=256&height=256",
       "address": "4430 S Crimson Cliffs Wy, Washington, UT 84780"
     },
@@ -337,7 +342,7 @@
       "state": "UT",
       "street": "325 S Davis Blvd",
       "zip": "84037",
-      "maxprepsUrl": "https://www.maxpreps.com/ut/kaysville/davis-darts/baseball/",
+      "maxprepsUrl": "https://www.maxpreps.com/ut/kaysville/davis-darts/baseball/25-26/schedule/",
       "logoUrl": "https://image.maxpreps.io/school-mascot/8/d/6/8d6766ba-a28c-4fcf-8e14-b6584224fd9b.gif?version=636504993000000000&width=256&height=256",
       "address": "325 S Davis Blvd, Kaysville, UT 84037"
     },
@@ -445,7 +450,7 @@
       "state": "UT",
       "street": "1900 N 4700 W",
       "zip": "84404",
-      "maxprepsUrl": "https://www.maxpreps.com/ut/plain-city/fremont-wolves/baseball/",
+      "maxprepsUrl": "https://www.maxpreps.com/ut/plain-city/fremont-wolves/baseball/25-26/schedule/",
       "logoUrl": "https://image.maxpreps.io/school-mascot/d/f/6/df652754-1ae6-4553-bef3-21d1b8b8f86e.gif?version=637650474000000000&width=256&height=256",
       "address": "1900 N 4700 W, Plain City, UT 84404"
     },
@@ -493,7 +498,7 @@
       "state": "UT",
       "street": "11917 South 6000 West",
       "zip": "84096",
-      "maxprepsUrl": "https://www.maxpreps.com/ut/west-herriman/herriman-mustangs/baseball/24-25/schedule/",
+      "maxprepsUrl": "https://www.maxpreps.com/ut/west-herriman/herriman-mustangs/baseball/25-26/schedule/",
       "logoUrl": "https://image.maxpreps.io/school-mascot/a/f/2/af2270c1-9bf4-4763-9100-19ad944724b5.gif?version=637707549000000000&width=256&height=256",
       "address": "11917 South 6000 West, West Herriman, UT 84096"
     },
@@ -541,7 +546,7 @@
       "state": "UT",
       "street": "802 N 650 E",
       "zip": "84648",
-      "maxprepsUrl": "https://www.maxpreps.com/ut/nephi/juab-wasps/baseball/",
+      "maxprepsUrl": "https://www.maxpreps.com/ut/nephi/juab-wasps/baseball/25-26/schedule/",
       "logoUrl": "https://image.maxpreps.io/school-mascot/e/c/d/ecd24b75-355d-4851-a774-ff12b8c23aaa.gif?version=635865447000000000&width=256&height=256",
       "address": "802 N 650 E, Nephi, UT 84648"
     },
@@ -553,7 +558,7 @@
       "state": "UT",
       "street": "300 E 11800 S",
       "zip": "84020",
-      "maxprepsUrl": "https://www.maxpreps.com/ut/draper/juan-diego-catholic-soaring-eagle/baseball/",
+      "maxprepsUrl": "https://www.maxpreps.com/ut/draper/juan-diego-catholic-soaring-eagle/baseball/25-26/schedule/",
       "logoUrl": "https://image.maxpreps.io/school-mascot/d/e/4/de4046ad-3949-44dc-9d9f-81abda07e978.gif?version=635157767400000000&width=256&height=256",
       "address": "300 E 11800 S, Draper, UT 84020"
     },
@@ -589,7 +594,7 @@
       "state": "UT",
       "street": "440 Lancer Lane",
       "zip": "84041",
-      "maxprepsUrl": "https://www.maxpreps.com/ut/layton/layton-lancers/baseball/",
+      "maxprepsUrl": "https://www.maxpreps.com/ut/layton/layton-lancers/baseball/25-26/schedule/",
       "logoUrl": "https://image.maxpreps.io/school-mascot/d/8/7/d87f85c9-e648-4712-94a7-92e85c167da2.gif?version=635830014000000000&width=256&height=256",
       "address": "440 Lancer Lane, Layton, UT 84041"
     },
@@ -709,7 +714,7 @@
       "state": "UT",
       "street": "665 W Center St",
       "zip": "84058",
-      "maxprepsUrl": "https://www.maxpreps.com/ut/orem/mountain-view-bruins/baseball/",
+      "maxprepsUrl": "https://www.maxpreps.com/ut/orem/mountain-view-bruins/baseball/25-26/schedule/",
       "logoUrl": "https://image.maxpreps.io/school-mascot/4/9/1/49119dd6-813f-4687-9de2-9367fb69139d.gif?version=637001010000000000&width=256&height=256",
       "address": "665 W Center St, Orem, UT 84058"
     },
@@ -733,7 +738,7 @@
       "state": "UT",
       "street": "5440 S State St",
       "zip": "84107",
-      "maxprepsUrl": "https://www.maxpreps.com/ut/murray/murray-spartans/baseball/",
+      "maxprepsUrl": "https://www.maxpreps.com/ut/murray/murray-spartans/baseball/25-26/schedule/",
       "logoUrl": "https://image.maxpreps.io/school-mascot/c/f/0/cf0f9ae9-afa2-48f7-8fdd-dba8e341eb64.gif?version=636445150800000000&width=256&height=256",
       "address": "5440 S State St, Murray, UT 84107"
     },
@@ -745,7 +750,7 @@
       "state": "UT",
       "street": "2430 N. Hillfield Rd",
       "zip": "84041",
-      "maxprepsUrl": "https://www.maxpreps.com/ut/layton/northridge-knights/baseball/",
+      "maxprepsUrl": "https://www.maxpreps.com/ut/layton/northridge-knights/baseball/25-26/schedule/",
       "logoUrl": "https://image.maxpreps.io/school-mascot/6/8/3/6837a5f1-64de-4c88-8cca-21c8dfa69c81.gif?version=637015453200000000&width=256&height=256",
       "address": "2430 N. Hillfield Rd, Layton, UT 84041"
     },
@@ -757,7 +762,7 @@
       "state": "UT",
       "street": "2828 Harrison Blvd",
       "zip": "84403",
-      "maxprepsUrl": "https://www.maxpreps.com/ut/ogden/ogden-tigers/baseball/",
+      "maxprepsUrl": "https://www.maxpreps.com/ut/ogden/ogden-tigers/baseball/25-26/schedule/",
       "logoUrl": "https://image.maxpreps.io/school-mascot/6/8/6/686b04b9-c7f9-4581-94fc-3e2a46de51e8.gif?version=635895658200000000&width=256&height=256",
       "address": "2828 Harrison Blvd, Ogden, UT 84403"
     },
@@ -769,7 +774,7 @@
       "state": "UT",
       "street": "4055 S 2300 E",
       "zip": "84124",
-      "maxprepsUrl": "https://www.maxpreps.com/ut/salt-lake-city/olympus-titans/baseball/",
+      "maxprepsUrl": "https://www.maxpreps.com/ut/salt-lake-city/olympus-titans/baseball/25-26/schedule/",
       "logoUrl": "https://image.maxpreps.io/school-mascot/8/f/e/8fe978ec-f307-4ea5-8691-d09e185561fd.gif?version=635231308800000000&width=256&height=256",
       "address": "4055 S 2300 E, Salt Lake City, UT 84124"
     },
@@ -781,7 +786,7 @@
       "state": "UT",
       "street": "175 S 400 E",
       "zip": "84097",
-      "maxprepsUrl": "https://www.maxpreps.com/ut/orem/orem-tigers/baseball/",
+      "maxprepsUrl": "https://www.maxpreps.com/ut/orem/orem-tigers/baseball/25-26/schedule/",
       "logoUrl": "https://image.maxpreps.io/school-mascot/6/e/9/6e96854a-3ca4-44bb-a6b0-899cf84dfa3d.gif?version=638653640447786130&width=256&height=256",
       "address": "175 S 400 E, Orem, UT 84097"
     },
@@ -853,7 +858,7 @@
       "state": "UT",
       "street": "1125 N University Ave",
       "zip": "84601",
-      "maxprepsUrl": "https://www.maxpreps.com/ut/provo/provo-bulldogs/baseball/",
+      "maxprepsUrl": "https://www.maxpreps.com/ut/provo/provo-bulldogs/baseball/25-26/schedule/",
       "logoUrl": "https://image.maxpreps.io/school-mascot/7/a/b/7abb78b4-7ace-4587-9417-8fab69f53108.gif?version=634590968400000000&width=256&height=256",
       "address": "1125 N University Ave, Provo, UT 84601"
     },
@@ -913,7 +918,7 @@
       "state": "UT",
       "street": "150 N. Skyhawk Blvd.",
       "zip": "84653",
-      "maxprepsUrl": "https://www.maxpreps.com/ut/salem/salem-hills-skyhawks/baseball/",
+      "maxprepsUrl": "https://www.maxpreps.com/ut/salem/salem-hills-skyhawks/baseball/25-26/schedule/",
       "logoUrl": "https://image.maxpreps.io/school-mascot/c/6/9/c699a1d2-906a-47f4-9b2b-73ff1f91e786.gif?version=635294509200000000&width=256&height=256",
       "address": "150 N. Skyhawk Blvd., Salem, UT 84653"
     },
@@ -1021,7 +1026,7 @@
       "state": "UT",
       "street": "14942 S 560 W",
       "zip": "84096",
-      "maxprepsUrl": "https://www.maxpreps.com/ut/bluffdale/summit-academy-bears/baseball/",
+      "maxprepsUrl": "https://www.maxpreps.com/ut/bluffdale/summit-academy-bears/baseball/25-26/schedule/",
       "logoUrl": "https://image.maxpreps.io/school-mascot/9/9/e/99efadf2-2f5c-4702-8779-33d51282fb0c.gif?version=638587229033654950&width=256&height=256",
       "address": "14942 S 560 W, Bluffdale, UT 84096"
     },
@@ -1117,7 +1122,7 @@
       "state": "UT",
       "street": "1880 W 500 N",
       "zip": "84078",
-      "maxprepsUrl": "https://www.maxpreps.com/ut/vernal/uintah-utes/baseball/",
+      "maxprepsUrl": "https://www.maxpreps.com/ut/vernal/uintah-utes/baseball/25-26/schedule/",
       "logoUrl": "https://image.maxpreps.io/school-mascot/4/c/c/4cc6eb03-5d9e-4ac8-bdec-b489991b76c3.gif?version=635603727600000000&width=256&height=256",
       "address": "1880 W 500 N, Vernal, UT 84078"
     },
@@ -1129,7 +1134,7 @@
       "state": "UT",
       "street": "120 W 1000 N",
       "zip": "84010",
-      "maxprepsUrl": "https://www.maxpreps.com/ut/bountiful/viewmont-vikings/baseball/",
+      "maxprepsUrl": "https://www.maxpreps.com/ut/bountiful/viewmont-vikings/baseball/25-26/schedule/",
       "logoUrl": "https://image.maxpreps.io/school-mascot/4/6/2/46247e26-1cf0-47cd-b71a-4d361a3c2d09.gif?version=638672596945134620&width=256&height=256",
       "address": "120 W 1000 N, Bountiful, UT 84010"
     },

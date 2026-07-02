@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-06-07T06:47:13.181Z",
+  "updatedAt": "2026-07-02T23:42:51.482Z",
   "articles": [
     {
       "title": "High school baseball: Monday’s 4A bracket play roundup, Desert Hills, Bear River, Snow Canyon snag victories",
@@ -11,11 +11,20 @@
       "curated": true
     },
     {
+      "title": "Moving on: Provo, Timpanogos baseball lead Utah County teams in playoff advancements",
+      "link": "https://www.heraldextra.com/sports/high-school/2026/may/10/moving-on-provo-timpanogos-baseball-lead-utah-county-teams-in-playoff-advancements/",
+      "pubDate": "2026-05-10T07:00:00.000Z",
+      "excerpt": "Moving on: Provo, Timpanogos baseball lead Utah County teams in playoff advancements",
+      "image": "https://ogden_images.s3.amazonaws.com/www.heraldextra.com/images/2026/05/08065032/0O1A7298-951x938.jpg",
+      "source": "Daily Herald",
+      "sourceHint": "heraldextra.com"
+    },
+    {
       "title": "Band of brothers: Timpanogos powers past Provo, 6-2",
       "link": "https://www.heraldextra.com/sports/high-school/2026/apr/15/band-of-brothers-timpanogos-powers-past-provo-6-2/",
       "pubDate": "2026-04-15T12:00:00.000Z",
       "excerpt": "The Timberwolves lean on their “Brothers” culture, Cooper Hawkes’ breakout season, and Canyon Clegg on the mound in a Region 8 win over Provo.",
-      "image": "/images/outlets/herald.svg",
+      "image": "https://ogden_images.s3.amazonaws.com/www.heraldextra.com/images/2026/04/14191409/TN-at-Provo-bb-2026-7-1200x750.jpg",
       "source": "Daily Herald",
       "curated": true
     },
@@ -83,6 +92,15 @@
       "curated": true
     },
     {
+      "title": "State Baseball: Timpanogos routs Salem Hills in 5A showdown",
+      "link": "https://www.heraldextra.com/sports/high-school/2023/may/23/state-baseball-timpanogos-routs-salem-hills-in-5a-showdown/",
+      "pubDate": "2023-05-23T07:00:00.000Z",
+      "excerpt": "The “dog” has been coming out early for Timpanogos at the state tournament. The Timberwolves have jumped on their past two opponents, Orem and Salem Hills, early and the big starts have paid off with two big wins. On Tuesday, Timpanogos scored five runs in the bottom of the first",
+      "image": "https://ogden_images.s3.amazonaws.com/www.heraldextra.com/images/2023/05/23203959/SH-TN-5A-bb-2023-6-1200x674.jpg",
+      "source": "Daily Herald",
+      "sourceHint": "heraldextra.com"
+    },
+    {
       "title": "High school baseball: Timpanogos, Salem Hills, Lehi, Woods Cross snag wins in Monday bracket play of 5A state tournament",
       "link": "https://www.deseret.com/2023/5/22/23731875/high-school-baseball-lehi-woods-cross-snag-wins-in-monday-bracket-play-of-5a-state-tournament/",
       "pubDate": "2023-05-23T04:14:00.000Z",
@@ -96,7 +114,7 @@
       "link": "https://www.ksl.com/article/sports/high-school/last-chance-comeback-timpanogos-wins-6-games-in-4-days-to-clinch-5a-tourney-title/46761895",
       "pubDate": "2020-06-06T12:00:00.000Z",
       "excerpt": "Facing elimination, Timpanogos ran off six wins in four days to capture the 5A tournament championship.",
-      "image": "https://img.ksl.com/slc/2785/278528/27852891.jpg?filter=kslv2/responsive_story_lg",
+      "image": "/images/outlets/ksl.svg",
       "source": "KSL",
       "curated": true
     },
@@ -105,7 +123,7 @@
       "link": "https://archive.sltrib.com/article.php?id=5313588&itype=CMSID",
       "pubDate": "2017-05-27T05:20:00.000Z",
       "excerpt": "Casey Hamilton’s fifth-inning home run helped Timpanogos beat Spanish Fork 9-7 and repeat as Class 4A state champions.",
-      "image": "https://archive.sltrib.com/images/2017/0526/pbase_4Atitle_052717~14.jpg",
+      "image": "/images/outlets/generic.svg",
       "source": "Salt Lake Tribune",
       "curated": true
     },
