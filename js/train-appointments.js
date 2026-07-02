@@ -376,14 +376,17 @@
     if (nextBtn) nextBtn.disabled = monthIndex(state.monthDate) >= monthIndex(lastTrainingMonth);
 
     var first = startOfMonth(state.monthDate);
-    var cursor = new Date(first);
-    cursor.setDate(1 - first.getDay());
+    var daysInMonth = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
     var now = getTrainingNow();
     var cells = [];
 
-    for (var i = 0; i < 42; i += 1) {
+    for (var blank = 0; blank < first.getDay(); blank += 1) {
+      cells.push('<span class="v2-train-day-spacer" aria-hidden="true"></span>');
+    }
+
+    for (var day = 1; day <= daysInMonth; day += 1) {
+      var cursor = new Date(first.getFullYear(), first.getMonth(), day);
       var iso = isoFromDate(cursor);
-      var outside = cursor.getMonth() !== state.monthDate.getMonth();
       var openSlots = getOpenSlotsForDate(iso);
       var allSlots = getOptionsForDate(iso);
       var isPast = iso < now.iso;
@@ -393,13 +396,11 @@
         ? (openSlots.length ? openSlots.length + ' open' : (hasFutureSlot ? 'Booked' : 'No times'))
         : 'No times';
       cells.push('<button type="button" class="v2-train-day' +
-        (outside ? ' is-outside' : '') +
         (disabled ? ' is-full' : '') +
         (openSlots.length ? ' has-open-slots' : '') +
         (iso === state.selectedDate ? ' is-selected' : '') +
         '" data-date="' + iso + '"' + (disabled ? ' disabled' : '') + '>' +
         '<span>' + cursor.getDate() + '</span><small>' + escapeHtml(labelText) + '</small></button>');
-      cursor.setDate(cursor.getDate() + 1);
     }
 
     grid.innerHTML = cells.join('');

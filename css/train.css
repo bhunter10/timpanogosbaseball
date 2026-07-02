@@ -333,6 +333,10 @@
   font-weight:900;
 }
 
+.v2-train-day-spacer{
+  min-height:1px;
+}
+
 .v2-train-day.is-outside{
   opacity:.36;
 }
