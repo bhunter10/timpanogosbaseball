@@ -41,7 +41,7 @@ export default function TrainPage() {
           <div className="v2-shell v2-train-hero-inner">
             <p className="v2-kicker">Baseball training</p>
             <h1>Book a Session</h1>
-            <p>Choose a coach, find an open training time, and request an appointment.</p>
+            <p>Find an open training time and request an appointment.</p>
           </div>
         </section>
 
