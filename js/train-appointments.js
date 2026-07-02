@@ -6,7 +6,7 @@
     availability: {},
     claims: {},
     trainerId: '',
-    monthDate: new Date(2026, 5, 1),
+    monthDate: null,
     selectedDate: '',
     selectedSlotId: ''
   };
@@ -92,6 +92,10 @@
         minutes: (now.getHours() * 60) + now.getMinutes()
       };
     }
+  }
+
+  function currentTrainingMonth() {
+    return clampCalendarMonth(parseIso(getTrainingNow().iso) || new Date());
   }
 
   function toArray(value) {
@@ -362,6 +366,7 @@
     var grid = $('trainCalendarGrid');
     var label = $('trainMonthLabel');
     if (!grid || !label) return;
+    if (!state.monthDate) state.monthDate = currentTrainingMonth();
     state.monthDate = clampCalendarMonth(state.monthDate);
 
     label.textContent = state.monthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
