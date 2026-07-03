@@ -146,6 +146,11 @@ function buildCalendarInvite(request) {
     `DESCRIPTION:${escapeIcsText(description)}`,
     `LOCATION:${escapeIcsText(request.location || 'Timpanogos Baseball')}`,
     'STATUS:CONFIRMED',
+    'BEGIN:VALARM',
+    'ACTION:DISPLAY',
+    'DESCRIPTION:Training session starts in 30 minutes.',
+    'TRIGGER:-PT30M',
+    'END:VALARM',
     'END:VEVENT',
     'END:VCALENDAR'
   ].join('\r\n');

@@ -140,6 +140,11 @@ function buildEvent(claim, trainer, index, now) {
     `DESCRIPTION:${escapeIcsText(description)}`,
     `LOCATION:${escapeIcsText(claim.location || 'Timpanogos Baseball')}`,
     'STATUS:CONFIRMED',
+    'BEGIN:VALARM',
+    'ACTION:DISPLAY',
+    'DESCRIPTION:Training session starts in 30 minutes.',
+    'TRIGGER:-PT30M',
+    'END:VALARM',
     'END:VEVENT'
   ];
 }
