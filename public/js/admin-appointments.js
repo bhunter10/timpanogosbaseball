@@ -1179,6 +1179,22 @@
     });
   }
 
+  function notifyApproval(request) {
+    if (!window.fetch || window.__SITE_STATIC_EXPORT) return Promise.resolve({ skipped: true });
+    return fetch((window.__SITE_BASE_PATH || '') + '/api/training-approval-notification/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ request: request })
+    }).then(function(response) {
+      return response.json().catch(function() { return {}; }).then(function(payload) {
+        if (!response.ok) {
+          throw new Error(payload && payload.error ? payload.error : 'Could not send approval email.');
+        }
+        return payload;
+      });
+    });
+  }
+
   function updateRequestStatus(key, status) {
     var request = state.requests.find(function(item) { return item._key === key; });
     if (!request) return;
@@ -1224,8 +1240,31 @@
         request.status = status;
         request.updatedAt = now;
       }
-      setStatus('appointmentRequestStatus', status === 'approved' ? 'Appointment approved.' : 'Request updated.', false);
       renderRequests();
+      if (status !== 'approved') {
+        setStatus('appointmentRequestStatus', 'Request updated.', false);
+        return null;
+      }
+      setStatus('appointmentRequestStatus', 'Appointment approved. Sending confirmation email...', false);
+      var approvedRequest = Object.assign({}, request, {
+        appointmentId: request.appointmentId || key,
+        _key: key,
+        status: 'approved',
+        updatedAt: now
+      });
+      return notifyApproval(approvedRequest).then(function(result) {
+        setStatus(
+          'appointmentRequestStatus',
+          result && result.skipped ? 'Appointment approved.' : 'Appointment approved and confirmation email sent.',
+          false
+        );
+      }).catch(function(error) {
+        setStatus(
+          'appointmentRequestStatus',
+          'Appointment approved, but the confirmation email could not be sent. ' + (error && error.message ? error.message : ''),
+          true
+        );
+      });
     }).catch(function(error) {
       setStatus('appointmentRequestStatus', error && error.message ? error.message : 'Could not update request.', true);
     });
