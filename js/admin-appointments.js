@@ -65,6 +65,10 @@
     return Promise.resolve();
   }
 
+  function copyTextQuietly(value) {
+    return copyText(value).catch(function() { return null; });
+  }
+
   function backfillTrainerCalendarNames(trainerId) {
     var updates = {};
     state.requests.forEach(function(request) {
@@ -1097,6 +1101,7 @@
   function syncTrainerCalendar(key) {
     var trainer = getTrainerById(key);
     if (!trainer) return;
+    setStatus('trainerSaveStatus', 'Preparing calendar sync...', false);
     var token = trainer.calendarToken || randomToken();
     var saveToken = trainer.calendarToken
       ? Promise.resolve()
@@ -1109,11 +1114,9 @@
       return backfillTrainerCalendarNames(key);
     }).then(function() {
       var webcalUrl = trainerWebcalUrl(trainer);
-      return copyText(trainerCalendarUrl(trainer)).then(function() {
-        window.location.href = webcalUrl;
-      });
-    }).then(function() {
-      setStatus('trainerSaveStatus', 'Opening calendar sync. The subscription link was also copied.', false);
+      copyTextQuietly(trainerCalendarUrl(trainer));
+      setStatus('trainerSaveStatus', 'Opening calendar sync. If nothing opens, the subscription link was copied when allowed.', false);
+      window.location.href = webcalUrl;
     }).catch(function(error) {
       setStatus('trainerSaveStatus', error && error.message ? error.message : 'Could not open trainer calendar sync.', true);
     });
@@ -1362,7 +1365,11 @@
       var syncCalendar = event.target.closest('[data-sync-trainer-calendar]');
       if (edit) editTrainer(edit.dataset.editTrainer);
       if (del) deleteTrainer(del.dataset.deleteTrainer);
-      if (syncCalendar) syncTrainerCalendar(syncCalendar.dataset.syncTrainerCalendar);
+      if (syncCalendar) {
+        event.preventDefault();
+        event.stopPropagation();
+        syncTrainerCalendar(syncCalendar.dataset.syncTrainerCalendar);
+      }
     });
     $('availabilityTrainerSelect').addEventListener('change', function(event) {
       state.trainerId = event.target.value;
