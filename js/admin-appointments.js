@@ -65,6 +65,19 @@
     return Promise.resolve();
   }
 
+  function backfillTrainerCalendarNames(trainerId) {
+    var updates = {};
+    state.requests.forEach(function(request) {
+      if (!request || request.trainerId !== trainerId || request.status !== 'approved' || !request.fullName) return;
+      var claimBasePath = 'appointmentClaims/' + request.trainerId + '/' + request.date;
+      var claimKeys = Array.isArray(request.claimKeys) && request.claimKeys.length ? request.claimKeys : [request.slotId];
+      claimKeys.filter(Boolean).forEach(function(claimKey) {
+        updates[claimBasePath + '/' + claimKey + '/fullName'] = request.fullName;
+      });
+    });
+    return Object.keys(updates).length ? fbUpdate(updates) : Promise.resolve();
+  }
+
   function calendarSyncIcon() {
     return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
       '<rect x="3" y="5" width="18" height="16" rx="2"></rect>' +
@@ -1093,6 +1106,8 @@
         });
 
     saveToken.then(function() {
+      return backfillTrainerCalendarNames(key);
+    }).then(function() {
       var webcalUrl = trainerWebcalUrl(trainer);
       return copyText(trainerCalendarUrl(trainer)).then(function() {
         window.location.href = webcalUrl;
