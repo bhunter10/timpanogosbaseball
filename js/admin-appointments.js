@@ -1286,6 +1286,7 @@
               durationMinutes: request.durationMinutes || 30,
               price: request.price || 30,
               location: request.location || '',
+              fullName: request.fullName || '',
               status: 'approved',
               createdAt: request.createdAt || now,
               updatedAt: now

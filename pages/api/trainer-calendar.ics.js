@@ -122,8 +122,8 @@ function buildEvent(claim, trainer, index, now) {
   const times = claimTimes(claim);
   if (!times) return null;
 
-  const trainerName = cleanText(trainer.name, 'Coach');
-  const summary = `Training Session - ${trainerName}`;
+  const requesterName = cleanText(claim.fullName);
+  const summary = requesterName ? `${requesterName} - Training Session` : 'Training Session';
   const description = [
     'Timpanogos Baseball approved training appointment.',
     claim.price ? `Price: $${cleanText(claim.price)}` : '',
@@ -158,7 +158,7 @@ function buildCalendar(trainer, claims) {
     'PRODID:-//Timpanogos Baseball//Trainer Calendar//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
-    `X-WR-CALNAME:${escapeIcsText('Timpanogos Training - ' + trainerName)}`,
+    `X-WR-CALNAME:${escapeIcsText(trainerName + ' Training Sessions')}`,
     `X-WR-CALDESC:${escapeIcsText('Approved Timpanogos Baseball training appointments.')}`,
     `X-WR-TIMEZONE:${TIME_ZONE}`
   ];
