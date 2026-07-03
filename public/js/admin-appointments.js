@@ -35,6 +35,43 @@
     return window.__SITE_BASE_PATH || '';
   }
 
+  function randomToken() {
+    var bytes = new Uint8Array(18);
+    if (window.crypto && window.crypto.getRandomValues) {
+      window.crypto.getRandomValues(bytes);
+    } else {
+      for (var i = 0; i < bytes.length; i += 1) bytes[i] = Math.floor(Math.random() * 256);
+    }
+    return Array.prototype.map.call(bytes, function(byte) {
+      return byte.toString(16).padStart(2, '0');
+    }).join('');
+  }
+
+  function trainerCalendarUrl(trainer) {
+    if (!trainer || !trainer._key || !trainer.calendarToken) return '';
+    return window.location.origin + adminBasePath() + '/api/trainer-calendar.ics?trainerId=' +
+      encodeURIComponent(trainer._key) + '&token=' + encodeURIComponent(trainer.calendarToken);
+  }
+
+  function trainerWebcalUrl(trainer) {
+    return trainerCalendarUrl(trainer).replace(/^https?:\/\//i, 'webcal://');
+  }
+
+  function copyText(value) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(value);
+    }
+    window.prompt('Copy trainer calendar link:', value);
+    return Promise.resolve();
+  }
+
+  function calendarSyncIcon() {
+    return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+      '<rect x="3" y="5" width="18" height="16" rx="2"></rect>' +
+      '<path d="M16 3v4M8 3v4M3 10h18M12 14v4M10 16h4"></path>' +
+    '</svg>';
+  }
+
   function appointmentTabFromPath() {
     var path = window.location.pathname || '';
     var basePath = adminBasePath();
@@ -543,6 +580,7 @@
     list.innerHTML = state.trainers.map(function(trainer) {
       var photo = normalizeAssetUrl(trainer.photoUrl);
       return '<li class="admin-trainer-item">' +
+        '<button type="button" class="admin-calendar-sync-btn" data-sync-trainer-calendar="' + escapeHtml(trainer._key) + '" aria-label="Sync ' + escapeHtml(trainer.name || 'trainer') + ' calendar" title="Sync calendar">' + calendarSyncIcon() + '</button>' +
         '<div class="admin-trainer-main">' +
           (photo ? '<img src="' + escapeHtml(photo) + '" alt="">' : '<span class="admin-trainer-photo-placeholder"></span>') +
           '<div><strong>' + escapeHtml(trainer.name || 'Trainer') + '</strong>' +
@@ -946,6 +984,7 @@
       cellPhone: $('trainerCellPhone').value.trim(),
       photoUrl: $('trainerPhotoUrl').value.trim(),
       photoStoragePath: existing && existing.photoStoragePath ? existing.photoStoragePath : '',
+      calendarToken: existing && existing.calendarToken ? existing.calendarToken : randomToken(),
       active: $('trainerActive').checked,
       sortOrder: +$('trainerSortOrder').value || 0,
       updatedAt: now
@@ -1039,6 +1078,29 @@
       state.availability = previousAvailability;
       renderAll();
       setStatus('trainerSaveStatus', error && error.message ? error.message : 'Could not delete trainer.', true);
+    });
+  }
+
+  function syncTrainerCalendar(key) {
+    var trainer = getTrainerById(key);
+    if (!trainer) return;
+    var token = trainer.calendarToken || randomToken();
+    var saveToken = trainer.calendarToken
+      ? Promise.resolve()
+      : fbSet('trainers/' + key + '/calendarToken', token).then(function() {
+          trainer.calendarToken = token;
+          renderTrainers();
+        });
+
+    saveToken.then(function() {
+      var webcalUrl = trainerWebcalUrl(trainer);
+      return copyText(trainerCalendarUrl(trainer)).then(function() {
+        window.location.href = webcalUrl;
+      });
+    }).then(function() {
+      setStatus('trainerSaveStatus', 'Opening calendar sync. The subscription link was also copied.', false);
+    }).catch(function(error) {
+      setStatus('trainerSaveStatus', error && error.message ? error.message : 'Could not open trainer calendar sync.', true);
     });
   }
 
@@ -1281,8 +1343,10 @@
     $('trainerAdminList').addEventListener('click', function(event) {
       var edit = event.target.closest('[data-edit-trainer]');
       var del = event.target.closest('[data-delete-trainer]');
+      var syncCalendar = event.target.closest('[data-sync-trainer-calendar]');
       if (edit) editTrainer(edit.dataset.editTrainer);
       if (del) deleteTrainer(del.dataset.deleteTrainer);
+      if (syncCalendar) syncTrainerCalendar(syncCalendar.dataset.syncTrainerCalendar);
     });
     $('availabilityTrainerSelect').addEventListener('change', function(event) {
       state.trainerId = event.target.value;

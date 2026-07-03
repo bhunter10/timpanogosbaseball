@@ -1345,6 +1345,7 @@ body.admin-modal-open{
 .admin-v2-body .admin-trainer-item,
 .admin-v2-body .admin-availability-item,
 .admin-v2-body .admin-request-item{
+  position:relative;
   min-height:0;
   height:auto;
   align-items:center;
@@ -1386,6 +1387,40 @@ body.admin-modal-open{
   object-fit:cover;
   background:linear-gradient(135deg, rgba(91,205,39,.2), rgba(15,23,42,.08));
   border:1px solid rgba(15,23,42,.08);
+}
+
+.admin-calendar-sync-btn{
+  position:absolute;
+  top:10px;
+  right:10px;
+  display:grid;
+  place-items:center;
+  width:40px;
+  height:40px;
+  padding:0;
+  border:1px solid rgba(15,23,42,.12);
+  border-radius:8px;
+  background:#fff;
+  color:var(--admin-v2-green-dark);
+  cursor:pointer;
+  box-shadow:0 8px 18px rgba(15,23,42,.08);
+}
+
+.admin-calendar-sync-btn svg{
+  width:21px;
+  height:21px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.admin-calendar-sync-btn:hover,
+.admin-calendar-sync-btn:focus-visible{
+  border-color:rgba(54,151,37,.38);
+  background:rgba(91,205,39,.08);
+  outline:none;
 }
 
 .admin-trainer-main strong,
