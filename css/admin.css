@@ -634,6 +634,48 @@ body.admin-v2-body.auth-pending #app{
   margin-bottom:12px;
 }
 
+.admin-v2-body .admin-request-edit-modal{
+  z-index:2950;
+}
+
+.admin-v2-body .admin-request-edit-panel{
+  width:min(560px, 100%);
+  grid-template-rows:auto minmax(0, 1fr) auto;
+}
+
+.admin-v2-body .admin-request-edit-body{
+  display:grid;
+  gap:14px;
+  overflow:auto;
+  padding:4px 18px 18px;
+}
+
+.admin-v2-body .admin-request-edit-body label{
+  display:grid;
+  gap:6px;
+  color:var(--admin-v2-text);
+  font-size:.84rem;
+  font-weight:800;
+}
+
+.admin-v2-body .admin-request-edit-body input{
+  width:100%;
+  min-height:44px;
+  padding:10px 12px;
+  border:1px solid rgba(15,23,42,.14);
+  border-radius:10px;
+  background:#fff;
+  color:var(--admin-v2-text);
+  font:inherit;
+  font-weight:600;
+}
+
+.admin-v2-body .admin-request-edit-grid{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:12px;
+}
+
 .admin-v2-body .admin-opponent-modal-backdrop{
   position:absolute;
   inset:0;
@@ -821,6 +863,12 @@ body.admin-v2-body.auth-pending #app{
 
 body.admin-modal-open{
   overflow:hidden;
+}
+
+@media (max-width:640px){
+  .admin-v2-body .admin-request-edit-grid{
+    grid-template-columns:1fr;
+  }
 }
 
 .admin-v2-body .save-success{

@@ -10,6 +10,7 @@
     trainerId: '',
     editingTrainerKey: '',
     editingAvailability: null,
+    editingRequestKey: '',
     availabilityDates: [],
     activeTab: 'trainers',
     photoCrop: {
@@ -530,6 +531,31 @@
             '</section>',
           '</div>',
         '</section>',
+        '<div class="admin-opponent-modal admin-request-edit-modal" id="requestEditModal" hidden>',
+          '<button type="button" class="admin-opponent-modal-backdrop" id="requestEditBackdrop" aria-label="Close edit appointment form"></button>',
+          '<form class="admin-opponent-modal-panel admin-request-edit-panel" id="requestEditForm" role="dialog" aria-modal="true" aria-labelledby="requestEditTitle">',
+            '<div class="admin-opponent-modal-header">',
+              '<div><h3 id="requestEditTitle">Edit Appointment</h3><p class="muted" id="requestEditSummary"></p></div>',
+              '<button type="button" class="admin-opponent-modal-close" id="requestEditClose" aria-label="Close edit appointment form">x</button>',
+            '</div>',
+            '<div class="admin-request-edit-body">',
+              '<div class="admin-request-edit-grid">',
+                '<label>Date<input type="date" id="requestEditDate" required></label>',
+                '<label>Start time<input type="time" id="requestEditStartTime" step="900" required></label>',
+                '<label>End time<input type="time" id="requestEditEndTime" step="900" required></label>',
+                '<label>Price<input type="number" id="requestEditPrice" min="0" step="1"></label>',
+              '</div>',
+              '<label>Location<input type="text" id="requestEditLocation" placeholder="Timpanogos cages"></label>',
+              '<p id="requestEditStatus"></p>',
+            '</div>',
+            '<div class="admin-opponent-modal-footer">',
+              '<div class="admin-opponent-modal-footer-actions">',
+                '<button type="submit" class="btn">Save Changes</button>',
+                '<button type="button" class="btn alt" id="requestEditCancel">Cancel</button>',
+              '</div>',
+            '</div>',
+          '</form>',
+        '</div>',
       '</section>'
     ].join('');
   }
@@ -917,6 +943,7 @@
       list.innerHTML = pending.map(function(request) {
         return requestListItem(request,
           '<button type="button" class="btn small" data-approve-request="' + escapeHtml(request._key) + '">Approve</button>' +
+          '<button type="button" class="btn small alt" data-edit-request="' + escapeHtml(request._key) + '">Edit</button>' +
           '<button type="button" class="btn small alt" data-deny-request="' + escapeHtml(request._key) + '">Deny</button>' +
           '<button type="button" class="btn small alt" data-delete-request="' + escapeHtml(request._key) + '">Delete</button>'
         );
@@ -934,6 +961,7 @@
     } else {
       approvedList.innerHTML = approved.map(function(request) {
         return requestListItem(request,
+          '<button type="button" class="btn small alt" data-edit-request="' + escapeHtml(request._key) + '">Edit</button>' +
           '<button type="button" class="btn small alt" data-deny-request="' + escapeHtml(request._key) + '">Cancel</button>' +
           '<button type="button" class="btn small alt" data-delete-request="' + escapeHtml(request._key) + '">Delete</button>'
         );
@@ -1275,6 +1303,171 @@
     });
   }
 
+  function claimKeyFromMinutes(minutes) {
+    return 'segment-' + minutesToTimeValue(minutes).replace(/[^0-9a-zA-Z_-]+/g, '-');
+  }
+
+  function claimKeysForRange(startMinutes, endMinutes) {
+    var keys = [];
+    if (startMinutes == null || endMinutes == null || endMinutes <= startMinutes) return keys;
+    for (var cursor = startMinutes; cursor < endMinutes; cursor += 30) {
+      keys.push(claimKeyFromMinutes(cursor));
+    }
+    return keys;
+  }
+
+  function closeRequestEditModal() {
+    var modal = $('requestEditModal');
+    if (modal) modal.hidden = true;
+    document.body.classList.remove('admin-modal-open');
+    state.editingRequestKey = '';
+    setStatus('requestEditStatus', '', false);
+  }
+
+  function openRequestEditModal(key) {
+    var request = state.requests.find(function(item) { return item._key === key; });
+    if (!request) return;
+    var trainer = getTrainerById(request.trainerId);
+    state.editingRequestKey = key;
+    $('requestEditSummary').textContent = (request.fullName || 'Appointment request') + ' · ' +
+      ((trainer && trainer.name) || request.trainerName || 'Trainer');
+    $('requestEditDate').value = request.date || '';
+    $('requestEditStartTime').value = request.startTimeValue || request.timeValue || '';
+    var defaultEnd = request.endTimeValue || '';
+    if (!defaultEnd && request.durationMinutes) {
+      var startMinutes = timeToMinutes($('requestEditStartTime').value);
+      if (startMinutes != null) defaultEnd = minutesToTimeValue(startMinutes + (+request.durationMinutes || 30));
+    }
+    $('requestEditEndTime').value = defaultEnd;
+    $('requestEditLocation').value = request.location || (trainer && trainer.location) || '';
+    $('requestEditPrice').value = request.price != null ? String(request.price) : '';
+    setStatus('requestEditStatus', '', false);
+    $('requestEditModal').hidden = false;
+    document.body.classList.add('admin-modal-open');
+    $('requestEditDate').focus();
+  }
+
+  function requestEditFromForm() {
+    var date = $('requestEditDate').value.trim();
+    if (!isoDateToLocalDate(date)) {
+      setStatus('requestEditStatus', 'Use a valid date.', true);
+      return null;
+    }
+
+    var startValue = $('requestEditStartTime').value.trim();
+    var startMinutes = timeToMinutes(startValue);
+    if (startMinutes == null) {
+      setStatus('requestEditStatus', 'Use a valid start time.', true);
+      return null;
+    }
+
+    var endValue = $('requestEditEndTime').value.trim();
+    var endMinutes = timeToMinutes(endValue);
+    if (endMinutes == null || endMinutes <= startMinutes) {
+      setStatus('requestEditStatus', 'Use an end time after the start time.', true);
+      return null;
+    }
+
+    var price = $('requestEditPrice').value;
+
+    return {
+      date: date,
+      startMinutes: startMinutes,
+      endMinutes: endMinutes,
+      startTimeValue: startValue,
+      endTimeValue: endValue,
+      time: formatTimeLabel(startValue),
+      endTime: formatTimeLabel(endValue),
+      durationMinutes: endMinutes - startMinutes,
+      price: Number(price) || 0,
+      location: $('requestEditLocation').value.trim(),
+      claimKeys: claimKeysForRange(startMinutes, endMinutes)
+    };
+  }
+
+  function claimPayloadForRequest(key, request, edit, now) {
+    return {
+      appointmentId: key,
+      slotId: safeKey(edit.date + '-' + edit.startTimeValue + '-' + edit.durationMinutes),
+      blockId: request.blockId || '',
+      time: edit.time,
+      timeValue: edit.startTimeValue,
+      startTimeValue: edit.startTimeValue,
+      endTime: edit.endTime,
+      endTimeValue: edit.endTimeValue,
+      durationMinutes: edit.durationMinutes,
+      price: edit.price,
+      location: edit.location,
+      fullName: request.fullName || '',
+      status: request.status || 'pending',
+      createdAt: request.createdAt || now,
+      updatedAt: now
+    };
+  }
+
+  function editRequest(key, edit) {
+    var request = state.requests.find(function(item) { return item._key === key; });
+    if (!request) return;
+    if (!edit) return;
+    if (!edit.claimKeys.length) {
+      setStatus('requestEditStatus', 'Could not calculate appointment claim keys for that time range.', true);
+      return;
+    }
+
+    var now = new Date().toISOString();
+    var oldClaimBasePath = 'appointmentClaims/' + request.trainerId + '/' + request.date;
+    var oldClaimKeys = Array.isArray(request.claimKeys) && request.claimKeys.length ? request.claimKeys : [request.slotId];
+    var newClaimBasePath = 'appointmentClaims/' + request.trainerId + '/' + edit.date;
+    var newSlotId = safeKey(edit.date + '-' + edit.startTimeValue + '-' + edit.durationMinutes);
+    var updates = {};
+    oldClaimKeys.filter(Boolean).forEach(function(claimKey) {
+      updates[oldClaimBasePath + '/' + claimKey] = null;
+    });
+
+    var claim = claimPayloadForRequest(key, request, edit, now);
+    edit.claimKeys.forEach(function(claimKey) {
+      updates[newClaimBasePath + '/' + claimKey] = claim;
+    });
+
+    updates['appointmentRequests/' + key + '/date'] = edit.date;
+    updates['appointmentRequests/' + key + '/slotId'] = newSlotId;
+    updates['appointmentRequests/' + key + '/claimKeys'] = edit.claimKeys;
+    updates['appointmentRequests/' + key + '/time'] = edit.time;
+    updates['appointmentRequests/' + key + '/endTime'] = edit.endTime;
+    updates['appointmentRequests/' + key + '/timeValue'] = edit.startTimeValue;
+    updates['appointmentRequests/' + key + '/startTimeValue'] = edit.startTimeValue;
+    updates['appointmentRequests/' + key + '/endTimeValue'] = edit.endTimeValue;
+    updates['appointmentRequests/' + key + '/durationMinutes'] = edit.durationMinutes;
+    updates['appointmentRequests/' + key + '/price'] = edit.price;
+    updates['appointmentRequests/' + key + '/location'] = edit.location;
+    updates['appointmentRequests/' + key + '/updatedAt'] = now;
+
+    setStatus('requestEditStatus', 'Saving changes...', false);
+    setStatus('appointmentRequestStatus', 'Updating appointment...', false);
+    fbUpdate(updates).then(function() {
+      Object.assign(request, {
+        date: edit.date,
+        slotId: newSlotId,
+        claimKeys: edit.claimKeys,
+        time: edit.time,
+        endTime: edit.endTime,
+        timeValue: edit.startTimeValue,
+        startTimeValue: edit.startTimeValue,
+        endTimeValue: edit.endTimeValue,
+        durationMinutes: edit.durationMinutes,
+        price: edit.price,
+        location: edit.location,
+        updatedAt: now
+      });
+      closeRequestEditModal();
+      renderRequests();
+      setStatus('appointmentRequestStatus', 'Appointment updated.', false);
+    }).catch(function(error) {
+      setStatus('requestEditStatus', error && error.message ? error.message : 'Could not update appointment.', true);
+      setStatus('appointmentRequestStatus', error && error.message ? error.message : 'Could not update appointment.', true);
+    });
+  }
+
   function updateRequestStatus(key, status) {
     var request = state.requests.find(function(item) { return item._key === key; });
     if (!request) return;
@@ -1443,15 +1636,25 @@
     });
     function handleRequestAction(event) {
       var approve = event.target.closest('[data-approve-request]');
+      var edit = event.target.closest('[data-edit-request]');
       var deny = event.target.closest('[data-deny-request]');
       var del = event.target.closest('[data-delete-request]');
       if (approve) updateRequestStatus(approve.dataset.approveRequest, 'approved');
+      if (edit) openRequestEditModal(edit.dataset.editRequest);
       if (deny) updateRequestStatus(deny.dataset.denyRequest, 'denied');
       if (del) updateRequestStatus(del.dataset.deleteRequest, 'delete');
     }
     $('appointmentRequestList').addEventListener('click', handleRequestAction);
     $('approvedAppointmentList').addEventListener('click', handleRequestAction);
     $('deniedAppointmentList').addEventListener('click', handleRequestAction);
+    $('requestEditForm').addEventListener('submit', function(event) {
+      event.preventDefault();
+      if (!state.editingRequestKey) return;
+      editRequest(state.editingRequestKey, requestEditFromForm());
+    });
+    $('requestEditClose').addEventListener('click', closeRequestEditModal);
+    $('requestEditCancel').addEventListener('click', closeRequestEditModal);
+    $('requestEditBackdrop').addEventListener('click', closeRequestEditModal);
   }
 
   function initPanel() {
