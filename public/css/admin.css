@@ -1400,6 +1400,133 @@ body.admin-modal-open{
   gap:14px;
 }
 
+.admin-v2-body .admin-request-item.is-approved{
+  overflow:hidden;
+  align-items:flex-start;
+  padding:18px;
+  padding-top:42px;
+  border:1px solid rgba(15,23,42,.12);
+  background:#ffffff;
+  box-shadow:0 18px 36px rgba(15,23,42,.11), 0 0 0 1px rgba(15,23,42,.03);
+}
+
+.admin-request-price-badge{
+  position:absolute;
+  top:-1px;
+  right:-1px;
+  z-index:2;
+  min-width:64px;
+  padding:7px 12px 8px;
+  border:1px solid rgba(15,23,42,.12);
+  border-top:0;
+  border-right:0;
+  border-radius:0 12px 0 12px;
+  background:#ffffff;
+  color:var(--admin-v2-text);
+  font-size:.86rem;
+  font-weight:900;
+  line-height:1;
+  text-align:center;
+}
+
+.admin-request-status-badge{
+  position:absolute;
+  top:6px;
+  left:18px;
+  z-index:2;
+  display:inline-flex;
+  width:max-content;
+  align-items:center;
+  gap:6px;
+  padding:4px 9px;
+  border:1px solid rgba(54,151,37,.24);
+  border-radius:999px;
+  background:rgba(91,205,39,.14);
+  color:var(--admin-v2-green-dark);
+  font-size:.72rem;
+  font-weight:900;
+  letter-spacing:.05em;
+  line-height:1;
+  text-transform:uppercase;
+}
+
+.admin-request-status-badge::before{
+  content:"";
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:var(--admin-v2-green);
+  box-shadow:0 0 0 4px rgba(91,205,39,.14);
+}
+
+.admin-v2-body .admin-request-item.is-approved .admin-request-main strong{
+  color:var(--admin-v2-text);
+  font-size:1.12rem;
+  line-height:1.18;
+}
+
+.admin-request-summary{
+  display:grid;
+  gap:8px;
+}
+
+.admin-request-schedule{
+  display:flex;
+  flex-wrap:nowrap;
+  gap:8px;
+  align-items:center;
+  min-width:0;
+  overflow:hidden;
+}
+
+.admin-request-schedule span{
+  display:inline;
+  max-width:100%;
+  margin-top:0;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  line-height:1.2;
+  white-space:nowrap;
+}
+
+.admin-request-schedule .admin-request-date{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.admin-v2-body .admin-request-item.is-approved .admin-request-main .admin-request-date{
+  color:var(--admin-v2-text);
+  font-weight:800;
+}
+
+.admin-v2-body .admin-request-item.is-approved .admin-request-main .admin-request-time{
+  color:var(--admin-v2-muted);
+  font-weight:800;
+}
+
+.admin-v2-body .admin-request-item.is-approved .list-actions{
+  position:relative;
+  z-index:1;
+  display:grid;
+  grid-template-columns:repeat(3, minmax(74px, 1fr));
+  gap:8px;
+  width:100%;
+  margin-left:0;
+  align-self:stretch;
+}
+
+.admin-v2-body .admin-request-item.is-approved .list-actions .btn{
+  width:100%;
+  min-height:36px;
+  padding-right:12px;
+  padding-left:12px;
+  justify-content:center;
+  text-align:center;
+}
+
 .admin-v2-body .admin-availability-item{
   display:flex;
   align-items:center;
@@ -1538,7 +1665,7 @@ body.admin-modal-open{
 
 .admin-request-main{
   display:grid;
-  gap:2px;
+  gap:8px;
   flex:1 1 360px;
   min-width:0;
 }
@@ -1678,6 +1805,10 @@ body.admin-modal-open{
   .admin-v2-body .admin-request-item .list-actions{
     width:100%;
     margin-left:0;
+  }
+
+  .admin-v2-body .admin-request-item.is-approved .list-actions{
+    grid-template-columns:repeat(3, minmax(0, 1fr));
   }
 
   .admin-panel>.admin-appointments-dashboard{

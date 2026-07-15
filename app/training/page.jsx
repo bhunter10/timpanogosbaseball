@@ -31,6 +31,7 @@ export default function TrainPage() {
             <a href={withBasePath('/news')}>News</a>
             <a href={withBasePath('/gallery')}>Gallery</a>
             <a href={withBasePath('/roster')}>Roster</a>
+            <a href={withBasePath('/training')}>Training</a>
             <a href={withBasePath('/swag')}>Swag</a>
           </nav>
         </div>

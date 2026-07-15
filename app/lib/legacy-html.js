@@ -15,6 +15,7 @@ const PAGE_LINKS = {
   news: '/news',
   v2Filmstrip: '/gallery',
   roster: '/roster',
+  training: '/training',
   swag: '/swag'
 };
 
@@ -96,6 +97,7 @@ function rewritePageLinks(body) {
     .replace(/\bhref="#news"/g, 'href="' + withBasePath(PAGE_LINKS.news) + '"')
     .replace(/\bhref="#v2Filmstrip"/g, 'href="' + withBasePath(PAGE_LINKS.v2Filmstrip) + '"')
     .replace(/\bhref="#roster"/g, 'href="' + withBasePath(PAGE_LINKS.roster) + '"')
+    .replace(/\bhref="\/training"/g, 'href="' + withBasePath(PAGE_LINKS.training) + '"')
     .replace(/\bhref="#swag"/g, 'href="' + withBasePath(PAGE_LINKS.swag) + '"');
 }
 

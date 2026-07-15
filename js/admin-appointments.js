@@ -915,10 +915,19 @@
 
   function requestListItem(request, actionsHtml) {
     var trainer = getTrainerById(request.trainerId);
-    return '<li class="admin-request-item">' +
+    var isApproved = request.status === 'approved';
+    var timeLabel = (request.time || '') + (request.endTime ? ' - ' + request.endTime : '') + (!isApproved && request.price ? ' · $' + request.price : '');
+    return '<li class="admin-request-item' + (isApproved ? ' is-approved' : '') + '">' +
+      (isApproved && request.price ? '<div class="admin-request-price-badge">$' + escapeHtml(request.price) + '</div>' : '') +
       '<div class="admin-request-main">' +
-        '<strong>' + escapeHtml(request.fullName || 'Appointment request') + '</strong>' +
-        '<span>' + escapeHtml(formatDate(request.date) + ' at ' + (request.time || '') + (request.endTime ? ' - ' + request.endTime : '') + (request.price ? ' · $' + request.price : '')) + '</span>' +
+        (isApproved ? '<div class="admin-request-status-badge">Approved</div>' : '') +
+        '<div class="admin-request-summary">' +
+          '<strong>' + escapeHtml(request.fullName || 'Appointment request') + '</strong>' +
+          '<div class="admin-request-schedule">' +
+            '<span class="admin-request-date">' + escapeHtml(formatDate(request.date)) + '</span>' +
+            '<span class="admin-request-time">' + escapeHtml(timeLabel) + '</span>' +
+          '</div>' +
+        '</div>' +
         '<small>' + escapeHtml((trainer && trainer.name) || request.trainerName || 'Trainer') + ' · ' + escapeHtml(request.phone || '') + ' · ' + escapeHtml(request.email || '') + '</small>' +
         '<small>' + escapeHtml(request.location || (trainer && trainer.location) || '') + '</small>' +
       '</div>' +
