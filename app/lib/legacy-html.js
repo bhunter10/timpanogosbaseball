@@ -98,6 +98,7 @@ function rewritePageLinks(body) {
     .replace(/\bhref="#v2Filmstrip"/g, 'href="' + withBasePath(PAGE_LINKS.v2Filmstrip) + '"')
     .replace(/\bhref="#roster"/g, 'href="' + withBasePath(PAGE_LINKS.roster) + '"')
     .replace(/\bhref="\/training"/g, 'href="' + withBasePath(PAGE_LINKS.training) + '"')
+    .replace(/\bhref="\/shop"/g, 'href="' + withBasePath('/shop') + '"')
     .replace(/\bhref="#swag"/g, 'href="' + withBasePath(PAGE_LINKS.swag) + '"');
 }
 

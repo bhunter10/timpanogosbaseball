@@ -1,0 +1,35 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {parseCatalog,fetchCatalog,normalizeProduct,renderCatalog} from '../app/lib/printify-catalog.mjs';
+
+const product = {id:1,title:'Team "Tee"',image:'https://images-api.printify.com/mockup/example.jpg',defaultVariant:{retailPrice:1882},options:[]};
+const wrap = data => '<script>self.__next_f.push('+JSON.stringify([1,JSON.stringify({products:data})])+')</script>';
+
+test('reads escaped catalog data and rejects missing or incomplete data', () => {
+  assert.equal(parseCatalog(wrap({products:[product],pagination:{page:1,pageCount:1,total:1}})).products[0].title,product.title);
+  assert.throws(()=>parseCatalog('<html>Service unavailable</html>'));
+  assert.throws(()=>parseCatalog(wrap({products:[product],pagination:{}})));
+});
+
+test('loads every page and rejects incomplete catalog syncs', async () => {
+  const urls=[];
+  const products=await fetchCatalog(async url=>{
+    urls.push(url);
+    const page=urls.length;
+    return {ok:true,text:async()=>wrap({products:[{...product,id:page}],pagination:{page,pageCount:2,total:2}})};
+  });
+  assert.equal(products.length,2);
+  assert.ok(urls[1].endsWith('?page=2'));
+  await assert.rejects(fetchCatalog(async()=>({ok:true,text:async()=>wrap({products:[product],pagination:{page:1,pageCount:1,total:2}})})),/Incomplete/);
+});
+
+test('escapes external titles, validates images, and displays prices without a prefix', () => {
+  const normalized=normalizeProduct({...product,title:'<script>test</script>'});
+  assert.throws(()=>normalizeProduct({...product,image:'javascript:alert(1)'}));
+  const html=renderCatalog([normalized]);
+  assert.ok(html.includes('&lt;script&gt;'));
+  assert.ok(!html.includes('<script>test'));
+  assert.ok(html.includes('class="shop-price">$18.82'));
+  assert.ok(!html.includes('From $')); 
+  assert.ok(renderCatalog([normalized],true).includes('class="shop-price">$18.82')); 
+});

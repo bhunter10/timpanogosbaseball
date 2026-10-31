@@ -9,6 +9,7 @@ const routes = [
   '/roster',
   '/training',
   '/swag',
+  '/shop',
   '/info'
 ];
 
