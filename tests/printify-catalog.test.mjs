@@ -31,7 +31,23 @@ test('escapes external titles, validates images, and displays prices without a p
   assert.ok(html.includes('&lt;script&gt;'));
   assert.ok(!html.includes('<script>test'));
   assert.ok(html.includes('class="shop-price">$18.82'));
-  assert.ok(!html.includes('From $')); 
-  assert.ok(renderCatalog([normalized],true).includes('class="shop-price">$18.82')); 
+  assert.ok(!html.includes('From $'));
+  assert.ok(renderCatalog([normalized],true).includes('class="shop-price">$18.82'));
   assert.equal(normalizeProduct({...product,defaultVariant:undefined,default_variant:{retail_price:3128}}).price,3128);
+});
+
+test('groups every product once with category filters and keeps long sleeves separate from tees', async () => {
+  const { productCategory } = await import('../app/lib/printify-catalog.mjs');
+  const items = ['Graphic T‑Shirt', 'Long Sleeve Tee', 'Graphic Hoodie', 'Mesh-Back Cap', 'Team Mug']
+    .map((title, index) => normalizeProduct({ ...product, id: index + 1, title }));
+  assert.deepEqual(items.map(productCategory), ['t-shirts', 'long-sleeves', 'hoodies', 'hats', 'more-gear']);
+  const html = renderCatalog(items);
+  assert.equal((html.match(/class="shop-card"/g) || []).length, items.length);
+  for (const item of items) {
+    const id = productCategory(item);
+    assert.ok(html.includes(`data-filter="${id}"`));
+    assert.ok(html.includes(`data-category="${id}"`));
+  }
+  assert.ok(!renderCatalog([items[0]]).includes('data-filter="hats"'));
+  assert.ok(html.includes('data-filter="all" aria-pressed="true"'));
 });

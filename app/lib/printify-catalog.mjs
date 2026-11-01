@@ -83,22 +83,43 @@ export async function fetchCatalog(fetcher = fetch) {
 
 const escapeHtml = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 
+export function productCategory(product) {
+  const title = product.title;
+  if (/long[\s-]*sleeve/i.test(title)) return 'long-sleeves';
+  if (/hoodie|hooded|sweatshirt/i.test(title)) return 'hoodies';
+  if (/\b(hat|cap|snapback|beanie)\b/i.test(title)) return 'hats';
+  if (/t[\s\-‑–]*shirt|\btee\b|\bshirt\b/i.test(title)) return 't-shirts';
+  return 'more-gear';
+}
+
 export function renderCatalog(products, saved = false) {
   // Keep Team Nelson last while preserving the storefront order for other gear.
   const orderedProducts = products.filter(item => item.id !== 33793727)
     .concat(products.filter(item => item.id === 33793727));
-  const cards = orderedProducts.map((item, index) => {
+  const categories = [
+    ['t-shirts', 'T-Shirts'],
+    ['long-sleeves', 'Long-Sleeve Shirts'],
+    ['hoodies', 'Hoodies & Sweatshirts'],
+    ['hats', 'Hats'],
+    ['more-gear', 'More Gear']
+  ].map(([id, label]) => ({ id, label, products: orderedProducts.filter(item => productCategory(item) === id) }))
+    .filter(category => category.products.length);
+  const renderCard = (item, index) => {
     const product = { ...item, ...displayOverrides[item.id] };
-    return `<article class="shop-card">
+    return `<article class="shop-card" data-category="${productCategory(item)}">
     <a class="shop-product-image" href="${escapeHtml(product.url)}"><img src="${escapeHtml(product.image.startsWith('/') ? (process.env.NEXT_PUBLIC_BASE_PATH || '') + product.image : product.image)}" alt="${escapeHtml(product.imageAlt || product.title)}" width="640" height="640" loading="${index === 0 ? 'eager' : 'lazy'}" ${index === 0 ? 'fetchpriority="high"' : ''} decoding="async" /></a>
     <div class="shop-product-copy">
     ${product.price === null ? '' : `<p class="shop-price">${escapeHtml(new Intl.NumberFormat('en-US', {style:'currency',currency:'USD'}).format(product.price / 100))}</p>`}
     ${product.colors ? `<p>${product.colors} colors</p>` : ''}
     <a class="v2-btn" href="${escapeHtml(product.url)}" aria-label="Choose options for ${escapeHtml(product.title)}">Choose Options</a></div>
   </article>`;
-  }).join('');
+  };
   return `<div class="shop-catalog" aria-label="Team products">
-    ${saved ? '' : `<p>${products.length} ${products.length === 1 ? 'product' : 'products'}</p>`}
-    ${products.length ? `<div class="shop-product-grid">${cards}</div>` : '<p>New gear is on the way. Visit our store for the latest availability.</p>'}
+    ${products.length ? `<div class="shop-categories" role="group" aria-label="Filter products by category" hidden>
+      <button type="button" data-filter="all" aria-pressed="true" aria-controls="shop-products">All Products</button>
+      ${categories.map(category => `<button type="button" data-filter="${category.id}" aria-pressed="false" aria-controls="shop-products">${category.label}</button>`).join('')}
+    </div>
+    <p class="shop-filter-status" role="status" aria-live="polite"></p>
+    <div class="shop-product-grid" id="shop-products">${orderedProducts.map(renderCard).join('')}</div>` : '<p>New gear is on the way. Visit our store for the latest availability.</p>'}
     </div>`;
 }
