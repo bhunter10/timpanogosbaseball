@@ -17,6 +17,7 @@ export default async function LegacyPage({ sections, catalogHtml }) {
       <Script src={withBasePath('/js/firebase-config.js')} strategy="afterInteractive" />
       <Script src={withBasePath('/js/flip.min.js')} strategy="afterInteractive" />
       <Script src={withBasePath('/js/app-v2.js')} strategy="afterInteractive" />
+      {catalogHtml && <Script src={withBasePath('/js/shop-pagination.js')} strategy="afterInteractive" />}
     </>
   );
 }

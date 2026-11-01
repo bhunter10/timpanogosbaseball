@@ -16,11 +16,12 @@ test('loads every page and rejects incomplete catalog syncs', async () => {
   const products=await fetchCatalog(async url=>{
     urls.push(url);
     const page=urls.length;
-    return {ok:true,text:async()=>wrap({products:[{...product,id:page}],pagination:{page,pageCount:2,total:2}})};
+    return {ok:true,json:async()=>({data:[{...product,id:page}],current_page:page,last_page:2,total:2})};
   });
   assert.equal(products.length,2);
-  assert.ok(urls[1].endsWith('?page=2'));
-  await assert.rejects(fetchCatalog(async()=>({ok:true,text:async()=>wrap({products:[product],pagination:{page:1,pageCount:1,total:2}})})),/Incomplete/);
+  assert.equal(new URL(urls[1]).searchParams.get('page'), '2');
+  await assert.rejects(fetchCatalog(async()=>({ok:true,json:async()=>({data:[product],current_page:1,last_page:1,total:2})})),/Incomplete/);
+  await assert.rejects(fetchCatalog(async()=>({ok:true,json:async()=>({data:[product],current_page:1,last_page:2,total:2})})),/pagination/);
 });
 
 test('escapes external titles, validates images, and displays prices without a prefix', () => {
@@ -32,4 +33,5 @@ test('escapes external titles, validates images, and displays prices without a p
   assert.ok(html.includes('class="shop-price">$18.82'));
   assert.ok(!html.includes('From $')); 
   assert.ok(renderCatalog([normalized],true).includes('class="shop-price">$18.82')); 
+  assert.equal(normalizeProduct({...product,defaultVariant:undefined,default_variant:{retail_price:3128}}).price,3128);
 });

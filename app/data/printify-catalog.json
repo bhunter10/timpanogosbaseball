@@ -1,11 +1,35 @@
 [
   {
-    "id": 33793727,
-    "title": "Copy of Wolves Baseball Tee — Athletic Team Shirt",
-    "image": "https://images-api.printify.com/mockup/6ae67b02c840682a15100652/18542/102044/copy-of-wolves-baseball-tee-athletic-team-shirt.jpg?camera_label=front-2&revision=1793489981652",
-    "url": "https://timpanogos-baseball.printify.me/product/33793727",
+    "id": 33842348,
+    "title": "Women's Washed Mesh-Back Cap",
+    "image": "https://images-api.printify.com/mockup/6ae7acbae9fcc76a29090245/122989/135005/womens-washed-mesh-back-cap.jpg?camera_label=front&revision=1793568006097",
+    "url": "https://timpanogos-baseball.printify.me/product/33842348",
+    "price": 3128,
+    "colors": 15
+  },
+  {
+    "id": 33842067,
+    "title": "Timberwolves Baseball Logo T-Shirt",
+    "image": "https://images-api.printify.com/mockup/6ae7a906e9fcc76a2908ff31/38608/102044/timberwolves-baseball-logo-t-shirt.jpg?camera_label=front-2&revision=1793567431754",
+    "url": "https://timpanogos-baseball.printify.me/product/33842067",
     "price": 1882,
-    "colors": 12
+    "colors": 10
+  },
+  {
+    "id": 33841780,
+    "title": "Timpanogos Baseball Wolf Graphic Tee",
+    "image": "https://images-api.printify.com/mockup/6ae7a84e7861ac1c1c04284a/18398/102044/timpanogos-baseball-wolf-graphic-tee.jpg?camera_label=front-2&revision=1793566885056",
+    "url": "https://timpanogos-baseball.printify.me/product/33841780",
+    "price": 1940,
+    "colors": 10
+  },
+  {
+    "id": 33841520,
+    "title": "Timpanogos Baseball Wolf Graphic Tee",
+    "image": "https://images-api.printify.com/mockup/6ae7a6ad7861ac1c1c04275c/18398/102044/timpanogos-baseball-wolf-graphic-tee.jpg?camera_label=front-2&revision=1793566634202",
+    "url": "https://timpanogos-baseball.printify.me/product/33841520",
+    "price": 1940,
+    "colors": 10
   },
   {
     "id": 33793455,
@@ -14,6 +38,22 @@
     "url": "https://timpanogos-baseball.printify.me/product/33793455",
     "price": 3543,
     "colors": 3
+  },
+  {
+    "id": 33840951,
+    "title": "Wolf Shield Long Sleeve Tee",
+    "image": "https://images-api.printify.com/mockup/6ae7a23de8a14b46b70ea0d7/33798/105264/wolf-shield-long-sleeve-tee.jpg?camera_label=front&revision=1793565904014",
+    "url": "https://timpanogos-baseball.printify.me/product/33840951",
+    "price": 2499,
+    "colors": 5
+  },
+  {
+    "id": 33839767,
+    "title": "Wolf Shield Long Sleeve Tee",
+    "image": "https://images-api.printify.com/mockup/6ae79ed5e8a14b46b70e9c5a/33798/105264/wolf-shield-long-sleeve-tee.jpg?camera_label=front&revision=1793564436351",
+    "url": "https://timpanogos-baseball.printify.me/product/33839767",
+    "price": 2499,
+    "colors": 5
   },
   {
     "id": 33793303,
@@ -26,7 +66,7 @@
   {
     "id": 33792251,
     "title": "Timpanogos Timberwolves Baseball Tee",
-    "image": "https://images-api.printify.com/mockup/6ae66f8c54fa3d36d60c0776/18542/102044/timpanogos-timberwolves-baseball-tee.jpg?camera_label=front-2&revision=1793487033283",
+    "image": "https://images-api.printify.com/mockup/6ae66f8c54fa3d36d60c0776/38608/102044/timpanogos-timberwolves-baseball-tee.jpg?camera_label=front-2&revision=1793490780248",
     "url": "https://timpanogos-baseball.printify.me/product/33792251",
     "price": 1882,
     "colors": 10
@@ -54,6 +94,14 @@
     "url": "https://timpanogos-baseball.printify.me/product/33790627",
     "price": 1882,
     "colors": 9
+  },
+  {
+    "id": 33793727,
+    "title": "Team Nelson Graphic T-Shirt",
+    "image": "https://images-api.printify.com/mockup/6ae67b02c840682a15100652/18470/102044/team-nelson-graphic-t-shirt.jpg?camera_label=front-2&revision=1793566724828",
+    "url": "https://timpanogos-baseball.printify.me/product/33793727",
+    "price": 1940,
+    "colors": 12
   },
   {
     "id": 33790085,
@@ -96,20 +144,12 @@
     "colors": 5
   },
   {
-    "id": 33786555,
-    "title": "T-Wolves Baseball Tee — Black Team Logo Short Sleeve Shirt",
-    "image": "https://images-api.printify.com/mockup/6ae645d088325bfb8908eaaf/103382/102044/t-wolves-baseball-tee-black-team-logo-short-sleeve-shirt.jpg?camera_label=front-2&revision=1793476634966",
-    "url": "https://timpanogos-baseball.printify.me/product/33786555",
-    "price": 1940,
-    "colors": 10
-  },
-  {
-    "id": 33786005,
-    "title": "Wolf Mascot Baseball Home Plate T-Shirt — Neon Green Accent",
-    "image": "https://images-api.printify.com/mockup/6ae6421e8d88cb436d0c3e4e/18102/102044/wolf-mascot-baseball-home-plate-t-shirt-neon-green-accent.jpg?camera_label=front-2&revision=1793476724014",
-    "url": "https://timpanogos-baseball.printify.me/product/33786005",
+    "id": 33785379,
+    "title": "Twolves Baseball Tee – Retro Wolf Logo Baseball T‑Shirt",
+    "image": "https://images-api.printify.com/mockup/6ae63b53a3425a04b8007351/18454/102044/twolves-baseball-tee-retro-wolf-logo-baseball-tshirt.jpg?camera_label=front-2&revision=1793475111752",
+    "url": "https://timpanogos-baseball.printify.me/product/33785379",
     "price": 1882,
-    "colors": 13
+    "colors": 12
   },
   {
     "id": 33785728,
@@ -120,12 +160,28 @@
     "colors": 12
   },
   {
-    "id": 33785379,
-    "title": "Twolves Baseball Tee – Retro Wolf Logo Baseball T‑Shirt",
-    "image": "https://images-api.printify.com/mockup/6ae63b53a3425a04b8007351/18454/102044/twolves-baseball-tee-retro-wolf-logo-baseball-tshirt.jpg?camera_label=front-2&revision=1793475111752",
-    "url": "https://timpanogos-baseball.printify.me/product/33785379",
+    "id": 33786005,
+    "title": "Wolf Mascot Baseball Home Plate T-Shirt — Neon Green Accent",
+    "image": "https://images-api.printify.com/mockup/6ae6421e8d88cb436d0c3e4e/18102/102044/wolf-mascot-baseball-home-plate-t-shirt-neon-green-accent.jpg?camera_label=front-2&revision=1793476724014",
+    "url": "https://timpanogos-baseball.printify.me/product/33786005",
     "price": 1882,
-    "colors": 12
+    "colors": 13
+  },
+  {
+    "id": 33786555,
+    "title": "T-Wolves Baseball Tee — Black Team Logo Short Sleeve Shirt",
+    "image": "https://images-api.printify.com/mockup/6ae645d088325bfb8908eaaf/103382/102044/t-wolves-baseball-tee-black-team-logo-short-sleeve-shirt.jpg?camera_label=front-2&revision=1793476634966",
+    "url": "https://timpanogos-baseball.printify.me/product/33786555",
+    "price": 1940,
+    "colors": 10
+  },
+  {
+    "id": 33839412,
+    "title": "Wolf Shield Graphic Hoodie",
+    "image": "https://images-api.printify.com/mockup/6ae7981bf9c00c9ec009f276/32896/98424/wolf-shield-graphic-hoodie.jpg?camera_label=front&revision=1793563965880",
+    "url": "https://timpanogos-baseball.printify.me/product/33839412",
+    "price": 3722,
+    "colors": 11
   },
   {
     "id": 33785129,

@@ -3,6 +3,17 @@
 .shop-catalog > h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(2.5rem,5vw,4rem); margin: 8px 0; }
 .shop-product-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,420px),1fr)); gap: 28px; margin: 28px 0; }
 .shop-card { width: 100%; background: transparent; border: none; border-radius: 16px; overflow: hidden; }
+.shop-card[hidden] { display: none; }
+.shop-card { scroll-margin-top: 140px; }
+.shop-pagination { display: flex; justify-content: center; align-items: center; gap: 12px; width: fit-content; max-width: 100%; margin: 40px auto 12px; padding: 10px; border: 1px solid #e2e8f0; border-radius: 999px; background: #f8fafc; box-shadow: 0 6px 24px rgba(9,20,45,.06); }
+.shop-page-numbers { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.shop-pagination button { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: #475569; font: inherit; font-weight: 600; cursor: pointer; transition: background .18s, color .18s, box-shadow .18s; }
+.shop-pagination > button { background: #fff; border: 1px solid #e2e8f0; font-size: 26px; font-weight: 400; }
+.shop-pagination button:hover:not(:disabled) { background: #e2e8f0; color: #09142d; }
+.shop-pagination button[aria-current="page"], .shop-pagination button[aria-current="page"]:hover { background: #09142d; color: #98ff51; box-shadow: 0 4px 12px rgba(9,20,45,.2); }
+.shop-pagination button:disabled { opacity: .3; cursor: default; }
+.shop-page-status { text-align: center; color: #64748b; font-size: .85rem; margin: 0 0 36px; }
+.shop-pagination button:focus-visible { outline: 3px solid #70ff00; outline-offset: 4px; }
 .shop-product-image { display: block; background: transparent; }
 .shop-product-image img { display: block; width: 100%; height: auto; aspect-ratio: 1; object-fit: contain; }
 .shop-product-copy { padding: 0 24px 24px; text-align: center; }

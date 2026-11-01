@@ -46,7 +46,7 @@ export function normalizeProduct(product) {
   if (!Number.isInteger(product.id) || typeof product.title !== 'string') throw new Error('Invalid product');
   const image = new URL(product.image);
   if (image.protocol !== 'https:' || image.hostname !== 'images-api.printify.com') throw new Error('Unexpected product image');
-  const price = product.defaultVariant?.retailPrice;
+  const price = product.defaultVariant?.retailPrice ?? product.default_variant?.retail_price;
   return {
     id: product.id,
     title: product.title,
@@ -61,13 +61,19 @@ export async function fetchCatalog(fetcher = fetch) {
   const products = new Map();
   let expectedTotal;
   for (let page = 1, pageCount = 1; page <= pageCount; page++) {
-    const response = await fetcher(`${STORE_URL}/products?page=${page}`, {
+    // The storefront HTML always embeds page 1, regardless of its query string.
+    // Use the same public catalog endpoint as Printify's browser pagination.
+    const response = await fetcher(`https://api.printify.me/api/timpanogos-baseball/product?take=24&sort=manual&page=${page}`, {
       next: { revalidate: 60 }, signal: AbortSignal.timeout(12000)
     });
     if (!response.ok) throw new Error(`Printify returned ${response.status}`);
-    const catalog = parseCatalog(await response.text());
+    const data = await response.json();
+    const catalog = {
+      products: data.data,
+      pagination: { page: data.current_page, pageCount: data.last_page, total: data.total }
+    };
     pageCount = catalog.pagination.pageCount;
-    if (pageCount < 0 || pageCount > 100 || catalog.pagination.page !== page) throw new Error('Invalid catalog pagination');
+    if (!Array.isArray(catalog.products) || !Number.isInteger(pageCount) || pageCount < 0 || pageCount > 100 || catalog.pagination.page !== page || !Number.isInteger(data.total) || data.total < 0) throw new Error('Invalid catalog pagination');
     expectedTotal = catalog.pagination.total;
     for (const product of catalog.products) products.set(product.id, normalizeProduct(product));
   }
@@ -92,7 +98,7 @@ export function renderCatalog(products, saved = false) {
   </article>`;
   }).join('');
   return `<div class="shop-catalog" aria-label="Team products">
-    <p>${saved ? 'Showing our saved collection. Check Printify for current products, prices, and availability.' : `${products.length} ${products.length === 1 ? 'product' : 'products'}`}</p>
+    ${saved ? '' : `<p>${products.length} ${products.length === 1 ? 'product' : 'products'}</p>`}
     ${products.length ? `<div class="shop-product-grid">${cards}</div>` : '<p>New gear is on the way. Visit our store for the latest availability.</p>'}
     </div>`;
 }
