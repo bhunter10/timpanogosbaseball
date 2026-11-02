@@ -1,5 +1,8 @@
 export const STORE_URL = 'https://timpanogos-baseball.printify.me';
 
+// Printify mockups and custom storefront uploads use different image hosts.
+const imageHosts = new Set(['images-api.printify.com', 'd123s6f1z9g2wk.cloudfront.net']);
+
 // Featured color on our shop; kept separate from Printify's default preview.
 const displayOverrides = {
   33793727: {
@@ -45,7 +48,7 @@ export function parseCatalog(html) {
 export function normalizeProduct(product) {
   if (!Number.isInteger(product.id) || typeof product.title !== 'string') throw new Error('Invalid product');
   const image = new URL(product.image);
-  if (image.protocol !== 'https:' || image.hostname !== 'images-api.printify.com') throw new Error('Unexpected product image');
+  if (image.protocol !== 'https:' || !imageHosts.has(image.hostname) || image.username || image.password) throw new Error('Unexpected product image');
   const price = product.defaultVariant?.retailPrice ?? product.default_variant?.retail_price;
   return {
     id: product.id,

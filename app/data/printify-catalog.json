@@ -1,5 +1,61 @@
 [
   {
+    "id": 33859205,
+    "title": "Timpanogos Short Sleeve Baseball Hoodie",
+    "image": "https://d123s6f1z9g2wk.cloudfront.net/files/2026/11/20261102065919-1f1d68ae-d384-6018-b105-8a4bcc7b2499.png?revision=1793603110608",
+    "url": "https://timpanogos-baseball.printify.me/product/33859205",
+    "price": 7553,
+    "colors": 3
+  },
+  {
+    "id": 33858721,
+    "title": "Timpanogos Baseball Team Logo Tee",
+    "image": "https://images-api.printify.com/mockup/6ae82d83a895c5bd4e01353d/80603/102044/timpanogos-baseball-team-logo-tee.jpg?camera_label=front-2&revision=1793601384944",
+    "url": "https://timpanogos-baseball.printify.me/product/33858721",
+    "price": 3105,
+    "colors": 12
+  },
+  {
+    "id": 33858388,
+    "title": "Wolves Baseball Team Hoodie",
+    "image": "https://images-api.printify.com/mockup/6ae829045c7daf31b20b9bae/32920/98424/wolves-baseball-team-hoodie.jpg?camera_label=front&revision=1793600320174",
+    "url": "https://timpanogos-baseball.printify.me/product/33858388",
+    "price": 3722,
+    "colors": 8
+  },
+  {
+    "id": 33844351,
+    "title": "Wolf Shield Graphic Hoodie",
+    "image": "https://images-api.printify.com/mockup/6ae7b771263bab186e045399/123966/111658/wolf-shield-graphic-hoodie.jpg?camera_label=front&revision=1793570751778",
+    "url": "https://timpanogos-baseball.printify.me/product/33844351",
+    "price": 6499,
+    "colors": 5
+  },
+  {
+    "id": 33843970,
+    "title": "Timpanogos Mountain Goat Graphic Tee",
+    "image": "https://images-api.printify.com/mockup/6ae7b43cf9c00c9ec00a0d41/18398/102044/timpanogos-mountain-goat-graphic-tee.jpg?camera_label=front-2&revision=1793570133305",
+    "url": "https://timpanogos-baseball.printify.me/product/33843970",
+    "price": 1940,
+    "colors": 10
+  },
+  {
+    "id": 33843706,
+    "title": "T-Wolves Baseball Wolf Logo T-Shirt",
+    "image": "https://images-api.printify.com/mockup/6ae7b32373a3950d580ae175/18102/102044/t-wolves-baseball-wolf-logo-t-shirt.jpg?camera_label=front-2&revision=1793569689585",
+    "url": "https://timpanogos-baseball.printify.me/product/33843706",
+    "price": 1882,
+    "colors": 10
+  },
+  {
+    "id": 33843522,
+    "title": "Timpanogos Baseball Team T-Shirt",
+    "image": "https://images-api.printify.com/mockup/6ae7b249202568f73b03351e/18142/102044/timpanogos-baseball-team-t-shirt.jpg?camera_label=front-2&revision=1793600603424",
+    "url": "https://timpanogos-baseball.printify.me/product/33843522",
+    "price": 1882,
+    "colors": 10
+  },
+  {
     "id": 33842348,
     "title": "Women's Washed Mesh-Back Cap",
     "image": "https://images-api.printify.com/mockup/6ae7acbae9fcc76a29090245/122989/135005/womens-washed-mesh-back-cap.jpg?camera_label=front&revision=1793568006097",
@@ -20,14 +76,6 @@
     "title": "Timpanogos Baseball Wolf Graphic Tee",
     "image": "https://images-api.printify.com/mockup/6ae7a84e7861ac1c1c04284a/18398/102044/timpanogos-baseball-wolf-graphic-tee.jpg?camera_label=front-2&revision=1793566885056",
     "url": "https://timpanogos-baseball.printify.me/product/33841780",
-    "price": 1940,
-    "colors": 10
-  },
-  {
-    "id": 33841520,
-    "title": "Timpanogos Baseball Wolf Graphic Tee",
-    "image": "https://images-api.printify.com/mockup/6ae7a6ad7861ac1c1c04275c/18398/102044/timpanogos-baseball-wolf-graphic-tee.jpg?camera_label=front-2&revision=1793566634202",
-    "url": "https://timpanogos-baseball.printify.me/product/33841520",
     "price": 1940,
     "colors": 10
   },
@@ -185,8 +233,8 @@
   },
   {
     "id": 33785129,
-    "title": "Wolf Mascot Baseball Hoodie — Neon Green Team Logo Pullover",
-    "image": "https://images-api.printify.com/mockup/6ae63a691194fd37ca05bcf8/32896/98424/wolf-mascot-baseball-hoodie-neon-green-team-logo-pullover.jpg?camera_label=front&revision=1793473265057",
+    "title": "Timpanogos Baseball Mascot Hoodie",
+    "image": "https://images-api.printify.com/mockup/6ae63a691194fd37ca05bcf8/32896/98424/timpanogos-baseball-mascot-hoodie.jpg?camera_label=front&revision=1793600553940",
     "url": "https://timpanogos-baseball.printify.me/product/33785129",
     "price": 3722,
     "colors": 8

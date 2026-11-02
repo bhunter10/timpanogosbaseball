@@ -36,6 +36,17 @@ test('escapes external titles, validates images, and displays prices without a p
   assert.equal(normalizeProduct({...product,defaultVariant:undefined,default_variant:{retail_price:3128}}).price,3128);
 });
 
+test('syncs custom storefront images alongside mockups without dropping the catalog', async () => {
+  const custom = {...product, id:33859205, image:'https://d123s6f1z9g2wk.cloudfront.net/files/2026/11/hoodie.png?revision=123'};
+  const items = await fetchCatalog(async () => ({ok:true,json:async()=>({data:[custom,product],current_page:1,last_page:1,total:2})}));
+  assert.equal(items.length,2);
+  assert.equal(items[0].image,custom.image);
+  assert.ok(renderCatalog(items).includes(custom.image));
+  for (const image of ['https://untrusted.example/image.png', 'https://other.cloudfront.net/image.png', 'http://d123s6f1z9g2wk.cloudfront.net/image.png', 'https://user:password@images-api.printify.com/image.png']) {
+    assert.throws(() => normalizeProduct({...product,image}), /Unexpected product image/);
+  }
+});
+
 test('groups every product once with category filters and keeps long sleeves separate from tees', async () => {
   const { productCategory } = await import('../app/lib/printify-catalog.mjs');
   const items = ['Graphic T‑Shirt', 'Long Sleeve Tee', 'Graphic Hoodie', 'Mesh-Back Cap', 'Team Mug']
