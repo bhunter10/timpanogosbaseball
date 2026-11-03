@@ -3019,46 +3019,6 @@ body.v2-reveals-ready .v2-filmstrip-band.v2-reveal:not(.v2-visible) .v2-filmstri
   }
 }
 
-/* Parent resources share the site shell with a simple white content area. */
-.v2-parents {
-  padding-top: 144px;
-  background: #fff;
-  color: #14213a;
-  min-height: 65vh;
-}
-.v2-parents h1 {
-  margin: 0 0 32px;
-  font-family: "Bebas Neue", sans-serif;
-  font-size: clamp(2rem, 4vw, 3rem);
-  letter-spacing: .02em;
-  line-height: 1;
-}
-.v2-parents h2 {
-  margin: 36px 0 16px;
-  font-size: 1.25rem;
-}
-.v2-parents a {
-  color: #164d38;
-  text-decoration: underline;
-  text-underline-offset: 4px;
-  font-weight: 600;
-}
-.v2-parents a:hover { color: #111; }
-.v2-parents a:focus-visible { outline: 2px solid #164d38; outline-offset: 5px; }
-.v2-parents ul { padding-left: 22px; margin: 0; }
-.v2-parents li { padding: 8px 0; line-height: 1.6; }
-
-body:has(#parents) .v2-header {
-  background: #000;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, .22);
-}
-body:has(#parents) .v2-header::after {
-  opacity: 1;
-  transform: scaleX(1);
-}
-
 /* Home page team-shop launch: compact, image-led banner. */
 .v2-apparel {
   position: relative;
