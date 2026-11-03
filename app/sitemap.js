@@ -7,6 +7,7 @@ const routes = [
   '/news',
   '/gallery',
   '/roster',
+  '/parents',
   '/training',
   '/swag',
   '/shop',

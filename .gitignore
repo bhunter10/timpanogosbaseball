@@ -12,3 +12,5 @@ pnpm-debug.log*
 
 # Local merchandise artwork and mockups; not website runtime assets.
 /product-assets/
+
+/output/

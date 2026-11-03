@@ -27,7 +27,7 @@
 .shop-product-copy .v2-btn { justify-content: center; text-align: center; }
 
 body:has(#shop) .v2-header {
-  background: rgba(0, 0, 0, .6);
+  background: #000;
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   box-shadow: 0 10px 28px rgba(0, 0, 0, .22);
