@@ -24,19 +24,6 @@ function createResponse() {
   };
 }
 
-function fbToArray(value) {
-  if (!value) return [];
-  if (Array.isArray(value)) return value.filter(Boolean);
-  return Object.keys(value).sort(function(a, b) {
-    var numA = Number(a);
-    var numB = Number(b);
-    if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
-    return a.localeCompare(b);
-  }).map(function(key) {
-    return value[key];
-  }).filter(Boolean);
-}
-
 function getSeasonFromDate(date) {
   var parts = String(date || '').split('-').map(Number);
   if (parts.length !== 3 || parts.some(function(part) { return !Number.isFinite(part); })) return 'spring';
@@ -128,11 +115,28 @@ function writeFallbackCalendar(calendarName) {
 async function fetchGames() {
   var response = await fetch(DATABASE_URL + '/games.json');
   if (!response.ok) throw new Error('Firebase responded with ' + response.status);
-  return fbToArray(await response.json());
+  return handler.fbToArray(await response.json());
 }
 
 async function main() {
   var games = await fetchGames();
+  if (process.env.GITHUB_ACTIONS === 'true' && process.env.VERCEL !== '1') {
+    var feedDir = path.join(process.cwd(), 'out', 'api', 'baseball-calendar');
+    fs.mkdirSync(feedDir, { recursive: true });
+    var years = new Set([2027]);
+    games.forEach(function(game) {
+      var match = /^(\d{4})-/.exec(game.date || '');
+      if (match) years.add(Number(match[1]));
+    });
+    TEAMS.forEach(function(team) {
+      years.forEach(function(year) {
+        var filename = year + '-timp-' + team + '.ics';
+        fs.writeFileSync(path.join(feedDir, filename), handler.buildCalendar(games, { team: team, allSeasons: true, year: year }));
+      });
+      fs.writeFileSync(path.join(feedDir, team + '.ics'), handler.buildCalendar(games, { team: team, allSeasons: true }));
+    });
+  }
+
   var combos = discoverCalendarCombos(games);
   var defaultCombo = pickDefaultCombo(combos);
   var generated = 0;
@@ -163,6 +167,10 @@ async function main() {
 
 main().catch(function(error) {
   console.warn('Unable to generate schedule calendars:', error && error.message ? error.message : error);
+  if (process.env.GITHUB_ACTIONS === 'true' && process.env.VERCEL !== '1') {
+    process.exitCode = 1;
+    return;
+  }
   writeFallbackCalendar();
   console.log('Generated fallback api/schedule.ics');
 });

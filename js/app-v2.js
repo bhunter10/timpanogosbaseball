@@ -217,31 +217,11 @@ function v2GetSeasonOrder(season) {
   return match ? match.order : 1;
 }
 
-function v2GetSeasonLabel(season, date) {
-  var parts = v2GetDateParts(date);
-  var match = v2BaseballSeasons.find(function(item) { return item.value === season; });
-  return (match ? match.label : 'Spring') + (parts ? ' ' + parts.year : '');
-}
-
 function v2GetSeasonGroupKey(item) {
   var season = v2GetBaseballSeason(item && item.season, item && item.date);
   var parts = v2GetDateParts(item && item.date);
   var year = parts ? parts.year : (item && Number.isFinite(+item.year) ? +item.year : null);
   return season + '-' + (year != null ? year : 'unknown');
-}
-
-function v2GetCurrentSeasonGroupKey() {
-  var now = new Date();
-  var month = now.getMonth() + 1;
-  var day = now.getDate();
-  var year = now.getFullYear();
-  var dateStr = year + '-' + String(month).padStart(2, '0') + '-' + String(day).padStart(2, '0');
-  return v2GetBaseballSeason('', dateStr) + '-' + year;
-}
-
-function v2ShouldShowCalendarSync(group) {
-  if (!group) return false;
-  return v2GetSeasonGroupKey(group) === v2GetCurrentSeasonGroupKey();
 }
 
 function v2GetSelectedScheduleTeam() {
@@ -278,33 +258,20 @@ function v2GetScheduleHeaderEl() {
 }
 
 function v2GetOrderedSeasonGroupsFromGames(games) {
-  var groups = {};
+  var groups = {
+    'spring-2027': { season: 'spring', year: 2027, games: [] }
+  };
   (games || []).forEach(function(game) {
     var season = v2GetBaseballSeason(game.season, game.date);
     var year = (v2GetDateParts(game.date) || {}).year || 0;
     var key = season + '-' + year;
-    if (!groups[key]) {
-      groups[key] = {
-        season: season,
-        year: year,
-        latest: 0
-      };
-    }
-    groups[key].latest = Math.max(groups[key].latest, v2GameDateTimeValue(game) || 0);
+    if (!groups[key]) groups[key] = { season: season, year: year, games: [] };
+    groups[key].games.push(game);
   });
   return Object.keys(groups).map(function(key) { return groups[key]; }).sort(function(a, b) {
-    if (a.latest !== b.latest) return b.latest - a.latest;
     if (a.year !== b.year) return b.year - a.year;
     return v2GetSeasonOrder(b.season) - v2GetSeasonOrder(a.season);
   });
-}
-
-function v2ResolveSelectedSeasonKey(games) {
-  var selectedKey = v2GetSelectedScheduleSeasonKey();
-  var groups = v2GetOrderedSeasonGroupsFromGames(games);
-  if (!groups.length) return selectedKey || '';
-  if (groups.some(function(group) { return v2GetSeasonGroupKey(group) === selectedKey; })) return selectedKey;
-  return v2GetSeasonGroupKey(groups[0]);
 }
 
 function v2NormalizeOpponent(opponent, index) {
@@ -560,7 +527,6 @@ function v2RefreshSiteFromCache() {
   var results = v2NormalizeFirebaseResults(v2CachedResults || []);
   v2RenderSummary(selectedTeamGames.length ? selectedTeamGames : games, results);
   v2RenderSchedule(games, results);
-  v2WireCalendarSyncLinks();
 }
 
 function v2RefreshScheduleFromCache() {
@@ -574,7 +540,6 @@ function v2OnScheduleQueryChange() {
   var results = v2NormalizeFirebaseResults(v2CachedResults || []);
   v2RenderSummary(selectedTeamGames.length ? selectedTeamGames : games, results);
   v2RenderSchedule(games, results, { skipAnimations: true });
-  v2WireCalendarSyncLinks();
 }
 
 function v2WireScheduleNavigation() {
@@ -879,36 +844,7 @@ function v2PlaceCountdownBelowScheduleTabs() {
 }
 
 function v2BuildScheduleSeasonSections(allSeasonGames, results, selectedTeam) {
-  var groups = {};
-  allSeasonGames.forEach(function(game) {
-    game.season = v2GetBaseballSeason(game.season, game.date);
-    var key = v2GetSeasonGroupKey(game);
-    if (!groups[key]) {
-      groups[key] = {
-        label: v2GetSeasonLabel(game.season, game.date),
-        season: game.season,
-        year: (v2GetDateParts(game.date) || {}).year || 0,
-        latest: 0,
-        games: []
-      };
-    }
-    groups[key].games.push(game);
-    groups[key].latest = Math.max(groups[key].latest, v2GameDateTimeValue(game) || 0);
-  });
-
-  var orderedGroups = Object.keys(groups).map(function(key) { return groups[key]; }).sort(function(a, b) {
-    if (a.latest !== b.latest) return b.latest - a.latest;
-    if (a.year !== b.year) return b.year - a.year;
-    return v2GetSeasonOrder(b.season) - v2GetSeasonOrder(a.season);
-  });
-
-  if (!orderedGroups.length) {
-    return {
-      header: null,
-      html: '<section class="v2-schedule-block"><div class="v2-schedule-label">Schedule Coming Soon</div></section>'
-    };
-  }
-
+  var orderedGroups = v2GetOrderedSeasonGroupsFromGames(allSeasonGames);
   var selectedSeasonKey = v2GetSelectedScheduleSeasonKey();
   var group = orderedGroups.find(function(entry) { return v2GetSeasonGroupKey(entry) === selectedSeasonKey; }) || orderedGroups[0];
   var resolvedSeasonKey = v2GetSeasonGroupKey(group);
@@ -933,10 +869,13 @@ function v2BuildScheduleSeasonSections(allSeasonGames, results, selectedTeam) {
   var usedResults = [];
   var isSpringSeason = group.season === 'spring';
   var regularSeasonGames = teamGames.filter(function(game) { return !game.playoff; });
+  function isRegionGame(game) {
+    return typeof game.region === 'boolean' ? game.region : v2RegionTeams.indexOf(game.opponent) !== -1;
+  }
   var regularSeasonMarkup = isSpringSeason
     ? (
-      v2BuildScheduleSubgroup('Non-Region Games', regularSeasonGames.filter(function(game) { return v2RegionTeams.indexOf(game.opponent) === -1; }), groupResults, usedResults, v2OldestGameFirst) +
-      v2BuildScheduleSubgroup('Region Games', regularSeasonGames.filter(function(game) { return v2RegionTeams.indexOf(game.opponent) !== -1; }), groupResults, usedResults, v2OldestGameFirst)
+      v2BuildScheduleSubgroup('Non-Region Games', regularSeasonGames.filter(function(game) { return !isRegionGame(game); }), groupResults, usedResults, v2OldestGameFirst) +
+      v2BuildScheduleSubgroup('Region Games', regularSeasonGames.filter(isRegionGame), groupResults, usedResults, v2OldestGameFirst)
     )
     : v2BuildScheduleSubgroup('Games', regularSeasonGames, groupResults, usedResults, v2OldestGameFirst);
   return {
@@ -949,7 +888,9 @@ function v2BuildScheduleSeasonSections(allSeasonGames, results, selectedTeam) {
       selectedSeasonKey: resolvedSeasonKey
     },
     html: '<section class="v2-schedule-season">' +
-      v2BuildSeasonSummaryCards(teamGames, groupResults) +
+      (teamGames.length
+        ? v2BuildSeasonSummaryCards(teamGames, groupResults)
+        : '<section class="v2-schedule-block"><div class="v2-schedule-label">Schedule Coming Soon</div></section>') +
       regularSeasonMarkup +
       v2BuildScheduleSubgroup('State Playoff Games', teamGames.filter(function(game) { return !!game.playoff; }), groupResults, usedResults, v2OldestGameFirst) +
     '</section>'
@@ -971,33 +912,58 @@ function v2UpdateScheduleHeader(group, results, allGames, selectedTeam, allGroup
   var controls = document.getElementById('v2ScheduleControls') || header.querySelector('.v2-schedule-controls');
   if (controls) {
     controls.innerHTML = v2BuildScheduleControlsMarkup(group, allGames, selectedTeam, allGroups, selectedSeasonKey);
+    var calendarDialog = controls.querySelector('.v2-calendar-dialog');
+    controls.querySelector('.v2-calendar-sync > button').addEventListener('click', function() {
+      calendarDialog.showModal();
+    });
+    calendarDialog.querySelector('input').addEventListener('focus', function() {
+      this.select();
+    });
   }
 }
 
-function v2BuildCalendarSyncMarkup() {
-  return '<div class="v2-calendar-sync" aria-label="Sync schedule calendar">' +
-      '<div>' +
-        '<span class="v2-calendar-sync-label">Sync Calendar</span>' +
-        '<p>Subscribe once and get the baseball schedule on your phone each season.</p>' +
-      '</div>' +
+function v2BuildCalendarSyncMarkup(team, year) {
+  var teamLabel = v2EscapeHtml(v2GetScheduleTeamLabel(team));
+  var path = (window.__SITE_BASE_PATH || '') + '/api/baseball-calendar/' + year + '-timp-' + team + '.ics';
+  var feed = new URL(path, window.location.origin).href;
+  var apple = feed.replace(/^https?:\/\//i, 'webcal://');
+  var google = 'https://calendar.google.com/calendar/render?cid=' + encodeURIComponent(feed);
+  return '<div class="v2-calendar-sync">' +
+    '<button type="button" class="v2-calendar-sync-link" aria-haspopup="dialog">' +
+      '<svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+        '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M8 2v4m8-4v4M3 10h18m-9 3v6m-3-3h6"/>' +
+      '</svg>' +
+      'Add ' + teamLabel + ' games to calendar</button>' +
+    '<dialog class="v2-calendar-dialog" aria-labelledby="v2CalendarTitle" aria-describedby="v2CalendarDescription">' +
+      '<header class="v2-calendar-dialog-header">' +
+        '<div><span class="v2-calendar-dialog-kicker">Schedule Sync</span>' +
+          '<h3 id="v2CalendarTitle">Add ' + teamLabel + ' to calendar</h3></div>' +
+        '<form method="dialog"><button type="submit" class="v2-calendar-dialog-close" aria-label="Close calendar options">&times;</button></form>' +
+      '</header>' +
+      '<p id="v2CalendarDescription">Subscribe to the ' + year + ' Timpanogos ' + teamLabel + ' baseball schedule. Game dates, first-pitch times, locations, and schedule changes will update in your calendar app.</p>' +
       '<div class="v2-calendar-sync-actions">' +
-        '<a class="v2-calendar-sync-link v2-calendar-sync-link-muted v2-calendar-sync-link-apple" href="/api/schedule.ics">Apple</a>' +
-        '<a class="v2-calendar-sync-link v2-calendar-sync-link-muted v2-calendar-sync-link-google" href="/api/schedule.ics" target="_blank" rel="noopener">Android</a>' +
-        '<a class="v2-calendar-sync-link v2-calendar-sync-link-muted v2-calendar-sync-link-ics" href="/api/schedule.ics" download="timpanogos-baseball-schedule.ics">ICS</a>' +
+        '<a class="v2-calendar-option" href="' + v2EscapeHtml(apple) + '">' +
+          '<span class="v2-calendar-option-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.2 12.8c0-2.5 2-3.7 2.1-3.8-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.6.9-.8 0-1.9-.9-3.1-.8-1.6.1-3.1.9-3.9 2.4-1.7 2.9-.4 7.3 1.2 9.7.8 1.2 1.7 2.5 2.9 2.4 1.2 0 1.7-.8 3.2-.8s1.9.8 3.3.8c1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8-.1 0-2.9-1.1-2.9-3.7ZM14.8 5.5c.7-.8 1.1-1.9 1-3-.9 0-1.9.6-2.7 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2-.5 2.7-1.3Z"/></svg></span>' +
+          '<div><strong>Apple Calendar</strong><span>For iPhone, iPad, and Mac. Opens a calendar subscription prompt.</span></div></a>' +
+        '<a class="v2-calendar-option" href="' + v2EscapeHtml(google) + '" target="_blank" rel="noopener">' +
+          '<span class="v2-calendar-option-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.3 6.2 6.9 3.8m8.8 2.4 1.4-2.4" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path fill-rule="evenodd" d="M6.4 8.4a5.6 5.6 0 0 1 11.2 0v.4H6.4Zm4-1.5a.5.5 0 1 0-1 0 .5.5 0 0 0 1 0Zm4.2 0a.5.5 0 1 0-1 0 .5.5 0 0 0 1 0Z"/><rect x="6.4" y="9.6" width="11.2" height="8.3" rx=".5"/><rect x="3.5" y="9.7" width="2.5" height="7.5" rx="1.25"/><rect x="18" y="9.7" width="2.5" height="7.5" rx="1.25"/><path d="M9.4 17v3m5.2-3v3" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></span>' +
+          '<div><strong>Android / Google</strong><span>Set up the subscription in Google Calendar on a computer. It will then appear in your calendar app.</span></div></a>' +
+        '<a class="v2-calendar-option" href="' + v2EscapeHtml(path) + '" download>' +
+          '<span class="v2-calendar-option-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M8 2v4m8-4v4M3 10h18m-13 5h8m-8 3h5"/></svg></span>' +
+          '<div><strong>Other Calendar App</strong><span>Download the ICS file for a one-time import, or subscribe using the URL below.</span></div></a>' +
       '</div>' +
-    '</div>';
+      '<label>Calendar subscription URL<input type="url" readonly value="' + v2EscapeHtml(feed) + '"></label>' +
+    '</dialog>' +
+  '</div>';
 }
 
 function v2BuildScheduleControlsMarkup(group, allGames, selectedTeam, allGroups, selectedSeasonKey) {
-  var syncMarkup = v2ShouldShowCalendarSync(group) ? v2BuildCalendarSyncMarkup() : '';
   return '<div class="v2-schedule-controls-layout">' +
-      '<div class="v2-schedule-controls-main">' +
-        '<div class="v2-schedule-controls-top">' +
-          v2BuildSeasonSelect(allGroups, selectedSeasonKey, selectedTeam) +
-        '</div>' +
-        v2BuildSeasonTeamTabs(group, allGames, selectedTeam, selectedSeasonKey) +
+      '<div class="v2-schedule-controls-top">' +
+        v2BuildSeasonSelect(allGroups, selectedSeasonKey, selectedTeam) +
+        v2BuildCalendarSyncMarkup(selectedTeam, group.year) +
       '</div>' +
-      syncMarkup +
+      v2BuildSeasonTeamTabs(group, allGames, selectedTeam, selectedSeasonKey) +
     '</div>';
 }
 
@@ -1008,7 +974,6 @@ function v2GetSeasonName(season) {
 
 function v2BuildSeasonSelect(allGroups, selectedSeasonKey, selectedTeam) {
   var groups = allGroups || [];
-  if (groups.length < 2) return '';
   return '<label class="v2-season-picker-label">Season ' +
     '<select class="v2-season-picker">' +
       groups.map(function(group) {
@@ -1721,72 +1686,6 @@ function v2WireHeaderScrollState() {
   syncHeaderState();
 }
 
-function v2GoogleCalendarSubscribeUrl(calendarUrl) {
-  try {
-    return 'https://calendar.google.com/calendar/render?cid=' +
-      encodeURIComponent(window.btoa(calendarUrl));
-  } catch (error) {
-    return 'https://calendar.google.com/calendar/render?cid=' + encodeURIComponent(calendarUrl);
-  }
-}
-
-function v2GetHttpsCalendarUrl(path) {
-  var host = window.location.hostname || '';
-  var isLocal = /^(localhost|127\.0\.0\.1)$/i.test(host);
-  var origin = window.location.origin || '';
-  if (!isLocal && window.location.protocol === 'http:') {
-    origin = 'https://' + window.location.host;
-  }
-  return origin + path;
-}
-
-function v2ToWebcalUrl(httpsUrl) {
-  return String(httpsUrl || '').replace(/^https:\/\//i, 'webcal://');
-}
-
-function v2WireCalendarSyncLinks() {
-  var syncEl = document.querySelector('#schedule .v2-season-results-header .v2-calendar-sync');
-  if (!syncEl) return;
-  var appleLink = syncEl.querySelector('.v2-calendar-sync-link-apple');
-  var googleLink = syncEl.querySelector('.v2-calendar-sync-link-google');
-  var icsLink = syncEl.querySelector('.v2-calendar-sync-link-ics');
-  var labelEl = syncEl.querySelector('.v2-calendar-sync-label');
-  var descriptionEl = syncEl.querySelector('p');
-  if (!appleLink && !googleLink && !icsLink) return;
-
-  var games = v2GetScheduleGames();
-  var selectedTeam = v2GetSelectedScheduleTeam();
-  var selectedSeasonKey = v2ResolveSelectedSeasonKey(games);
-  var selectedSeason = selectedSeasonKey.split('-')[0] || 'spring';
-  var selectedYear = selectedSeasonKey.split('-')[1] || '';
-  var seasonLabel = v2GetSeasonName(selectedSeason) + (selectedYear ? ' ' + selectedYear : '');
-  var teamLabel = v2GetScheduleTeamLabel(selectedTeam);
-  var calendarFile = selectedSeasonKey
-    ? 'schedule-' + selectedTeam + '-' + selectedSeasonKey + '.ics'
-    : 'schedule.ics';
-  var calendarPath = (window.__SITE_BASE_PATH || '') + '/api/' + calendarFile;
-  var calendarUrl = v2GetHttpsCalendarUrl(calendarPath);
-
-  if (labelEl) labelEl.textContent = 'Sync ' + teamLabel + ' ' + seasonLabel;
-  if (descriptionEl) descriptionEl.textContent = 'Subscribe to the ' + teamLabel + ' ' + seasonLabel + ' schedule.';
-
-  if (appleLink) {
-    appleLink.href = v2ToWebcalUrl(calendarUrl);
-    appleLink.textContent = 'Apple';
-  }
-
-  if (googleLink) {
-    googleLink.href = v2GoogleCalendarSubscribeUrl(calendarUrl);
-    googleLink.textContent = 'Android';
-  }
-
-  if (icsLink) {
-    icsLink.href = calendarPath;
-    icsLink.download = 'timpanogos-baseball-' + selectedTeam + '-' + selectedSeasonKey + '.ics';
-    icsLink.textContent = 'ICS';
-  }
-}
-
 function v2Boot() {
   if (window.__v2Booted) return;
   window.__v2Booted = true;
@@ -1805,7 +1704,6 @@ function v2Boot() {
   v2WireHomeStorySections();
   v2WireMobileNav();
   v2WireHeaderScrollState();
-  v2WireCalendarSyncLinks();
   v2WireScheduleNavigation();
   v2WireCarouselPhotoListener();
   v2WireScheduleDataListener();

@@ -1,5 +1,4 @@
 var DATABASE_URL = 'https://timpanogos-baseball-default-rtdb.firebaseio.com';
-var DEFAULT_CALENDAR_NAME = 'Timpanogos Baseball Spring Schedule';
 var TIME_ZONE = 'America/Denver';
 var DEFAULT_DURATION_MINUTES = 150;
 var TEAM_LABELS = {
@@ -31,15 +30,11 @@ function sendCalendar(res, statusCode, body) {
 
 function fbToArray(value) {
   if (!value) return [];
-  if (Array.isArray(value)) return value.filter(Boolean);
-  return Object.keys(value).sort(function(a, b) {
-    var numA = Number(a);
-    var numB = Number(b);
-    if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
-    return a.localeCompare(b);
-  }).map(function(key) {
-    return value[key];
-  }).filter(Boolean);
+  return Object.entries(value).filter(function(entry) {
+    return Boolean(entry[1]);
+  }).map(function(entry) {
+    return Object.assign({}, entry[1], { scheduleId: entry[0] });
+  });
 }
 
 function getDateParts(value) {
@@ -110,6 +105,8 @@ function parseQueryFromRequestUrl(url) {
     team: parsedUrl.searchParams.get('team') || '',
     season: parsedUrl.searchParams.get('season') || ''
   };
+  var teamFeed = parsedUrl.pathname.match(/\/baseball-calendar\/(?:(\d{4})-timp-)?(varsity|jv|sophomore)\.ics\/?$/);
+  if (teamFeed) return { team: teamFeed[2], allSeasons: true, year: teamFeed[1] ? Number(teamFeed[1]) : null };
   var fileMatch = parsedUrl.pathname.match(/\/schedule-([a-z]+)-(spring|summer|fall)-(\d{4})\.ics$/i);
   if (fileMatch) {
     if (!query.team) query.team = fileMatch[1];
@@ -124,6 +121,7 @@ function filterGames(games, query) {
   return (games || []).filter(function(game) {
     var gameTeam = normalizeTeam(game && game.teamLevel);
     if (gameTeam !== team) return false;
+    if (query.allSeasons) return query.year == null || getGameYear(game) === query.year;
     if (!seasonYear.year) return getSeasonFromDate(game) === seasonYear.season;
     return getSeasonFromDate(game) === seasonYear.season && getGameYear(game) === seasonYear.year;
   });
@@ -131,6 +129,10 @@ function filterGames(games, query) {
 
 function buildCalendarName(games, query) {
   var team = normalizeTeam(query && query.team);
+  if (query && query.allSeasons) {
+    var feedYear = query.year == null ? '' : ' ' + query.year;
+    return 'Timpanogos Baseball ' + TEAM_LABELS[team] + feedYear + ' Schedule';
+  }
   var seasonYear = parseSeasonYear(query && query.season, games);
   var seasonLabel = seasonYear.season.charAt(0).toUpperCase() + seasonYear.season.slice(1);
   var yearLabel = seasonYear.year ? ' ' + seasonYear.year : '';
@@ -222,7 +224,7 @@ function normalizeUidPart(value) {
     .replace(/^-|-$/g, '') || 'game';
 }
 
-function buildGameEvent(game, index, now) {
+function buildGameEvent(game, index, now, useStableIds) {
   var dateParts = String(game.date || '').split('-').map(Number);
   if (dateParts.length !== 3 || dateParts.some(function(part) { return !Number.isFinite(part); })) {
     return null;
@@ -243,7 +245,9 @@ function buildGameEvent(game, index, now) {
 
   return [
     'BEGIN:VEVENT',
-    'UID:' + normalizeUidPart(game.date) + '-' + normalizeUidPart(game.time) + '-' + normalizeUidPart(opponent) + '-' + index + '@timpanogosbaseball',
+    'UID:' + (useStableIds && game.scheduleId != null
+      ? 'schedule-' + encodeURIComponent(game.scheduleId)
+      : normalizeUidPart(game.date) + '-' + normalizeUidPart(game.time) + '-' + normalizeUidPart(opponent) + '-' + index) + '@timpanogosbaseball',
     'DTSTAMP:' + formatIcsDate(now),
     'DTSTART:' + formatIcsDate(startsAt),
     'DTEND:' + formatIcsDate(endsAt),
@@ -275,7 +279,7 @@ function buildCalendar(games, query) {
       return String(a.date || '').localeCompare(String(b.date || '')) || String(a.time || '').localeCompare(String(b.time || ''));
     })
     .forEach(function(game, index) {
-      var eventLines = buildGameEvent(game, index, now);
+      var eventLines = buildGameEvent(game, index, now, query.allSeasons);
       if (eventLines) lines = lines.concat(eventLines);
     });
 
@@ -318,4 +322,6 @@ module.exports = async function handler(req, res) {
   }
 };
 
+module.exports.buildCalendar = buildCalendar;
+module.exports.fbToArray = fbToArray;
 module.exports.buildCalendarName = buildCalendarName;
