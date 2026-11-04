@@ -24,7 +24,7 @@ body:has(#shop) { --shop-header-height: 84px; overflow-x: clip; }
 .shop-product-copy h3 { font-size: 1.25rem; line-height: 1.4; margin: 0 0 12px; }
 .shop-product-copy h3 a { color: #09142d; text-decoration: none; }
 .shop-product-copy p { color: #475569; margin: 8px 0 16px; }
-.shop-product-copy .shop-price { font-weight: 700; color: #09142d; font-size: 1.25rem; }
+.shop-product-copy .shop-price { margin: 4px 0 10px; font-weight: 700; color: #09142d; font-size: 1.25rem; }
 .shop-all-link { display: inline-block; color: #98ff51; margin-top: 8px; }
 .shop-card a:focus-visible, .shop-all-link:focus-visible { outline: 3px solid #70ff00; outline-offset: 4px; }
 
