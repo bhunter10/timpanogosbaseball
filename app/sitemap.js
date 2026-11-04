@@ -1,3 +1,5 @@
+export const dynamic = 'force-static';
+
 const SITE_URL = 'https://timpanogosbaseball.com';
 
 const routes = [
