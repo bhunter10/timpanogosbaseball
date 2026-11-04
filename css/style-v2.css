@@ -3065,13 +3065,20 @@ body.v2-reveals-ready .v2-filmstrip-band.v2-reveal:not(.v2-visible) .v2-filmstri
 }
 @media (max-width: 720px) {
   .v2-apparel-layout { min-height: 0; }
-  .v2-apparel-copy { width: 60%; padding: 32px 0; }
-  .v2-apparel h2 { max-width: 230px; font-size: clamp(2.8rem, 12vw, 4.3rem); }
-  .v2-apparel-description { max-width: 210px; font-size: .96rem; line-height: 1.62; }
+  .v2-apparel-copy { width: 100%; padding: 32px 0 24px; text-align: center; }
+  .v2-apparel-status { justify-content: center; }
+  .v2-apparel h2 { font-size: clamp(2.8rem, 10vw, 4.3rem); }
+  .v2-apparel-description {
+    max-width: 320px;
+    margin: 0 auto 20px;
+    font-size: .96rem;
+    line-height: 1.55;
+  }
+  .v2-apparel-cta { width: min(100%, 320px); }
   .v2-apparel-photo { position: relative; inset: auto; width: 100%; transform: none; }
-  .v2-apparel-photo::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, #060b12 0%, transparent 18%); }
-}
-@media (max-width: 400px) {
-  .v2-apparel-copy { width: 62%; }
-  .v2-apparel-description { max-width: 170px; }
+  .v2-apparel-photo img {
+    aspect-ratio: 8 / 5;
+    object-fit: cover;
+    object-position: right center;
+  }
 }
