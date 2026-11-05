@@ -1810,7 +1810,17 @@ button{font:inherit}
 .v2-calendar-sync > button svg{
   flex-shrink:0;
 }
+html:has(body.v2-calendar-open){
+  overflow:hidden;
+}
+body.v2-calendar-open{
+  position:fixed;
+  top:var(--v2-calendar-scroll-top);
+  width:100%;
+  overflow:hidden;
+}
 .v2-calendar-dialog{
+  overscroll-behavior:contain;
   width:min(34rem, calc(100% - 2rem));
   max-height:calc(100% - 2rem);
   margin:auto;

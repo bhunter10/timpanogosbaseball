@@ -927,9 +927,23 @@ function v2UpdateScheduleHeader(group, results, allGames, selectedTeam, allGroup
 
   var controls = document.getElementById('v2ScheduleControls') || header.querySelector('.v2-schedule-controls');
   if (controls) {
+    var previousDialog = controls.querySelector('.v2-calendar-dialog');
+    if (previousDialog && previousDialog._restoreScroll) previousDialog._restoreScroll();
     controls.innerHTML = v2BuildScheduleControlsMarkup(group, allGames, selectedTeam, allGroups, selectedSeasonKey);
     var calendarDialog = controls.querySelector('.v2-calendar-dialog');
+    var scrollPosition = null;
+    calendarDialog._restoreScroll = function() {
+      if (scrollPosition === null) return;
+      document.body.classList.remove('v2-calendar-open');
+      document.body.style.removeProperty('--v2-calendar-scroll-top');
+      window.scrollTo(0, scrollPosition);
+      scrollPosition = null;
+    };
+    calendarDialog.addEventListener('close', calendarDialog._restoreScroll);
     controls.querySelector('.v2-calendar-sync > button').addEventListener('click', function() {
+      scrollPosition = window.scrollY;
+      document.body.style.setProperty('--v2-calendar-scroll-top', -scrollPosition + 'px');
+      document.body.classList.add('v2-calendar-open');
       calendarDialog.showModal();
     });
     calendarDialog.querySelector('input').addEventListener('focus', function() {
