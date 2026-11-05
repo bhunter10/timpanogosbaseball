@@ -872,10 +872,26 @@ function v2BuildScheduleSeasonSections(allSeasonGames, results, selectedTeam) {
   function isRegionGame(game) {
     return typeof game.region === 'boolean' ? game.region : v2RegionTeams.indexOf(game.opponent) !== -1;
   }
+  function isDesertHillsTournamentGame(game) {
+    return resolvedSeasonKey === 'spring-2027' && seasonTeam === 'varsity' &&
+      (game.date === '2027-03-19' || game.date === '2027-03-20') &&
+      String(game.location || '').trim().toLowerCase() === 'desert hills';
+  }
+  var tournamentGames = regularSeasonGames.filter(isDesertHillsTournamentGame).sort(v2OldestGameFirst);
+  var firstTournamentGame = tournamentGames[0];
+  var nonRegionGames = regularSeasonGames.filter(function(game) {
+    return !isRegionGame(game) && !isDesertHillsTournamentGame(game);
+  });
   var regularSeasonMarkup = isSpringSeason
     ? (
-      v2BuildScheduleSubgroup('Non-Region Games', regularSeasonGames.filter(function(game) { return !isRegionGame(game); }), groupResults, usedResults, v2OldestGameFirst) +
-      v2BuildScheduleSubgroup('Region Games', regularSeasonGames.filter(isRegionGame), groupResults, usedResults, v2OldestGameFirst)
+      v2BuildScheduleSubgroup('Non-Region Games', nonRegionGames.filter(function(game) {
+        return !firstTournamentGame || v2OldestGameFirst(game, firstTournamentGame) < 0;
+      }), groupResults, usedResults, v2OldestGameFirst) +
+      v2BuildScheduleSubgroup('Desert Hills Tournament', tournamentGames, groupResults, usedResults, v2OldestGameFirst) +
+      v2BuildScheduleSubgroup('Non-Region Games (continued)', nonRegionGames.filter(function(game) {
+        return firstTournamentGame && v2OldestGameFirst(game, firstTournamentGame) >= 0;
+      }), groupResults, usedResults, v2OldestGameFirst) +
+      v2BuildScheduleSubgroup('Region Games', regularSeasonGames.filter(function(game) { return isRegionGame(game) && !isDesertHillsTournamentGame(game); }), groupResults, usedResults, v2OldestGameFirst)
     )
     : v2BuildScheduleSubgroup('Games', regularSeasonGames, groupResults, usedResults, v2OldestGameFirst);
   return {
@@ -887,7 +903,7 @@ function v2BuildScheduleSeasonSections(allSeasonGames, results, selectedTeam) {
       allGroups: orderedGroups,
       selectedSeasonKey: resolvedSeasonKey
     },
-    html: '<section class="v2-schedule-season">' +
+    html: '<section class="v2-schedule-season' + (resolvedSeasonKey === 'spring-2027' ? ' v2-schedule-season-two-columns' : '') + '">' +
       (teamGames.length
         ? v2BuildSeasonSummaryCards(teamGames, groupResults)
         : '<section class="v2-schedule-block"><div class="v2-schedule-label">Schedule Coming Soon</div></section>') +

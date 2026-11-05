@@ -1384,6 +1384,12 @@ button{font:inherit}
   grid-template-columns:repeat(3, minmax(0, 1fr));
   gap:18px;
 }
+@media (min-width: 768px){
+  .v2-schedule-season-two-columns .v2-schedule-grid,
+  .v2-schedule-season-two-columns .v2-season-summary-grid{
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+  }
+}
 .v2-schedule-groups{
   display:grid;
   gap:30px;
@@ -1490,6 +1496,14 @@ button{font:inherit}
 }
 .v2-season-summary-grid .v2-panel{
   min-height:150px;
+}
+.v2-season-summary-grid .v2-panel-highlight{
+  border-color:rgba(245,193,92,.62);
+  background:linear-gradient(135deg, #473118, #201b1c 56%, #0b1528);
+}
+.v2-season-summary-grid .v2-panel-label{
+  color:#ffd686;
+  opacity:1;
 }
 .v2-season-results-card,
 .v2-season-record-card{
